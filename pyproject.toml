@@ -1,0 +1,9 @@
+[project]
+name = "route-fit"
+version = "0.1.0"
+description = "광주에 온 하나의 이유를 하루로 확장하는 AI 여행 조합 생성 플랫폼"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

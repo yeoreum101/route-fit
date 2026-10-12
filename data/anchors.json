@@ -1,0 +1,35 @@
+[
+  {
+    "id": "champions_field",
+    "name": "광주-기아 챔피언스 필드",
+    "category": "venue",
+    "area": "북구 임동",
+    "lat": 35.1683,
+    "lng": 126.8891,
+    "description": "KIA 타이거즈 홈구장. 프로야구 경기 관람.",
+    "aliases": ["챔피언스필드", "챔필", "야구장", "야구"],
+    "stay_min": 210
+  },
+  {
+    "id": "arts_center",
+    "name": "광주예술의전당",
+    "category": "venue",
+    "area": "북구 운암동",
+    "lat": 35.1778,
+    "lng": 126.8825,
+    "description": "공연·콘서트·뮤지컬이 열리는 공연장.",
+    "aliases": ["예술의전당", "광주문화예술회관", "문예회관"],
+    "stay_min": 150
+  },
+  {
+    "id": "kdj_convention",
+    "name": "김대중컨벤션센터",
+    "category": "venue",
+    "area": "서구 치평동",
+    "lat": 35.1468,
+    "lng": 126.8405,
+    "description": "학회·박람회·전시가 열리는 컨벤션센터.",
+    "aliases": ["김대중컨벤션", "컨벤션센터", "DJ센터"],
+    "stay_min": 240
+  }
+]

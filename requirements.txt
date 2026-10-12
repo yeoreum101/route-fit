@@ -1,0 +1,12 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+numpy>=1.26
+python-dotenv>=1.0
+ortools>=9.10
+openai>=1.100
+pytest>=8.0
+httpx>=0.27
+
+# 선택: 한국어 문장 임베딩(② 취향 매칭)을 실제 모델로 돌릴 때만 설치 (torch 포함, 용량 큼)
+# sentence-transformers>=3.0

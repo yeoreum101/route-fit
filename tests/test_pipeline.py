@@ -1,0 +1,68 @@
+import pytest
+from fastapi.testclient import TestClient
+
+from routefit.api import app
+from routefit.data import load_anchors, load_places
+from routefit.models import MustVisitInput, PlanRequest, to_min
+from routefit.parser import parse_rule_based
+from routefit.pipeline import make_course
+from routefit.planner import PlanError
+
+QUERY = "토요일 야구 보기 전에 사진 찍기 좋은 데랑 로컬 맛집 가고 싶어. 예산 10만원"
+BASEBALL = MustVisitInput(id="champions_field", start="18:30")
+
+
+@pytest.mark.parametrize("planner", ["greedy", "ortools"])
+def test_must_visit_is_kept_and_course_is_executable(planner):
+    course = make_course(PlanRequest(query=QUERY, must_visits=[BASEBALL], planner=planner))
+
+    must = [s for s in course.stops if s.kind == "must"]
+    assert [s.place_id for s in must] == ["champions_field"]
+    assert must[0].start == "18:30"
+    assert course.metrics.n_ai_places >= 2
+
+    places = {p.id: p for p in load_places()}
+    for prev, cur in zip(course.stops, course.stops[1:]):
+        assert to_min(prev.end) + cur.travel_min <= to_min(cur.start)
+    for s in course.stops:
+        if s.kind == "ai":
+            assert to_min(places[s.place_id].open) <= to_min(s.start)
+            assert to_min(s.end) <= to_min(places[s.place_id].close)
+    assert course.metrics.total_cost <= 100000
+
+
+def test_must_visit_parsed_from_sentence_when_not_selected():
+    course = make_course(PlanRequest(query=QUERY))
+    assert "champions_field" in [s.place_id for s in course.stops if s.kind == "must"]
+
+
+def test_closed_day_is_excluded():
+    course = make_course(PlanRequest(query="월요일에 전시랑 미술관 보고 싶어"))
+    assert "acc" not in [s.place_id for s in course.stops]
+
+
+def test_conflicting_fixed_times_raise():
+    req = PlanRequest(
+        query="야구랑 공연",
+        must_visits=[BASEBALL, MustVisitInput(id="arts_center", start="19:00")],
+    )
+    with pytest.raises(PlanError):
+        make_course(req)
+
+
+def test_rule_based_parser():
+    parsed = parse_rule_based("일요일 오후 2시부터 밤 9시까지 친구랑 5만원으로 챔필", load_anchors())
+    assert (parsed.day_start, parsed.day_end) == ("14:00", "21:00")
+    assert parsed.budget == 50000
+    assert parsed.weekday == 6
+    assert parsed.companions == "친구"
+    assert [m.name for m in parsed.must_visits] == ["광주-기아 챔피언스 필드"]
+
+
+def test_api():
+    client = TestClient(app)
+    assert client.get("/api/health").json()["ok"]
+    res = client.post("/api/plan", json={"query": QUERY, "must_visits": [{"id": "champions_field", "start": "18:30"}]})
+    assert res.status_code == 200
+    assert res.json()["stops"]
+    assert client.post("/api/plan", json={"query": "x", "must_visits": [{"name": "없는장소"}]}).status_code == 422

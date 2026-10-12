@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Route-Fit</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Route-Fit</h1>
+    <p>광주에 온 하나의 이유를 하루로</p>
+  </header>
+
+  <main>
+    <form id="plan-form" class="panel">
+      <h2>조건 입력</h2>
+
+      <label for="must">필수 방문지 <span class="tag must">필수</span></label>
+      <select id="must"></select>
+      <div class="row">
+        <div>
+          <label for="must-start">시작 시각 (고정)</label>
+          <input id="must-start" type="time" value="18:30">
+        </div>
+        <div>
+          <label for="must-stay">머무는 시간(분)</label>
+          <input id="must-stay" type="number" min="10" step="10" placeholder="기본값">
+        </div>
+      </div>
+
+      <label for="query">어떤 하루를 원하세요? <span class="tag ai">AI 추천</span></label>
+      <textarea id="query" rows="4" required>토요일 야구 보기 전에 사진 찍기 좋은 데랑 로컬 맛집 가고 싶어. 예산 10만원</textarea>
+
+      <div class="row">
+        <div>
+          <label for="day-start">하루 시작</label>
+          <input id="day-start" type="time" value="10:00">
+        </div>
+        <div>
+          <label for="day-end">하루 종료</label>
+          <input id="day-end" type="time" value="22:00">
+        </div>
+      </div>
+
+      <label for="planner">코스 생성기</label>
+      <select id="planner">
+        <option value="greedy">그리디 (Phase 1)</option>
+        <option value="ortools">OR-Tools 최적화 (Phase 2)</option>
+      </select>
+
+      <button type="submit">코스 만들기</button>
+      <p id="status" role="status"></p>
+    </form>
+
+    <section class="panel" id="course">
+      <h2>AI 생성 코스</h2>
+      <p id="summary" class="muted">조건을 입력하고 코스를 만들어 보세요.</p>
+      <ul id="metrics"></ul>
+      <ol id="timeline"></ol>
+      <p id="engine" class="muted small"></p>
+    </section>
+
+    <section class="panel map-panel">
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
