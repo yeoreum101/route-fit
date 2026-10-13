@@ -41,7 +41,10 @@ def test_course_is_saved_and_shareable():
     assert course["id"]
 
     shared = client.get(f"/api/courses/{course['id']}").json()
+    request = shared.pop("request")
+    assert course.pop("request") is None  # 생성 응답에는 넣지 않는다
     assert shared == course
+    assert request["must_visits"][0]["id"] == "champions_field" and request["query"] == QUERY
     assert course["id"] in [c["id"] for c in client.get("/api/courses").json()]
     assert client.get("/api/courses/nope").status_code == 404
 

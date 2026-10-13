@@ -63,7 +63,31 @@ button:disabled { opacity: .5; cursor: wait; }
 #must-detail.off { opacity: .45; }
 .with-unit { display: flex; align-items: center; gap: 6px; }
 .with-unit input { min-width: 0; }
+.weekday { min-width: 3.5em; }
 .with-unit span { font-size: 13px; color: var(--muted); }
+/* 직접 지정(선택): 비워 두는 게 기본이라 덜 눈에 띄게 */
+.optional-box { margin: 14px 0 0; padding: 4px 14px 10px; border: 1px dashed var(--line); border-radius: 10px; }
+.optional-box legend { padding: 0 6px; font-size: 13px; font-weight: 600; }
+.optional-box > p { margin: 2px 0 0; }
+.optional-box label { margin-top: 10px; }
+.help { margin: 4px 0 0; }
+button.link { width: auto; margin: 8px 0 0; padding: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 600; text-decoration: underline; }
+button.link:hover { color: var(--text); }
+
+/* 인식된 조건 */
+#conditions { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+#conditions[hidden] { display: none; }
+#conditions h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.chips li { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; }
+.chip-label { color: var(--muted); font-size: 12px; }
+.chip-source { font-size: 11px; color: var(--muted); padding-left: 6px; border-left: 1px solid var(--line); }
+.chip-source.screen { color: var(--text); font-weight: 600; }
+#condition-taste { margin: 8px 0 0; }
+#condition-taste:empty { display: none; }
+.notes { list-style: none; margin: 8px 0 0; padding: 0; }
+.notes li { padding: 6px 10px; margin-top: 4px; border-radius: 8px; background: var(--bg); font-size: 12px; color: #374151; }
+.notes li::before { content: "ⓘ "; color: var(--muted); }
 #status { min-height: 1.5em; margin: 8px 0 0; font-size: 13px; color: var(--must); }
 
 .tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #fff; }
@@ -88,6 +112,7 @@ button:disabled { opacity: .5; cursor: wait; }
 #timeline .must .dot { background: var(--must); }
 #timeline .ai .dot { background: var(--ai); }
 #timeline .time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#timeline .cost { margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--line); color: var(--text); }
 #timeline .name { font-weight: 700; }
 #timeline .reason { margin: 4px 0 0; font-size: 13px; color: #374151; }
 #timeline .move { font-size: 12px; color: var(--muted); }

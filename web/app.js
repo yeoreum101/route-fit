@@ -19,21 +19,73 @@ async function loadMustOptions() {
     select.append(group);
   }
   select.value = "champions_field";
-  for (const p of [...anchors, ...places]) stayDefaults[p.id] = p.stay_min;
+  for (const p of [...anchors, ...places]) mustInfo[p.id] = p;
   syncMustDetail();
 }
 
 // 필수 방문지를 고르지 않으면 시작 시각·머무는 시간은 쓸 데가 없으므로 잠근다.
-const stayDefaults = {};
+const mustInfo = {};
 function syncMustDetail() {
   const id = $("must").value;
   for (const input of [$("must-start"), $("must-stay")]) input.disabled = !id;
   $("must-detail").classList.toggle("off", !id);
-  $("must-stay").placeholder = id ? `기본 ${stayDefaults[id]}` : ""; // 장소마다 기본 체류시간이 다르다
+  $("must-stay").placeholder = id ? `기본 ${mustInfo[id].stay_min}` : ""; // 장소마다 기본 체류시간이 다르다
   $("must-help-on").hidden = !id;
   $("must-help-off").hidden = !!id;
 }
-$("must").addEventListener("change", syncMustDetail);
+$("must").addEventListener("change", () => {
+  // 시작 시각 고정은 경기·공연장에만 기본으로 의미가 있다. 다른 장소로 바꾸면 비워 둔다.
+  const p = mustInfo[$("must").value];
+  if (p && p.category !== "venue") $("must-start").value = "";
+  syncMustDetail();
+});
+
+$("clear-optional").addEventListener("click", () => {
+  for (const id of ["visit-date", "day-start", "day-end", "budget"]) $(id).value = "";
+  showWeekday();
+});
+
+// 날짜 옆에 요일을 보여 준다. 'YYYY-MM-DD' 를 그대로 Date 로 읽으면 UTC 로 해석되므로 나눠서 만든다.
+function showWeekday() {
+  const v = $("visit-date").value;
+  if (!v) { $("visit-weekday").textContent = ""; return; }
+  const [y, m, d] = v.split("-").map(Number);
+  $("visit-weekday").textContent = `${"일월화수목금토"[new Date(y, m - 1, d).getDay()]}요일`;
+}
+$("visit-date").addEventListener("input", showWeekday);
+
+// 서버가 실제로 쓴 조건과 그 출처. 화면 값이 문장을 덮어썼으면 notes 로 알려 준다.
+const WEEKDAY_KO = ["월", "화", "수", "목", "금", "토", "일"];
+
+function drawConditions(course) {
+  const c = course.constraints;
+  const src = c.sources || {};
+  const chips = [];
+  const add = (label, value, source) => chips.push([label, value, source]);
+
+  if (c.must_visits && c.must_visits.length) add("필수 방문지", c.must_visits.join(", "), src.must_visits);
+  const timeSource = src.day_start === src.day_end ? src.day_start : [src.day_start && `시작 ${src.day_start}`, src.day_end && `종료 ${src.day_end}`].filter(Boolean).join(", ");
+  add("시간", `${c.day_start}–${c.day_end}`, timeSource);
+  add("예산", c.budget == null ? "제한 없음" : `${c.budget.toLocaleString()}원`, c.budget == null ? null : src.budget);
+  if (c.weekday != null) {
+    const day = c.visit_date ? `${Number(c.visit_date.slice(5, 7))}/${Number(c.visit_date.slice(8))} ` : "";
+    add("방문일", `${day}${WEEKDAY_KO[c.weekday]}요일`, src.weekday || "문장");
+  } else {
+    add("방문일", "모름 (휴무일 미확인)", null);
+  }
+  if (c.companions) add("동행", c.companions, "문장");
+  if (c.avoid_categories && c.avoid_categories.length) add("제외", c.avoid_categories.map((k) => CATEGORY_KO[k] || k).join(", "), "문장");
+
+  $("condition-chips").replaceChildren(...chips.map(([label, value, source]) => {
+    const li = el("li");
+    li.append(el("span", "chip-label", label), el("b", "", value));
+    if (source) li.append(el("span", `chip-source ${source === "화면" ? "screen" : ""}`, source));
+    return li;
+  }));
+  $("condition-taste").textContent = c.taste ? `취향: “${c.taste}”` : "";
+  $("condition-notes").replaceChildren(...(c.notes || []).map((n) => el("li", "", n)));
+  $("conditions").hidden = false;
+}
 
 function drawTimeline(course) {
   $("summary").textContent = course.summary;
@@ -57,7 +109,9 @@ function drawTimeline(course) {
     const li = el("li", s.kind);
     li.append(el("span", "dot", s.order));
     if (s.travel_min) li.append(el("div", "move", `이동 ${s.travel_min}분`));
-    li.append(el("div", "time", `${s.start} – ${s.end}`));
+    const time = el("div", "time", `${s.start} – ${s.end}`);
+    time.append(el("span", "cost", s.cost ? `1인 ${s.cost.toLocaleString()}원` : "무료"));
+    li.append(time);
     const name = el("div", "name", `${s.name} `);
     name.append(el("span", `tag ${s.kind}`, s.kind === "must" ? "필수" : "AI 추천"));
     if (s.is_local_commerce) name.append(" ", el("span", "tag local", "지역상권"));
@@ -118,6 +172,7 @@ function showShare(course) {
 }
 
 function showCourse(course) {
+  drawConditions(course);
   drawTimeline(course);
   drawMap(course);
   showShare(course);
@@ -153,8 +208,29 @@ async function loadSharedCourse() {
   const id = new URLSearchParams(location.search).get("course");
   if (!id) return;
   const res = await fetch(`/api/courses/${encodeURIComponent(id)}`);
-  if (res.ok) showCourse(await res.json());
-  else $("status").textContent = "공유된 코스를 찾을 수 없습니다.";
+  if (!res.ok) {
+    $("status").textContent = "공유된 코스를 찾을 수 없습니다.";
+    return;
+  }
+  const course = await res.json();
+  if (course.request) fillForm(course.request);
+  showCourse(course);
+}
+
+// 저장된 요청으로 입력칸을 되살린다. 받은 사람이 조건을 조금 바꿔 다시 만들어 볼 수 있다.
+function fillForm(req) {
+  const must = req.must_visits[0];
+  $("query").value = req.query;
+  $("must").value = must && must.id && mustInfo[must.id] ? must.id : "";
+  $("must-start").value = (must && must.start) || "";
+  $("must-stay").value = (must && must.stay_min) || "";
+  $("day-start").value = req.day_start || "";
+  $("day-end").value = req.day_end || "";
+  $("budget").value = req.budget ?? "";
+  $("visit-date").value = req.visit_date || "";
+  showWeekday();
+  $("planner").value = req.planner || "greedy";
+  syncMustDetail();
 }
 
 $("plan-form").addEventListener("submit", async (event) => {
@@ -165,6 +241,8 @@ $("plan-form").addEventListener("submit", async (event) => {
     must_visits: [],
     day_start: $("day-start").value || null,
     day_end: $("day-end").value || null,
+    budget: $("budget").value === "" ? null : Number($("budget").value),
+    visit_date: $("visit-date").value || null,
     planner: $("planner").value,
   };
   if ($("must").value) {
@@ -195,5 +273,5 @@ $("plan-form").addEventListener("submit", async (event) => {
   }
 });
 
-loadMustOptions();
-loadSharedCourse();
+// 필수 방문지 목록이 채워진 뒤에 공유 코스의 입력값을 넣어야 선택이 맞는다.
+loadMustOptions().then(loadSharedCourse);

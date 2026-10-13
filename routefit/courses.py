@@ -24,7 +24,7 @@ def save_course(req: PlanRequest, course: Course) -> Optional[str]:
                     id=course_id,
                     query=req.query,
                     request=req.model_dump(mode="json"),
-                    course=course.model_copy(update={"id": course_id}).model_dump(mode="json"),
+                    course=course.model_copy(update={"id": course_id}).model_dump(mode="json", exclude={"request"}),
                     planner=course.engine.get("planner", ""),
                     n_places=m.n_places,
                     n_ai_places=m.n_ai_places,
@@ -43,7 +43,7 @@ def save_course(req: PlanRequest, course: Course) -> Optional[str]:
 def get_course(course_id: str) -> Optional[Course]:
     with db.session() as s:
         row = s.get(db.CourseRow, course_id)
-        return Course(**row.course) if row else None
+        return Course(**{**row.course, "request": row.request}) if row else None
 
 
 def recent_courses(limit: int) -> list[CourseSummary]:

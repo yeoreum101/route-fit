@@ -66,3 +66,58 @@ def test_api():
     assert res.status_code == 200
     assert res.json()["stops"]
     assert client.post("/api/plan", json={"query": "x", "must_visits": [{"name": "없는장소"}]}).status_code == 422
+
+
+def test_sentence_used_when_screen_is_empty():
+    course = make_course(PlanRequest(query="일요일 오후 2시부터 밤 9시까지 친구랑 5만원으로 챔필 근처"))
+    c = course.constraints
+    assert (c.day_start, c.day_end, c.budget) == ("14:00", "21:00", 50000)
+    assert c.sources == {"must_visits": "문장", "day_start": "문장", "day_end": "문장", "budget": "문장", "weekday": "문장"}
+    assert c.must_visits == ["광주-기아 챔피언스 필드"]
+    assert c.notes == []
+
+
+def test_screen_overrides_sentence_with_notes():
+    course = make_course(
+        PlanRequest(
+            query="오후 2시부터 밤 9시까지 5만원으로 예술의전당 공연",
+            must_visits=[BASEBALL],
+            day_start="12:00",
+            budget=80000,
+        )
+    )
+    c = course.constraints
+    assert (c.day_start, c.budget) == ("12:00", 80000)
+    assert c.sources["day_start"] == "화면" and c.sources["budget"] == "화면" and c.sources["must_visits"] == "화면"
+    assert c.sources["day_end"] == "고정 일정"  # 문장의 21:00 보다 경기 종료가 늦다
+    assert any("광주예술의전당" in n for n in c.notes)
+    assert any("14:00" in n and "12:00" in n for n in c.notes)
+    assert any("50,000원" in n for n in c.notes)
+    assert any("하루 종료를 늘렸습니다" in n for n in c.notes)
+
+
+def test_defaults_when_nothing_given():
+    c = make_course(PlanRequest(query="조용한 산책")).constraints
+    assert (c.day_start, c.day_end, c.budget) == ("10:00", "22:00", None)
+    assert c.sources == {"day_start": "기본값", "day_end": "기본값"}
+    assert c.weekday is None and any("요일을 몰라" in n for n in c.notes)
+
+
+def test_visit_date_decides_closed_days():
+    from datetime import date
+
+    monday = date(2026, 10, 19)
+    course = make_course(PlanRequest(query="토요일에 전시랑 미술관 보고 싶어", visit_date=monday))
+    c = course.constraints
+    assert (c.weekday, c.sources["weekday"]) == (0, "화면")
+    assert "acc" not in [s.place_id for s in course.stops]  # 월요일 휴관
+    assert any("토요일 대신" in n for n in c.notes)
+
+
+def test_closed_must_visit_is_warned():
+    from datetime import date
+
+    course = make_course(
+        PlanRequest(query="전시", must_visits=[MustVisitInput(id="acc")], visit_date=date(2026, 10, 19))
+    )
+    assert any("월요일 휴무" in n for n in course.constraints.notes)

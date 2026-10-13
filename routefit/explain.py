@@ -69,17 +69,14 @@ def explain(visits: list[Visit], c: Constraints) -> tuple[str, dict[str, str], s
 
 def _template(visits: list[Visit]) -> tuple[str, dict[str, str], str]:
     reasons = {}
-    for i, v in enumerate(visits):
+    for v in visits:
         if v.node.mandatory:
             continue
         p = v.node.place
-        parts = [f"취향 유사도 {v.node.similarity:.2f}"]
-        if i:
-            parts.append(f"{visits[i - 1].node.place.name}에서 {v.travel}분")
-        parts.append(f"광주다움 {p.gwangju_ness:g}/5 · 체류 유도성 {p.stay_inducement:g}/5")
-        if p.is_local_commerce:
-            parts.append("지역상권")
-        reasons[v.node.id] = ", ".join(parts)
+        # 이동시간과 지역상권 여부는 화면의 타임라인·태그에 따로 나오므로 이유에는 쓰지 않는다.
+        reasons[v.node.id] = (
+            f"취향 유사도 {v.node.similarity:.2f}, 광주다움 {p.gwangju_ness:g}/5 · 체류 유도성 {p.stay_inducement:g}/5"
+        )
     musts = " · ".join(v.node.place.name for v in visits if v.node.mandatory) or "자유 일정"
     summary = f"{musts}을(를) 고정하고, 앞뒤 시간을 취향과 동선에 맞는 원도심 {len(reasons)}곳으로 채웠습니다."
     return summary, reasons, "template"

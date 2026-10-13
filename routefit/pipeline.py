@@ -155,30 +155,86 @@ def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> C
     return Course(stops=stops, summary=summary, metrics=metrics, constraints=c, engine=engine)
 
 
+WEEKDAY_KO = "월화수목금토일"
+
+
+def _pick(screen, sentence, default):
+    """화면 입력 > 문장 > 기본값. (값, 출처)"""
+    if screen is not None:
+        return screen, "화면"
+    if sentence is not None:
+        return sentence, "문장"
+    return default, "기본값"
+
+
 def make_course(req: PlanRequest) -> Course:
     known = load_anchors() + load_places()
 
     # ① 자연어 조건 파싱
     parsed, parser_used = parse_query(req.query, known)
     musts = _must_nodes(req, parsed, known)
+    sources: dict[str, str] = {}
+    notes: list[str] = []
 
-    day_start = to_min(req.day_start or parsed.day_start or config.DEFAULT_DAY_START)
-    day_end = to_min(req.day_end or parsed.day_end or config.DEFAULT_DAY_END)
+    if musts:
+        sources["must_visits"] = "화면" if req.must_visits else "문장"
+    if req.must_visits and parsed.must_visits:
+        chosen = {m.place.name for m in musts}
+        found = [m.name for m in parsed.must_visits if m.name not in chosen]
+        if found:
+            notes.append(f"문장에서 '{', '.join(found)}' 을(를) 찾았지만, 화면에서 고른 필수 방문지를 썼습니다.")
+
+    start_hm, sources["day_start"] = _pick(req.day_start, parsed.day_start, config.DEFAULT_DAY_START)
+    end_hm, sources["day_end"] = _pick(req.day_end, parsed.day_end, config.DEFAULT_DAY_END)
+    for key, screen, sentence in (("시작", req.day_start, parsed.day_start), ("종료", req.day_end, parsed.day_end)):
+        if screen is not None and sentence is not None and screen != sentence:
+            notes.append(f"문장의 하루 {key} 시각({sentence}) 대신 화면에 입력한 {screen} 을(를) 썼습니다.")
+
+    day_start, day_end = to_min(start_hm), to_min(end_hm)
     for m in musts:  # 고정 일정은 하루의 시간 축을 결정한다
         if m.fixed_start is not None:
-            day_start = min(day_start, m.fixed_start)
-            day_end = max(day_end, m.fixed_start + m.stay)
+            if m.fixed_start < day_start:
+                day_start = m.fixed_start
+                sources["day_start"] = "고정 일정"
+            if m.fixed_start + m.stay > day_end:
+                day_end = m.fixed_start + m.stay
+                sources["day_end"] = "고정 일정"
+                notes.append(f"'{m.place.name}' 일정({to_hm(m.fixed_start)}~{to_hm(day_end)})에 맞춰 하루 종료를 늘렸습니다.")
     if day_end <= day_start:
-        raise PlanError("종료 시각이 시작 시각보다 빠릅니다.")
+        raise PlanError(f"하루 종료({to_hm(day_end)})가 시작({to_hm(day_start)})보다 빠릅니다.")
+
+    budget, budget_source = _pick(req.budget, parsed.budget, None)
+    if budget is not None:
+        sources["budget"] = budget_source
+    if req.budget is not None and parsed.budget is not None and req.budget != parsed.budget:
+        notes.append(f"문장의 예산({parsed.budget:,}원) 대신 화면에 입력한 {req.budget:,}원을 썼습니다.")
+
+    weekday = req.visit_date.weekday() if req.visit_date else parsed.weekday
+    if weekday is not None:
+        sources["weekday"] = "화면" if req.visit_date else "문장"
+        closed = [m.place.name for m in musts if weekday in m.place.closed_days]
+        if closed:
+            notes.append(f"'{', '.join(closed)}' 은(는) {WEEKDAY_KO[weekday]}요일 휴무입니다. 운영 여부를 확인해 주세요.")
+    else:
+        notes.append("방문 요일을 몰라 휴무일을 확인하지 않았습니다. 방문 날짜를 지정하거나 문장에 요일을 적어 주세요.")
+    if req.visit_date and parsed.weekday is not None and parsed.weekday != weekday:
+        notes.append(
+            f"문장의 {WEEKDAY_KO[parsed.weekday]}요일 대신 화면에 입력한 날짜"
+            f"({req.visit_date:%m/%d}, {WEEKDAY_KO[weekday]}요일)를 썼습니다."
+        )
 
     c = Constraints(
         taste=parsed.taste or req.query,
         day_start=to_hm(day_start),
         day_end=to_hm(day_end),
-        budget=req.budget if req.budget is not None else parsed.budget,
+        budget=budget,
         companions=parsed.companions,
-        weekday=parsed.weekday,
+        weekday=weekday,
         avoid_categories=parsed.avoid_categories,
+        visit_date=req.visit_date,
+        must_visits=[m.place.name for m in musts],
+        sources=sources,
+        notes=notes,
     )
 
     # ② 임베딩 취향 매칭

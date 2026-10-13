@@ -1,5 +1,5 @@
 """데이터셋 · 요청 · 응답 스키마."""
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -111,12 +111,18 @@ class MustVisitInput(BaseModel):
 
 
 class PlanRequest(BaseModel):
+    """화면에서 입력한 값은 문장에서 읽은 값보다 우선한다. 비워 두면(null) 문장 → 기본값 순으로 쓴다."""
+
     query: str = Field(min_length=1, description="취향·조건 자유 문장")
     must_visits: list[MustVisitInput] = []
-    day_start: Optional[str] = None
-    day_end: Optional[str] = None
-    budget: Optional[int] = None
+    day_start: Optional[str] = Field(default=None, pattern=HM_PATTERN)
+    day_end: Optional[str] = Field(default=None, pattern=HM_PATTERN)
+    budget: Optional[int] = Field(default=None, ge=0)
+    visit_date: Optional[date] = None  # 방문 날짜. 요일을 정해 휴무일을 거른다
     planner: Optional[Literal["greedy", "ortools"]] = None
+
+
+ConditionSource = Literal["화면", "문장", "기본값", "고정 일정"]
 
 
 class Constraints(BaseModel):
@@ -125,8 +131,13 @@ class Constraints(BaseModel):
     day_end: str
     budget: Optional[int]
     companions: Optional[str]
-    weekday: Optional[int]
+    weekday: Optional[int]  # 0=월 ... 6=일. 모르면 None 이고 휴무일을 거르지 않는다
     avoid_categories: list[str]
+    visit_date: Optional[date] = None
+    must_visits: list[str] = []  # 필수 방문지 이름
+    # 각 조건을 어디서 가져왔는지 (day_start, day_end, budget, weekday, must_visits). 화면에 "인식된 조건"으로 보여 준다
+    sources: dict[str, ConditionSource] = {}
+    notes: list[str] = []  # 화면 입력이 문장을 덮어쓴 경우 등 사용자에게 알릴 것
 
 
 class Stop(BaseModel):
@@ -170,6 +181,8 @@ class Course(BaseModel):
     metrics: Metrics
     constraints: Constraints
     engine: dict[str, str]  # 실제로 쓰인 parser / embedder / planner / explainer
+    # 이 코스를 만든 요청. 저장된 코스(GET /api/courses/{id})에만 채워, 공유 링크로 열 때 입력칸을 복원한다
+    request: Optional[PlanRequest] = None
 
 
 class CourseSummary(BaseModel):

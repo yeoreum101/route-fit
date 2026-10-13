@@ -135,7 +135,7 @@ web/             정적 파일 (Leaflet 지도)
 
 | | |
 |---|---|
-| `POST /api/plan` | 코스 생성. 응답의 `id` 로 저장됨 |
+| `POST /api/plan` | 코스 생성. 응답의 `id` 로 저장됨. 조건은 화면 입력 > 문장 > 기본값 순으로 쓰고, 각 조건의 출처와 덮어쓴 내용을 `constraints.sources` · `constraints.notes` 로 돌려준다 |
 | `GET /api/courses` · `/api/courses/{id}` | 최근 코스 목록 · 저장된 코스(공유 링크) |
 | `POST /api/courses/{id}/feedback` | 별점 `{"rating": 1~5, "comment": ""}` |
 | `GET /api/stats` | 실증 지표: 생성기별 평균(장소 수·이동·지역상권 비율·점수), 평균 별점, 많이 추천된 장소 |
