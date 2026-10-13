@@ -20,6 +20,33 @@ http://localhost:8000 에서 조건 입력 → 코스 → 지도를 한 화면�
 
 API 키와 임베딩 모델이 없어도 끝까지 동작한다(아래 "대체 경로"). 실제 AI를 붙이려면 `.env.example` 을 `.env` 로 복사해 채운다.
 
+### 데이터베이스
+
+설정이 없으면 `data/routefit.db` (SQLite) 를 만들어 쓰므로 설치할 것이 없다. 처음 실행할 때 `data/places.json` · `anchors.json` 으로 채워진다.
+시연은 PostgreSQL 로 한다.
+
+```bash
+docker compose up -d --build
+```
+
+PostgreSQL 과 서버가 함께 뜬다 → http://localhost:8000. DB 만 띄우고 서버는 로컬에서 돌리려면 `docker compose up -d db` 후 `.env` 에
+`DATABASE_URL=postgresql+psycopg://routefit:routefit@localhost:5432/routefit`.
+
+```bash
+.venv\Scripts\python -m routefit.db          # 연결된 DB 와 장소 수 확인
+.venv\Scripts\python -m routefit.db reset    # 장소·이동시간을 data/*.json 기준으로 초기화 (코스·피드백은 유지)
+```
+
+| 테이블 | 내용 |
+|---|---|
+| `places` | 장소. `kind`: `candidate`(AI 추천 후보) / `anchor`(Must Visit 목적지) |
+| `place_ratings` | 현장조사 채점 원점수 (팀원 × 장소). 저장하면 `places` 의 3속성이 평균으로 갱신된다 |
+| `travel_times` | 지도 API 실거리 이동시간(분). 없는 구간은 직선거리로 추정 |
+| `courses` | 생성된 코스 전체(공유 링크 `/?course=<id>`)와 집계용 지표 |
+| `feedback` | 코스 별점(1~5) · 한줄평 |
+
+테이블은 서버 시작 때 없으면 만든다(마이그레이션 도구 없음). **컬럼을 바꾸면 DB 를 지우고 다시 만든다**: `docker compose down -v` 또는 `data/routefit.db` 삭제.
+
 ## 구조
 
 ```
@@ -31,14 +58,36 @@ routefit/
     greedy.py    ③-a 그리디 삽입 (Phase 1)
     ortools_planner.py  ③-b OR-Tools 제약 최적화 (Phase 2)
   explain.py     ④ LLM 추천 이유 생성        계산 결과만 넘겨 "왜 이 코스인가"를 문장으로
-  pipeline.py    ①→②→③→④ 연결, 실증 지표 계산, 매칭 로그(logs/plans.jsonl)
-  api.py         FastAPI (POST /api/plan, GET /api/places, GET /api/anchors)
+  pipeline.py    ①→②→③→④ 연결, 실증 지표 계산, 생성된 코스 저장
+  db.py          테이블 정의 · 연결 · 시드 (SQLite / PostgreSQL)
+  data.py        장소·이동시간 조회 (캐시, 수정 시 invalidate)
+  courses.py     코스 저장·공유 · 피드백 · 실증 지표 집계
+  admin.py       관리자 API (장소 CRUD · 현장조사 채점 · 이동시간 · 가져오기/내보내기)
+  api.py         FastAPI 공개 API
   config.py      가중치 · 상한 · 환경 변수
 data/
-  places.json    AI Discover 후보 (원도심 장소 데이터셋)
-  anchors.json   Must Visit 목적지 (야구장·공연장·컨벤션센터)
+  places.json    AI Discover 후보 (원도심 장소 데이터셋) — DB 시드
+  anchors.json   Must Visit 목적지 (야구장·공연장·컨벤션센터) — DB 시드
 web/             입력 UI · 코스 타임라인 · 지도 (정적 파일, Leaflet)
 ```
+
+### API
+
+전체 명세와 직접 호출은 `/docs`.
+
+| | |
+|---|---|
+| `POST /api/plan` | 코스 생성. 응답의 `id` 로 저장됨 |
+| `GET /api/courses` · `/api/courses/{id}` | 최근 코스 목록 · 저장된 코스(공유 링크) |
+| `POST /api/courses/{id}/feedback` | 별점 `{"rating": 1~5, "comment": ""}` |
+| `GET /api/stats` | 실증 지표: 생성기별 평균(장소 수·이동·지역상권 비율·점수), 평균 별점, 많이 추천된 장소 |
+| `GET /api/places` · `/api/anchors` · `/api/health` | 장소 목록 · 상태 |
+| `GET/POST /api/admin/places`, `GET/PUT/PATCH/DELETE /api/admin/places/{id}` | 장소 관리. 저장 즉시 추천에 반영(재시작 불필요) |
+| `GET/PUT /api/admin/places/{id}/ratings`, `DELETE …/ratings/{rater}` | 현장조사 채점 `{"rater", "gwangju_ness", "stay_inducement", "commerce_link"}` |
+| `GET/PUT /api/admin/travel-times` | 이동시간 일괄 저장 `[{"from_id", "to_id", "minutes"}]` |
+| `GET /api/admin/export` · `POST /api/admin/import` | DB → JSON 내보내기(저장소 커밋용) · JSON → DB 초기화 |
+
+`ROUTEFIT_ADMIN_TOKEN` 을 설정하면 `/api/admin/*` 에 `X-Admin-Token` 헤더가 필요하다. 외부에 공개하는 시연에서는 반드시 설정한다.
 
 ### 추천 점수식 (`planner/core.py`, 가중치는 `config.py`)
 
@@ -61,8 +110,8 @@ web/             입력 UI · 코스 타임라인 · 지도 (정적 파일, Leaf
 
 ## 지금 채워야 할 것
 
-- **`data/places.json` 은 예시 데이터다.** 좌표·영업시간·체류시간·비용·3속성 점수 모두 임의로 넣은 값이고 전부 `verified: false` 다. 현장조사 결과로 교체한다.
-- `data/travel_matrix.json` (`{"출발id|도착id": 분}`) 을 만들면 지도 API 실거리 이동시간이 직선거리 추정 대신 쓰인다.
+- **`data/places.json` 은 예시 데이터다.** 좌표·영업시간·체류시간·비용·3속성 점수 모두 임의로 넣은 값이고 전부 `verified: false` 다. 현장조사 결과로 교체한다(관리자 API 로 입력하거나 JSON 을 고쳐 `reset`). 고친 결과는 `/api/admin/export` 로 받아 `data/*.json` 에 커밋해 둔다.
+- 이동시간은 `PUT /api/admin/travel-times` 나 `data/travel_matrix.json` (`{"출발id|도착id": 분}`) 으로 넣으면 직선거리 추정 대신 쓰인다.
 - `config.py` 의 가중치는 검증되지 않은 초기값이다.
 - 임베딩 API 를 쓰려면 `embedding.py` 에 `Embedder` 구현을 하나 추가하고 `get_embedder()` 에 연결한다.
 - 지도는 OSM 타일이다. 카카오/네이버 지도로 바꿀 때는 `web/app.js` 의 지도 초기화와 `drawMap` 만 바꾸면 된다.

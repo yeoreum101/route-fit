@@ -90,3 +90,9 @@ button:disabled { opacity: .5; cursor: wait; }
   .map-panel { position: static; }
   #map { height: 60vh; }
 }
+
+#share { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+#share[hidden] { display: none; }
+#copy-link { width: auto; margin: 0; padding: 6px 12px; font-size: 13px; }
+#rating .star { width: auto; margin: 0; padding: 0 2px; font-size: 20px; line-height: 1; color: var(--line); background: none; }
+#rating .star:hover, #rating .star.on { color: var(--must); }

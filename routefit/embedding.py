@@ -69,6 +69,7 @@ class PlaceIndex:
 
     def __init__(self, places: list[Place], embedder: Embedder):
         self.embedder = embedder
+        self.source = places
         self.ids = [p.id for p in places]
         self.matrix = embedder.encode([p.embed_text for p in places])
 

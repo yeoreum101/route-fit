@@ -83,6 +83,56 @@ function drawMap(course) {
   if (points.length) map.fitBounds(points, { padding: [40, 40], maxZoom: 16 });
 }
 
+let currentCourseId = null;
+
+function showShare(course) {
+  currentCourseId = course.id;
+  $("share").hidden = !course.id; // 저장에 실패한 코스는 공유할 수 없다
+  $("share-status").textContent = "";
+  $("rating").replaceChildren(...[1, 2, 3, 4, 5].map((n) => {
+    const b = el("button", "star", "★");
+    b.type = "button";
+    b.title = `${n}점`;
+    b.addEventListener("click", () => sendRating(n));
+    return b;
+  }));
+}
+
+function showCourse(course) {
+  drawTimeline(course);
+  drawMap(course);
+  showShare(course);
+}
+
+async function sendRating(rating) {
+  const res = await fetch(`/api/courses/${currentCourseId}/feedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rating }),
+  });
+  $("share-status").textContent = res.ok ? `${rating}점 평가를 저장했습니다.` : "평가를 저장하지 못했습니다.";
+  if (res.ok) $("rating").querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i < rating));
+}
+
+$("copy-link").addEventListener("click", async () => {
+  const url = `${location.origin}${location.pathname}?course=${currentCourseId}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    $("share-status").textContent = "링크를 복사했습니다.";
+  } catch {
+    $("share-status").textContent = url;
+  }
+});
+
+// 공유 링크(?course=<id>)로 들어오면 저장된 코스를 보여 준다.
+async function loadSharedCourse() {
+  const id = new URLSearchParams(location.search).get("course");
+  if (!id) return;
+  const res = await fetch(`/api/courses/${encodeURIComponent(id)}`);
+  if (res.ok) showCourse(await res.json());
+  else $("status").textContent = "공유된 코스를 찾을 수 없습니다.";
+}
+
 $("plan-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.target.querySelector("button");
@@ -111,8 +161,8 @@ $("plan-form").addEventListener("submit", async (event) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "요청을 처리하지 못했습니다.");
-    drawTimeline(data);
-    drawMap(data);
+    showCourse(data);
+    history.replaceState(null, "", data.id ? `?course=${data.id}` : location.pathname);
     $("status").textContent = "";
   } catch (err) {
     $("status").textContent = err.message;
@@ -122,3 +172,4 @@ $("plan-form").addEventListener("submit", async (event) => {
 });
 
 loadMustOptions();
+loadSharedCourse();

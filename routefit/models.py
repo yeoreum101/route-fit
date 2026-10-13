@@ -1,7 +1,8 @@
 """데이터셋 · 요청 · 응답 스키마."""
+from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 Category = Literal["sight", "culture", "market", "food", "cafe", "shop", "night", "venue"]
 
@@ -27,28 +28,44 @@ def to_hm(minutes: int) -> str:
     return f"{(minutes // 60) % 24:02d}:{minutes % 60:02d}"
 
 
+HM_PATTERN = r"^\d{1,2}:[0-5]\d$"  # 'HH:MM', 자정을 넘기면 '25:00'
+
+
 class Place(BaseModel):
     """광주 여행 경험 데이터셋의 장소 1건 (data/places.json, data/anchors.json)."""
 
-    id: str
-    name: str
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_]+$")
+    name: str = Field(min_length=1)
     category: Category
     area: str
-    lat: float
-    lng: float
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
     description: str = ""
     aliases: list[str] = []
-    open: str = "00:00"
-    close: str = "24:00"
+    open: str = Field(default="00:00", pattern=HM_PATTERN)
+    close: str = Field(default="24:00", pattern=HM_PATTERN)
     closed_days: list[int] = []  # 0=월 ... 6=일
-    stay_min: int = 60
-    cost: int = 0  # 1인 예상 지출(원)
+    stay_min: int = Field(default=60, ge=5, le=600)
+    cost: int = Field(default=0, ge=0)  # 1인 예상 지출(원)
     # 현장조사 3속성 (1~5점, 팀원 3인 독립 채점 평균)
-    gwangju_ness: float = 3.0  # 광주다움
-    stay_inducement: float = 3.0  # 체류 유도성
-    commerce_link: float = 3.0  # 상권 연계성
+    gwangju_ness: float = Field(default=3.0, ge=1, le=5)  # 광주다움
+    stay_inducement: float = Field(default=3.0, ge=1, le=5)  # 체류 유도성
+    commerce_link: float = Field(default=3.0, ge=1, le=5)  # 상권 연계성
     is_local_commerce: bool = False  # 전통시장·골목상권·로컬카페 여부
     verified: bool = False  # 현장 검증 완료 여부
+
+    @field_validator("closed_days")
+    @classmethod
+    def _weekdays(cls, v: list[int]) -> list[int]:
+        if any(d not in range(7) for d in v):
+            raise ValueError("closed_days 는 0(월)~6(일)")
+        return sorted(set(v))
+
+    @model_validator(mode="after")
+    def _hours(self) -> "Place":
+        if to_min(self.open) >= to_min(self.close):
+            raise ValueError("close 는 open 보다 늦어야 한다 (자정 넘김은 '25:00')")
+        return self
 
     @property
     def local_score(self) -> float:
@@ -147,8 +164,82 @@ class Metrics(BaseModel):
 
 
 class Course(BaseModel):
+    id: Optional[str] = None  # 저장된 코스 id (공유 링크 /?course=<id>). 저장에 실패하면 None
     stops: list[Stop]
     summary: str
     metrics: Metrics
     constraints: Constraints
     engine: dict[str, str]  # 실제로 쓰인 parser / embedder / planner / explainer
+
+
+class CourseSummary(BaseModel):
+    id: str
+    created_at: datetime
+    query: str
+    planner: str
+    n_places: int
+    local_commerce_ratio: float
+    score: float
+
+
+class FeedbackIn(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(default="", max_length=500)
+
+
+class Feedback(FeedbackIn):
+    id: int
+    course_id: str
+    created_at: datetime
+
+
+# ---------- 관리자 (현장조사 데이터 입력) ----------
+
+PlaceKind = Literal["candidate", "anchor"]
+
+
+class PlaceRecord(Place):
+    """관리자 API 의 장소. kind: candidate(AI 추천 후보) | anchor(Must Visit 목적지)."""
+
+    kind: PlaceKind = "candidate"
+    updated_at: Optional[datetime] = None
+    n_ratings: int = 0
+
+
+class RatingIn(BaseModel):
+    rater: str = Field(min_length=1, max_length=50)
+    gwangju_ness: float = Field(ge=1, le=5)
+    stay_inducement: float = Field(ge=1, le=5)
+    commerce_link: float = Field(ge=1, le=5)
+
+
+class Rating(RatingIn):
+    place_id: str
+    updated_at: datetime
+
+
+class TravelTime(BaseModel):
+    from_id: str
+    to_id: str
+    minutes: int = Field(ge=0, le=600)
+    mode: Optional[str] = None  # walk | transit | car ...
+
+
+# ---------- 통계 ----------
+
+
+class PlannerStats(BaseModel):
+    courses: int
+    avg_places: float
+    avg_ai_places: float
+    avg_travel_min: float
+    avg_local_commerce_ratio: float
+    avg_score: float
+
+
+class Stats(BaseModel):
+    courses: int
+    feedback: int
+    avg_rating: Optional[float]
+    by_planner: dict[str, PlannerStats]
+    top_places: list[dict]  # AI 가 가장 많이 추천한 장소 [{"place_id", "name", "count"}]

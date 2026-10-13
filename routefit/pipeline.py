@@ -1,12 +1,11 @@
 """입력 -> ① 조건 파싱 -> ② 취향 매칭 -> ③ 코스 최적화 -> ④ 추천 이유 -> 코스."""
-import json
 import logging
 import threading
 import time
-from datetime import datetime
 from typing import Optional
 
 from . import config
+from .courses import save_course
 from .data import load_anchors, load_places, travel_minutes
 from .embedding import PlaceIndex, get_embedder
 from .explain import explain
@@ -33,12 +32,14 @@ _index_cache: Optional[PlaceIndex] = None
 
 
 def _index() -> PlaceIndex:
-    """장소 임베딩 인덱스. 모델 로딩이 오래 걸리므로 한 번만 만들고, 만드는 중인 요청은 기다린다."""
+    """장소 임베딩 인덱스. 모델 로딩이 오래 걸리므로 한 번만 만들고, 만드는 중인 요청은 기다린다.
+    관리자가 장소를 고치면 load_places() 가 새 리스트를 돌려주므로 그때 다시 만든다."""
     global _index_cache
     with _index_lock:
-        if _index_cache is None:
+        places = load_places()
+        if _index_cache is None or _index_cache.source is not places:
             started = time.monotonic()
-            _index_cache = PlaceIndex(load_places(), get_embedder())
+            _index_cache = PlaceIndex(places, get_embedder())
             log.info("임베딩 준비 완료: %s (%.0f초)", _index_cache.embedder.name, time.monotonic() - started)
     return _index_cache
 
@@ -154,24 +155,6 @@ def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> C
     return Course(stops=stops, summary=summary, metrics=metrics, constraints=c, engine=engine)
 
 
-def _log(req: PlanRequest, course: Course) -> None:
-    """취향-장소 매칭 로그. 개인 식별 정보는 남기지 않는다."""
-    try:
-        config.LOG_DIR.mkdir(exist_ok=True)
-        row = {
-            "at": datetime.now().isoformat(timespec="seconds"),
-            "query": req.query,
-            "constraints": course.constraints.model_dump(),
-            "stops": [{"id": s.place_id, "kind": s.kind, "similarity": s.similarity} for s in course.stops],
-            "metrics": course.metrics.model_dump(),
-            "engine": course.engine,
-        }
-        with open(config.LOG_DIR / "plans.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-    except OSError as e:
-        log.warning("로그 기록 실패: %s", e)
-
-
 def make_course(req: PlanRequest) -> Course:
     known = load_anchors() + load_places()
 
@@ -213,5 +196,5 @@ def make_course(req: PlanRequest) -> Course:
     # ④ 추천 이유 생성
     engine = {"parser": parser_used, "embedder": index.embedder.name, "planner": planner_name}
     course = _to_course(visits, c, engine)
-    _log(req, course)
+    course.id = save_course(req, course)
     return course

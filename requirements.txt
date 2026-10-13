@@ -5,6 +5,8 @@ numpy>=1.26
 python-dotenv>=1.0
 ortools>=9.10
 openai>=1.100
+sqlalchemy>=2.0
+psycopg[binary]>=3.2
 pytest>=8.0
 httpx>=0.27
 

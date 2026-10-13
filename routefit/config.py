@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
-LOG_DIR = ROOT / "logs"
 WEB_DIR = ROOT / "web"
 
 load_dotenv(ROOT / ".env")
@@ -47,3 +46,8 @@ LLM_MODEL = os.getenv("ROUTEFIT_LLM_MODEL", "").strip()
 EMBEDDER = os.getenv("ROUTEFIT_EMBEDDER", "auto").strip().lower()
 SBERT_MODEL = os.getenv("ROUTEFIT_SBERT_MODEL", "jhgan/ko-sroberta-multitask").strip()
 DEFAULT_PLANNER = os.getenv("ROUTEFIT_PLANNER", "greedy").strip().lower()
+
+# 비우면 data/routefit.db (SQLite). PostgreSQL: postgresql+psycopg://user:pass@host:5432/db
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip() or f"sqlite:///{DATA_DIR / 'routefit.db'}"
+# 설정하면 /api/admin/* 요청에 X-Admin-Token 헤더가 필요하다. 비우면 누구나 수정 가능(로컬 시연용).
+ADMIN_TOKEN = os.getenv("ROUTEFIT_ADMIN_TOKEN", "").strip()
