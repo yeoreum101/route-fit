@@ -1,0 +1,25 @@
+{
+  "_comment": "현장조사 채점 체크리스트. 속성마다 예/아니오 항목 4개, 점수 = 1 + 체크한 항목 수 (1~5). auto 가 있는 항목은 장소 정보로 자동 계산하고(규칙은 routefit/checklist.py), 나머지는 팀원이 체크한다. 항목 key 를 바꾸면 이미 저장한 체크가 사라지므로 문구(label)만 고친다.",
+  "attributes": [
+    {"key": "gwangju_ness", "label": "광주다움", "question": "광주에서만 할 수 있는 경험인가"},
+    {"key": "commerce_link", "label": "상권 연계성", "question": "방문이 주변 소상공인 매출로 이어지는가"},
+    {"key": "stay_inducement", "label": "체류 유도성", "question": "오래 머물고 이어서 다른 곳에 가게 하는가"}
+  ],
+  "items": [
+    {"key": "history_site", "attribute": "gwangju_ness", "label": "5·18 등 광주 근현대사 사건의 현장이다", "how": "5·18 사적지 목록 등 공식 지정 여부"},
+    {"key": "heritage", "attribute": "gwangju_ness", "label": "지정·등록 문화유산이거나 근대건축물이다", "how": "국가유산청 문화유산 검색"},
+    {"key": "local_identity", "attribute": "gwangju_ness", "label": "광주 고유의 음식·예술·인물과 직접 관련된다", "how": "광주시 대표 음식·음식 거리 지정, 공식 소개 자료"},
+    {"key": "long_running", "attribute": "gwangju_ness", "label": "같은 자리에서 30년 이상 운영했다", "how": "개관·개업 연도 (공식 소개, 인허가 자료)"},
+
+    {"key": "not_franchise", "attribute": "commerce_link", "label": "프랜차이즈나 대기업 직영이 아니다 (공공시설은 체크)", "how": "가맹사업 정보공개서 조회, 상호 검색"},
+    {"key": "market_zone", "attribute": "commerce_link", "label": "전통시장·상점가·골목상권 구역 안에 있다", "how": "소상공인시장진흥공단 전통시장·상점가 자료"},
+    {"key": "nearby_stores", "attribute": "commerce_link", "label": "반경 300m 안에 소상공인 점포가 많다 (기준 점포 수는 데이터 수집 후 확정)", "how": "소상공인 상가(상권)정보 공공데이터"},
+    {"key": "spending", "attribute": "commerce_link", "label": "1인 예상 지출이 0원보다 크다 (그 자리에서 매출이 생긴다)", "how": "예상 지출", "auto": "cost_gt_0"},
+
+    {"key": "long_stay", "attribute": "stay_inducement", "label": "머무는 시간이 60분 이상이다", "how": "머무는 시간", "auto": "stay_min_ge_60"},
+    {"key": "seating", "attribute": "stay_inducement", "label": "앉아서 쉴 수 있는 자리(좌석·벤치)가 있다", "how": "현장 확인 (사진)"},
+    {"key": "many_activities", "attribute": "stay_inducement", "label": "할 거리 태그가 2개 이상이다", "how": "취향 태그", "auto": "activity_tags_ge_2"},
+    {"key": "open_evening", "attribute": "stay_inducement", "label": "19시 이후까지 운영한다 (경기·공연 전후로 이어 가기 좋음)", "how": "영업시간", "auto": "close_after_19"}
+  ],
+  "local_commerce": ["not_franchise", "market_zone"]
+}

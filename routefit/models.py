@@ -4,6 +4,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from . import tags as tag_vocab
+
 Category = Literal["sight", "culture", "market", "food", "cafe", "shop", "night", "venue"]
 
 CATEGORY_KO = {
@@ -40,7 +42,8 @@ class Place(BaseModel):
     area: str
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)
-    description: str = ""
+    description: str = ""  # 한줄 소개. 추천 이유·조건 파싱의 사실 자료로만 쓰고, 취향 매칭에는 쓰지 않는다
+    tags: dict[str, list[str]] = {}  # data/tags.json 의 정해진 태그. 취향 매칭은 이것으로 한다
     aliases: list[str] = []
     open: str = Field(default="00:00", pattern=HM_PATTERN)
     close: str = Field(default="24:00", pattern=HM_PATTERN)
@@ -53,6 +56,11 @@ class Place(BaseModel):
     commerce_link: float = Field(default=3.0, ge=1, le=5)  # 상권 연계성
     is_local_commerce: bool = False  # 전통시장·골목상권·로컬카페 여부
     verified: bool = False  # 현장 검증 완료 여부
+
+    @field_validator("tags")
+    @classmethod
+    def _tags(cls, v: dict[str, list[str]]) -> dict[str, list[str]]:
+        return tag_vocab.validate(v)
 
     @field_validator("closed_days")
     @classmethod
@@ -75,7 +83,9 @@ class Place(BaseModel):
 
     @property
     def embed_text(self) -> str:
-        return f"{self.name}. {CATEGORY_KO[self.category]}. {self.area}. {self.description}"
+        """취향 매칭(임베딩)에 넣는 문장. 태그가 있으면 태그 문장만, 없으면 예전처럼 소개 문장을 쓴다."""
+        detail = tag_vocab.sentence(self.tags) if self.tags else self.description
+        return f"{self.name}. {CATEGORY_KO[self.category]}. {self.area}. {detail}"
 
 
 # ---------- ① 조건 파싱 결과 ----------
@@ -217,20 +227,33 @@ class PlaceRecord(Place):
     kind: PlaceKind = "candidate"
     # 아래는 응답 전용 (입력해도 무시)
     updated_at: Optional[datetime] = None
-    n_ratings: int = 0
+    n_ratings: int = 0  # 체크리스트를 낸 팀원 수. 1명 이상이면 3속성·지역상권 여부는 체크리스트로 계산된다
+    missing_tags: list[str] = []  # 비어 있는 필수 태그 그룹 (AI 추천 후보만)
     local_contribution: Optional[float] = None  # 지역상권 기여도 0~1 (Place.local_score)
 
 
-class RatingIn(BaseModel):
+class ChecklistIn(BaseModel):
+    """팀원 1명의 현장조사 체크리스트. checks 는 수동 항목만 (자동 항목은 서버가 계산)."""
+
     rater: str = Field(min_length=1, max_length=50)
-    gwangju_ness: float = Field(ge=1, le=5)
-    stay_inducement: float = Field(ge=1, le=5)
-    commerce_link: float = Field(ge=1, le=5)
+    checks: dict[str, bool] = {}
+    evidence: dict[str, str] = {}  # {항목 key: 근거 링크·메모}
+
+    @field_validator("evidence")
+    @classmethod
+    def _evidence(cls, v: dict[str, str]) -> dict[str, str]:
+        if any(len(text) > 300 for text in v.values()):
+            raise ValueError("근거는 항목당 300자까지")
+        return {k: text.strip() for k, text in v.items() if text.strip()}
 
 
-class Rating(RatingIn):
-    place_id: str
+class ChecklistSheet(ChecklistIn):
     updated_at: datetime
+
+
+class ChecklistView(BaseModel):
+    sheets: list[ChecklistSheet]
+    evaluation: dict  # checklist.evaluate 결과: 항목별 값·팀원별 체크·불일치, 속성 점수, 지역상권 여부
 
 
 class TravelTime(BaseModel):

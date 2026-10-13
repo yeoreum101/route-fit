@@ -25,7 +25,9 @@ from sqlalchemy import (
     create_engine,
     delete,
     func,
+    inspect,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.engine import Engine
@@ -59,6 +61,7 @@ class PlaceRow(Base):
     lat: Mapped[float] = mapped_column(Float)
     lng: Mapped[float] = mapped_column(Float)
     description: Mapped[str] = mapped_column(Text, default="")
+    tags: Mapped[Optional[dict]] = mapped_column(Json, default=dict, nullable=True)
     aliases: Mapped[list] = mapped_column(Json, default=list)
     # '25:00' 처럼 자정을 넘기는 표기를 쓰므로 TIME 이 아닌 문자열
     open_time: Mapped[str] = mapped_column(String(5), default="00:00")
@@ -75,16 +78,18 @@ class PlaceRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
 
 
-class RatingRow(Base):
-    """현장조사 채점 원점수 (팀원 1명 × 장소 1곳)."""
+class ChecklistRow(Base):
+    """현장조사 체크리스트 (팀원 1명 × 장소 1곳). 항목 정의는 data/checklist.json, 계산은 checklist.py.
 
-    __tablename__ = "place_ratings"
+    예전의 점수 채점 테이블(place_ratings)은 더 쓰지 않는다. 기존 DB 에 남아 있어도 무시된다.
+    """
+
+    __tablename__ = "place_checklists"
 
     place_id: Mapped[str] = mapped_column(ForeignKey("places.id", ondelete="CASCADE"), primary_key=True)
     rater: Mapped[str] = mapped_column(String(50), primary_key=True)
-    gwangju_ness: Mapped[float] = mapped_column(Float)
-    stay_inducement: Mapped[float] = mapped_column(Float)
-    commerce_link: Mapped[float] = mapped_column(Float)
+    checks: Mapped[dict] = mapped_column(Json, default=dict)  # {항목 key: 체크 여부} (수동 항목만)
+    evidence: Mapped[dict] = mapped_column(Json, default=dict)  # {항목 key: 근거 링크·메모}
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
 
 
@@ -155,11 +160,31 @@ def session() -> Session:
         with _init_lock:
             if not _initialized:
                 Base.metadata.create_all(engine())
+                _add_missing_columns()
                 with _sessionmaker()() as s:
                     if s.scalar(select(func.count()).select_from(PlaceRow)) == 0:
                         seed(s)
                 _initialized = True
     return _sessionmaker()()
+
+
+def _add_missing_columns() -> None:
+    """create_all 은 이미 있는 테이블에 새 컬럼을 넣지 않는다. 마이그레이션 도구 대신, 나중에 추가한 컬럼만 여기서 넣는다.
+
+    places.tags: 태그 도입 전 DB 면 컬럼을 만들고, data/places.json 에 같은 id 가 있으면 그 태그로 채운다.
+    """
+    columns = {c["name"] for c in inspect(engine()).get_columns("places")}
+    if "tags" in columns:
+        return
+    column_type = "JSONB" if engine().dialect.name == "postgresql" else "JSON"
+    with engine().begin() as conn:
+        conn.execute(text(f"ALTER TABLE places ADD COLUMN tags {column_type}"))
+    seed_tags = {p["id"]: p["tags"] for p in (_read_json("places.json") or []) if p.get("tags")}
+    with _sessionmaker()() as s:
+        for row in s.scalars(select(PlaceRow).where(PlaceRow.id.in_(seed_tags))):
+            row.tags = seed_tags[row.id]
+        s.commit()
+    log.info("places.tags 컬럼 추가, 예시 태그 %d곳 채움", len(seed_tags))
 
 
 # ---------- 시드 ----------
@@ -182,13 +207,13 @@ def place_row(data: dict, kind: str) -> PlaceRow:
 
 
 def seed(s: Session) -> dict[str, int]:
-    """장소·이동시간을 data/*.json 기준으로 다시 채운다. 채점 원점수도 함께 지워진다."""
+    """장소·이동시간·체크리스트를 data/*.json 기준으로 다시 채운다. DB 에서만 고친 내용은 지워진다."""
     from .models import Place  # 검증용. models 는 db 를 import 하지 않는다.
 
     s.execute(delete(TravelRow))
-    s.execute(delete(RatingRow))
+    s.execute(delete(ChecklistRow))
     s.execute(delete(PlaceRow))
-    counts = {"candidate": 0, "anchor": 0, "travel": 0}
+    counts = {"candidate": 0, "anchor": 0, "travel": 0, "checklists": 0}
     for name, kind in (("places.json", "candidate"), ("anchors.json", "anchor")):
         for raw in _read_json(name) or []:
             s.add(place_row(Place(**raw).model_dump(), kind))
@@ -200,6 +225,12 @@ def seed(s: Session) -> dict[str, int]:
         if a in known and b in known:
             s.add(TravelRow(from_id=a, to_id=b, minutes=int(minutes)))
             counts["travel"] += 1
+    # 관리 화면 '내보내기'로 받은 체크리스트 (장소 점수는 places.json 에 이미 계산돼 있다)
+    for place_id, sheets in (_read_json("checklists.json") or {}).items():
+        if place_id in known:
+            for sheet in sheets:
+                s.add(ChecklistRow(place_id=place_id, rater=sheet["rater"], checks=sheet["checks"], evidence=sheet.get("evidence", {})))
+                counts["checklists"] += 1
     s.commit()
     log.info("시드 완료: %s", counts)
     return counts

@@ -244,8 +244,49 @@ caption { text-align: left; padding: 8px 0; }
 .checks-col { display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; padding-bottom: 6px; }
 input[readonly] { background: var(--bg); color: var(--muted); }
 #scores-note { margin: 0; }
-#ratings-section { margin-top: 20px; padding-top: 4px; border-top: 1px solid var(--line); }
-.rating-form { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr) auto; gap: 8px; margin-top: 12px; }
+/* 현장조사 체크리스트 */
+#checklist-section { margin-top: 20px; padding-top: 4px; border-top: 1px solid var(--line); }
+#checklist-section .list-head { flex-wrap: wrap; margin: 16px 0 4px; }
+#checklist-section h3 { margin: 0; font-size: 14px; }
+.rater-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.rater-bar label { margin: 0; font-size: 13px; font-weight: 600; }
+.rater-bar select { width: auto; min-width: 140px; }
+.rater-bar input { width: 180px; }
+.rater-bar .actions { margin-left: auto; }
+.check-card { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.check-head { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px; background: var(--bg); }
+.check-score { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
+.check-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto 220px; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); }
+.check-row.disagree { background: #fff8eb; }
+.check-box { display: grid; place-items: center; }
+.check-box input { width: 18px; height: 18px; }
+.check-box .auto { font-weight: 800; }
+.check-box .auto.yes { color: var(--ai); }
+.check-box .auto.no { color: var(--muted); }
+.check-text { display: flex; flex-direction: column; margin: 0; font-weight: 400; font-size: 14px; cursor: pointer; }
+.check-votes { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.vote { padding: 1px 6px; border-radius: 999px; background: var(--bg); white-space: nowrap; }
+.vote.yes { color: var(--ai); }
+.vote.no { color: var(--muted); }
+.badge-auto { padding: 1px 6px; border-radius: 999px; font-size: 11px; color: var(--muted); border: 1px solid var(--line); }
+.check-row:has(.badge-auto) { grid-template-columns: 28px minmax(0, 1fr) auto; }
+.check-evidence { padding: 5px 8px; font-size: 13px; }
+
+/* 취향 태그 */
+.tag-groups { display: flex; flex-direction: column; gap: 8px; }
+.tag-group { display: grid; grid-template-columns: 110px 1fr; align-items: start; gap: 8px; padding: 4px 8px; border-radius: 8px; }
+.tag-group.missing { background: #fdf2f2; }
+.tag-group-label { padding-top: 5px; font-size: 13px; font-weight: 600; }
+.req { color: var(--danger); }
+.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+button.tag-chip {
+  width: auto; margin: 0; padding: 4px 10px; font-size: 13px; font-weight: 500;
+  color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+}
+button.tag-chip:hover { border-color: var(--muted); }
+button.tag-chip[aria-pressed="true"] { color: #fff; background: var(--ai); border-color: var(--ai); }
+.tag-preview { margin: 10px 0 0; padding: 8px 10px; background: var(--bg); border-radius: 8px; font-size: 13px; }
+.badge-warn { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 11px; color: var(--danger); border: 1px solid currentColor; }
 
 /* 노트북 화면 (1366px 이하): 목록 열을 줄인다 */
 @media (max-width: 1500px) {
@@ -270,8 +311,8 @@ input[readonly] { background: var(--bg); color: var(--muted); }
   .tile { flex-direction: column; align-items: flex-start; gap: 4px; }
   .form-grid { grid-template-columns: 1fr 1fr; }
   .span-3, .span-4 { grid-column: 1 / -1; }
-  .rating-form { grid-template-columns: 1fr 1fr; }
-  .rating-form button { grid-column: 1 / -1; }
+  .check-row { grid-template-columns: 28px minmax(0, 1fr); }
+  .check-votes, .check-evidence { grid-column: 2; justify-content: flex-start; }
   .filters { grid-template-columns: 1fr 1fr; }
   .filters input { grid-column: 1 / -1; }
 }

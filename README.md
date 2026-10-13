@@ -64,7 +64,7 @@ DB 는 `data/routefit.db` 파일로 자동으로 만들어진다. A 와 B 는 DB
 |---|---|
 | http://localhost:8000 | 조건 입력 → 코스 → 지도. 공유 링크 · 별점 · 한줄평 |
 | http://localhost:8000/stats.html | 실증 통계: 생성기 비교, 지역상권 비율, 많이 추천된 장소, 최근 코스 · 한줄평 |
-| http://localhost:8000/admin.html | 장소 관리 · 현장조사 입력: 장소 추가/수정(지도 클릭으로 좌표), 팀원별 채점, JSON 내보내기 |
+| http://localhost:8000/admin.html | 장소 관리 · 현장조사 입력: 장소 추가/수정(지도 클릭으로 좌표), 취향 태그, 채점 체크리스트, JSON 내보내기 |
 | http://localhost:8000/docs | API 문서 |
 
 ### 설정 (.env)
@@ -91,13 +91,14 @@ API 키가 없어도 끝까지 동작한다(아래 "대체 경로"). 키·관리
 
 | 테이블 | 내용 |
 |---|---|
-| `places` | 장소. `kind`: `candidate`(AI 추천 후보) / `anchor`(Must Visit 목적지) |
-| `place_ratings` | 현장조사 채점 원점수 (팀원 × 장소). 저장하면 `places` 의 3속성이 평균으로 갱신된다 |
+| `places` | 장소. `kind`: `candidate`(AI 추천 후보) / `anchor`(Must Visit 목적지). `tags`: 취향 태그 |
+| `place_checklists` | 현장조사 체크리스트 (팀원 × 장소). 저장하면 `places` 의 3속성·지역상권 여부를 다시 계산한다 ([체크리스트](docs/field-checklist.md)) |
 | `travel_times` | 지도 API 실거리 이동시간(분). 없는 구간은 직선거리로 추정 |
 | `courses` | 생성된 코스 전체(공유 링크 `/?course=<id>`)와 집계용 지표 |
 | `feedback` | 코스 별점(1~5) · 한줄평 |
 
-테이블은 서버 시작 때 없으면 만든다(마이그레이션 도구 없음). **컬럼을 바꾸면 DB 를 지우고 다시 만든다**: `docker compose down -v` 또는 `data/routefit.db` 삭제.
+테이블은 서버 시작 때 없으면 만든다(마이그레이션 도구 없음). 나중에 추가한 컬럼(`places.tags`)은 `db._add_missing_columns()` 가 기존 DB 에 넣어 준다.
+그 밖에 컬럼을 바꾸면 DB 를 지우고 다시 만든다: `docker compose down -v` 또는 `data/routefit.db` 삭제.
 
 ## 구조
 
@@ -117,10 +118,14 @@ routefit/
   admin.py       관리자 API (장소 CRUD · 현장조사 채점 · 이동시간 · 피드백 · 가져오기/내보내기)
   travel.py      카카오모빌리티 길찾기로 장소 간 이동시간 채우기 (python -m routefit.travel)
   ratelimit.py   /api/plan 요청 수 제한
+  tags.py        장소 태그 검증 · 취향 매칭용 표준 문장
+  checklist.py   체크리스트 → 3속성 점수·지역상권 여부 계산 (자동 항목 규칙)
   api.py         FastAPI 공개 API
   config.py      가중치 · 상한 · 환경 변수
 data/
   places.json    AI Discover 후보 (원도심 장소 데이터셋) — DB 시드
+  tags.json      장소 취향 태그 목록 (할 거리·분위기·공간·시간·동행)
+  checklist.json 현장조사 채점 체크리스트 (docs/field-checklist.md)
   anchors.json   Must Visit 목적지 (야구장·공연장·컨벤션센터) — DB 시드
 web/             정적 파일 (Leaflet 지도)
   index.html     코스 만들기         app.js
@@ -141,7 +146,8 @@ web/             정적 파일 (Leaflet 지도)
 | `GET /api/stats` | 실증 지표: 생성기별 평균(장소 수·이동·지역상권 비율·점수), 평균 별점, 많이 추천된 장소 |
 | `GET /api/places` · `/api/anchors` · `/api/health` | 장소 목록 · 상태 |
 | `GET/POST /api/admin/places`, `GET/PUT/PATCH/DELETE /api/admin/places/{id}` | 장소 관리. 저장 즉시 추천에 반영(재시작 불필요) |
-| `GET/PUT /api/admin/places/{id}/ratings`, `DELETE …/ratings/{rater}` | 현장조사 채점 `{"rater", "gwangju_ness", "stay_inducement", "commerce_link"}` |
+| `GET/PUT /api/admin/places/{id}/checklists`, `DELETE …/checklists/{rater}` | 현장조사 체크리스트 `{"rater", "checks": {항목: bool}, "evidence": {항목: 근거}}` |
+| `GET /api/checklist` · `GET /api/tags` | 체크리스트 항목 · 장소 태그 목록 |
 | `GET/PUT /api/admin/travel-times` | 이동시간 일괄 저장 `[{"from_id", "to_id", "minutes"}]` |
 | `GET /api/admin/feedback` | 최근 별점 · 한줄평 |
 | `GET /api/admin/export` · `POST /api/admin/import` | DB → JSON 내보내기(저장소 커밋용) · JSON → DB 초기화 |
@@ -159,11 +165,25 @@ web/             정적 파일 (Leaflet 지도)
 `.env` 에 `KAKAO_REST_API_KEY` 가 필요하다. 직선 1.2km 이하는 도보 추정값을 그대로 쓰고, 나머지는 자동차 시간 + 승차·주차 5분.
 같은 구간은 한 방향만 불러 양방향에 쓴다(`--both-ways` 로 따로). 끝나면 서버를 재시작한다.
 
+### 장소 태그 (취향 매칭)
+
+취향 매칭(②)은 자유 설명이 아니라 `data/tags.json` 의 정해진 태그로 만든 문장을 쓴다. 쓰는 사람의 문체·단어 선택이 추천을 흔들지 않게 하기 위해서다.
+
+```
+국립아시아문화전당(ACC). 문화·전시. 동구 광산동. 할 거리: 사진 / 전시 관람 / 건축 구경 | 분위기: 조용한 / 현대적 / 예술적 | 공간: 실내외 | …
+```
+
+- 장소 관리 화면에서 태그를 고른다. 할 거리·분위기·공간은 필수(비어 있으면 목록에 "태그 부족")
+- `description`(한줄 소개)은 추천 이유·조건 파싱의 사실 자료로만 쓰고 매칭에는 쓰지 않는다
+- 태그가 하나도 없는 장소는 예전처럼 소개 문장으로 매칭한다
+- 태그 목록을 바꾸면 서버를 재시작한다. `GET /api/tags` 로 현재 목록을 본다
+
 ### 추천 점수식 (`planner/core.py`, 가중치는 `config.py`)
 
 ```
 코스 점수 = Σ(취향 적합도 + 지역상권 기여도 − 장소 추가 비용) − 이동 부담 − 시간 초과 페널티
 지역상권 기여도 = 지역성((광주다움 + 상권 연계성) / 2) + 체류 유도성     → Place.local_score
+3속성 점수 = 1 + 체크리스트 항목 값 합계 (docs/field-checklist.md)
 ```
 
 두 생성기 모두 같은 `schedule()` 로 시간표를 만들기 때문에, 결과 코스는 항상 영업시간·고정 시각·이동시간을 지킨다.

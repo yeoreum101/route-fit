@@ -17,6 +17,7 @@ def to_place(row: db.PlaceRow) -> Place:
         lat=row.lat,
         lng=row.lng,
         description=row.description,
+        tags=row.tags or {},
         aliases=row.aliases or [],
         open=row.open_time,
         close=row.close_time,

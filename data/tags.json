@@ -1,0 +1,40 @@
+{
+  "_comment": "장소 태그 목록. 장소 관리 화면에서 여기 있는 값만 고를 수 있고, 취향 매칭은 고른 태그로 만든 문장만 쓴다. 항목을 바꾸면 서버를 재시작한다. 이미 쓰인 값을 지우면 그 값을 가진 장소는 저장할 때 오류가 나므로 먼저 장소에서 빼 둔다.",
+  "groups": [
+    {
+      "key": "activity",
+      "label": "할 거리",
+      "multiple": true,
+      "required": true,
+      "values": ["사진", "산책", "전시 관람", "공연·영화", "역사 탐방", "건축 구경", "식사", "길거리 음식", "카페·디저트", "술", "쇼핑", "시장 구경", "공방 체험", "야경", "휴식"]
+    },
+    {
+      "key": "mood",
+      "label": "분위기",
+      "multiple": true,
+      "required": true,
+      "values": ["조용한", "활기찬", "레트로", "현대적", "전통적", "예술적", "감성적", "자연 속", "서민적"]
+    },
+    {
+      "key": "setting",
+      "label": "공간",
+      "multiple": false,
+      "required": true,
+      "values": ["실내", "실외", "실내외"]
+    },
+    {
+      "key": "time",
+      "label": "어울리는 시간",
+      "multiple": true,
+      "required": false,
+      "values": ["오전", "오후", "저녁", "밤"]
+    },
+    {
+      "key": "companions",
+      "label": "어울리는 동행",
+      "multiple": true,
+      "required": false,
+      "values": ["혼자", "친구", "연인", "가족", "아이 동반"]
+    }
+  ]
+}

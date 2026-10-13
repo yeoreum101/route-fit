@@ -6,7 +6,8 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 
-from . import courses, db
+from . import checklist, courses, db
+from . import tags as tag_vocab
 from .admin import router as admin_router
 from .config import WEB_DIR
 from .data import load_anchors, load_places
@@ -38,6 +39,18 @@ def health() -> dict:
         "places": len(load_places()),
         "anchors": len(load_anchors()),
     }
+
+
+@app.get("/api/tags")
+def tags() -> list[dict]:
+    """장소 태그 목록 (data/tags.json)."""
+    return tag_vocab.groups()
+
+
+@app.get("/api/checklist")
+def checklist_definition() -> dict:
+    """현장조사 체크리스트 항목 (data/checklist.json)."""
+    return checklist.definition()
 
 
 @app.get("/api/anchors", response_model=list[Place])

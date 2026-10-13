@@ -98,9 +98,16 @@
               <label for="f-aliases">다른 이름 <span class="muted small">(쉼표로 구분)</span></label>
               <input id="f-aliases" placeholder="ACC, 아시아문화전당" title="사용자 문장에서 이 장소를 찾을 때 씁니다">
             </div>
+          </div>
+
+          <h3>취향 태그 <span class="muted small">취향 매칭은 여기서 고른 태그로만 합니다 · <b class="req">*</b> 필수</span></h3>
+          <div id="tag-groups" class="tag-groups"></div>
+          <p class="tag-preview"><span class="muted small">AI가 읽는 문장</span> <span id="tag-sentence"></span></p>
+
+          <div class="form-grid">
             <div class="field span-4">
-              <label for="f-description">설명 <span class="muted small">(AI 취향 매칭에 쓰이므로 분위기·할 거리를 구체적으로)</span></label>
-              <textarea id="f-description" rows="2"></textarea>
+              <label for="f-description">한줄 소개 <span class="muted small">(선택 · 취향 매칭에는 쓰이지 않고, 추천 이유를 쓸 때 사실 자료로만 씁니다)</span></label>
+              <textarea id="f-description" rows="2" placeholder="예: 1935년 개관한 단관 극장. 손으로 그린 간판이 남아 있다."></textarea>
             </div>
           </div>
 
@@ -131,36 +138,36 @@
             </div>
           </div>
 
-          <h3>현장조사</h3>
-          <p id="scores-note" class="muted small"></p>
+          <h3>현장조사 점수 <span class="muted small" id="scores-note"></span></h3>
           <div class="form-grid">
-            <div class="field"><label for="f-gwangju">광주다움 (1~5)</label><input id="f-gwangju" type="number" min="1" max="5" step="0.1" required></div>
-            <div class="field"><label for="f-stayind">체류 유도성 (1~5)</label><input id="f-stayind" type="number" min="1" max="5" step="0.1" required></div>
-            <div class="field"><label for="f-commerce">상권 연계성 (1~5)</label><input id="f-commerce" type="number" min="1" max="5" step="0.1" required></div>
+            <div class="field"><label for="f-gwangju">광주다움 (1~5)</label><input id="f-gwangju" type="number" min="1" max="5" step="0.01" required></div>
+            <div class="field"><label for="f-commerce">상권 연계성 (1~5)</label><input id="f-commerce" type="number" min="1" max="5" step="0.01" required></div>
+            <div class="field"><label for="f-stayind">체류 유도성 (1~5)</label><input id="f-stayind" type="number" min="1" max="5" step="0.01" required></div>
             <div class="field checks-col">
-              <label class="check" title="전통시장·골목상권·로컬카페"><input id="f-local" type="checkbox"> 지역상권 장소</label>
+              <label class="check" title="체크리스트가 있으면 '프랜차이즈 아님'과 '시장·상점가 구역'으로 정해집니다"><input id="f-local" type="checkbox"> 지역상권 장소</label>
               <label class="check"><input id="f-verified" type="checkbox"> 현장 검증 완료</label>
             </div>
           </div>
         </form>
 
-        <section id="ratings-section" hidden>
-          <h3>팀원별 채점</h3>
-          <p class="muted small">채점을 저장하면 위 3속성이 채점 평균으로 바뀝니다. 같은 이름으로 다시 저장하면 덮어씁니다.</p>
-          <div class="table-wrap">
-            <table id="ratings">
-              <thead><tr><th>채점자</th><th class="num">광주다움</th><th class="num">체류 유도성</th><th class="num">상권 연계성</th><th></th></tr></thead>
-              <tbody></tbody>
-            </table>
+        <section id="checklist-section" hidden>
+          <div class="list-head">
+            <h3>현장조사 체크리스트</h3>
+            <span class="muted small">점수 = 1 + 체크한 항목 수 · 수동 항목은 체크한 팀원 비율(2명 중 1명이면 0.5)</span>
           </div>
-          <form id="rating-form" class="rating-form">
-            <input id="r-rater" placeholder="이름" required maxlength="50" aria-label="채점자 이름">
-            <input id="r-gwangju" type="number" min="1" max="5" step="0.5" placeholder="광주다움" required aria-label="광주다움">
-            <input id="r-stayind" type="number" min="1" max="5" step="0.5" placeholder="체류" required aria-label="체류 유도성">
-            <input id="r-commerce" type="number" min="1" max="5" step="0.5" placeholder="상권" required aria-label="상권 연계성">
-            <button type="submit" class="inline">채점 저장</button>
+          <form id="checklist-form">
+            <div class="rater-bar">
+              <label for="c-rater">채점자</label>
+              <select id="c-rater"></select>
+              <input id="c-rater-new" placeholder="새 채점자 이름" maxlength="50" aria-label="새 채점자 이름">
+              <div class="actions">
+                <button type="button" id="c-delete" class="inline secondary">이 채점자 삭제</button>
+                <button type="submit" class="inline">체크리스트 저장</button>
+              </div>
+            </div>
+            <p id="checklist-status" class="form-status" role="status"></p>
+            <div id="checklist-groups"></div>
           </form>
-          <p id="rating-status" class="form-status" role="status"></p>
         </section>
       </section>
     </div>
