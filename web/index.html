@@ -11,24 +11,38 @@
   <header>
     <h1>Route-Fit</h1>
     <p>광주에 온 하나의 이유를 하루로</p>
+    <nav><a href="/" aria-current="page">코스 만들기</a><a href="/stats.html">실증 통계</a><a href="/admin.html">장소 관리</a></nav>
   </header>
 
   <main>
     <form id="plan-form" class="panel">
       <h2>조건 입력</h2>
 
-      <label for="must">필수 방문지 <span class="tag must">필수</span></label>
-      <select id="must"></select>
-      <div class="row">
-        <div>
-          <label for="must-start">시작 시각 (고정)</label>
-          <input id="must-start" type="time" value="18:30">
+      <fieldset class="must-box">
+        <legend>필수 방문지 <span class="tag must">필수</span></legend>
+        <p class="muted small">이미 가기로 정한 곳입니다. 코스는 이 일정을 중심으로 짜입니다.</p>
+
+        <label for="must">장소</label>
+        <select id="must"></select>
+        <div class="row" id="must-detail">
+          <div>
+            <label for="must-start">시작 시각</label>
+            <input id="must-start" type="time" value="18:30" aria-describedby="must-start-help">
+          </div>
+          <div>
+            <label for="must-stay">머무는 시간</label>
+            <div class="with-unit">
+              <input id="must-stay" type="number" min="10" step="10" placeholder="기본값" aria-describedby="must-stay-help">
+              <span>분</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <label for="must-stay">머무는 시간(분)</label>
-          <input id="must-stay" type="number" min="10" step="10" placeholder="기본값">
-        </div>
-      </div>
+        <p class="muted small" id="must-help-on">
+          <span id="must-start-help">시작 시각은 경기·공연처럼 정해져 있을 때만 넣으세요.</span>
+          <span id="must-stay-help">비워 두면 영업시간·기본 체류시간에 맞춰 배치합니다.</span>
+        </p>
+        <p class="muted small" id="must-help-off" hidden>문장에서 필수 방문지를 찾습니다. 예: “챔필에서 야구 보기 전에…”</p>
+      </fieldset>
 
       <label for="query">어떤 하루를 원하세요? <span class="tag ai">AI 추천</span></label>
       <textarea id="query" rows="4" required>토요일 야구 보기 전에 사진 찍기 좋은 데랑 로컬 맛집 가고 싶어. 예산 10만원</textarea>
@@ -61,9 +75,13 @@
       <ol id="timeline"></ol>
       <p id="engine" class="muted small"></p>
       <div id="share" hidden>
-        <button type="button" id="copy-link">공유 링크 복사</button>
-        <span class="muted small">이 코스 어땠나요?</span>
-        <span id="rating" role="group" aria-label="코스 평가"></span>
+        <button type="button" id="copy-link" class="inline">공유 링크 복사</button>
+        <form id="feedback-form">
+          <span class="muted small">이 코스 어땠나요?</span>
+          <span id="rating" role="radiogroup" aria-label="코스 별점"></span>
+          <input id="comment" maxlength="500" placeholder="한줄평 (선택)">
+          <button type="submit" class="inline" disabled>평가 보내기</button>
+        </form>
         <span id="share-status" class="muted small" role="status"></span>
       </div>
     </section>
@@ -74,6 +92,7 @@
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="common.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -58,13 +58,13 @@ class Place(BaseModel):
     @classmethod
     def _weekdays(cls, v: list[int]) -> list[int]:
         if any(d not in range(7) for d in v):
-            raise ValueError("closed_days 는 0(월)~6(일)")
+            raise ValueError("휴무 요일은 0(월)~6(일)이어야 합니다")
         return sorted(set(v))
 
     @model_validator(mode="after")
     def _hours(self) -> "Place":
         if to_min(self.open) >= to_min(self.close):
-            raise ValueError("close 는 open 보다 늦어야 한다 (자정 넘김은 '25:00')")
+            raise ValueError("닫는 시각은 여는 시각보다 늦어야 합니다 (자정을 넘기면 '25:00'처럼 적습니다)")
         return self
 
     @property
@@ -202,8 +202,10 @@ class PlaceRecord(Place):
     """관리자 API 의 장소. kind: candidate(AI 추천 후보) | anchor(Must Visit 목적지)."""
 
     kind: PlaceKind = "candidate"
+    # 아래는 응답 전용 (입력해도 무시)
     updated_at: Optional[datetime] = None
     n_ratings: int = 0
+    local_contribution: Optional[float] = None  # 지역상권 기여도 0~1 (Place.local_score)
 
 
 class RatingIn(BaseModel):

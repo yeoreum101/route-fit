@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: routefit
       POSTGRES_DB: routefit
     ports:
-      - "5432:5432"
+      - "5433:5432"  # 호스트에 PostgreSQL 이 이미 5432 를 쓰는 경우가 많아 5433 으로 연다
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

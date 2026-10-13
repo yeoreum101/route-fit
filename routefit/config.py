@@ -51,3 +51,9 @@ DEFAULT_PLANNER = os.getenv("ROUTEFIT_PLANNER", "greedy").strip().lower()
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip() or f"sqlite:///{DATA_DIR / 'routefit.db'}"
 # 설정하면 /api/admin/* 요청에 X-Admin-Token 헤더가 필요하다. 비우면 누구나 수정 가능(로컬 시연용).
 ADMIN_TOKEN = os.getenv("ROUTEFIT_ADMIN_TOKEN", "").strip()
+# /api/plan 요청 제한: 접속 주소 하나당 1분에 이 횟수까지. 0 이면 제한 없음.
+PLAN_RATE_PER_MIN = int(os.getenv("ROUTEFIT_PLAN_RATE", "20") or 0)
+# 배포 환경에서 리버스 프록시 뒤에 있으면 true (X-Forwarded-For 로 접속 주소를 판단)
+TRUST_PROXY = os.getenv("ROUTEFIT_TRUST_PROXY", "false").strip().lower() == "true"
+# 카카오모빌리티 길찾기 REST API 키 (python -m routefit.travel 로 이동시간을 채울 때만 필요)
+KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY", "").strip()

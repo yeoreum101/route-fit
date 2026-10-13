@@ -3,7 +3,7 @@ import logging
 import threading
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 
 from . import courses, db
@@ -13,6 +13,7 @@ from .data import load_anchors, load_places
 from .models import Course, CourseSummary, Feedback, FeedbackIn, Place, PlanRequest, Stats
 from .pipeline import make_course, warm_up
 from .planner import PlanError
+from .ratelimit import limit_plan
 
 logging.basicConfig(level=logging.INFO)
 
@@ -50,7 +51,7 @@ def places():
 
 
 # 동기 함수로 두어 LLM·최적화 호출이 스레드풀에서 돌게 한다.
-@app.post("/api/plan", response_model=Course)
+@app.post("/api/plan", response_model=Course, dependencies=[Depends(limit_plan)])
 def plan(req: PlanRequest):
     try:
         return make_course(req)

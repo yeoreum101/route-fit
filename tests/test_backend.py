@@ -55,6 +55,7 @@ def test_feedback_and_stats():
     res = client.post(f"/api/courses/{course['id']}/feedback", json={"rating": 5, "comment": "좋아요"})
     assert res.status_code == 201
 
+    assert client.get("/api/admin/feedback").json()[0]["comment"] == "좋아요"
     after = client.get("/api/stats").json()
     assert after["feedback"] == before["feedback"] + 1
     assert after["by_planner"]["ortools"]["courses"] >= 1
@@ -95,6 +96,7 @@ def test_ratings_are_averaged(restore_places):
         assert res.status_code == 200
     place = res.json()
     assert (place["gwangju_ness"], place["commerce_link"], place["n_ratings"]) == (4.0, 1.0, 3)
+    assert place["local_contribution"] == pytest.approx(((4.0 + 1.0) / 2 - 1) / 8 + (2 - 1) / 8, abs=1e-3)
     # 같은 사람이 다시 채점하면 덮어쓴다
     client.put("/api/admin/places/plaza_518/ratings", json={"rater": "c", "gwangju_ness": 5, "stay_inducement": 2, "commerce_link": 1})
     assert client.get("/api/admin/places/plaza_518").json()["gwangju_ness"] == pytest.approx(4.67)
@@ -129,3 +131,39 @@ def test_admin_token(monkeypatch):
     assert client.get("/api/admin/places", headers={"X-Admin-Token": "wrong"}).status_code == 401
     assert client.get("/api/admin/places", headers={"X-Admin-Token": "secret"}).status_code == 200
     assert client.get("/api/places").status_code == 200  # 공개 API 는 토큰 없이
+
+
+def test_rate_limit(monkeypatch):
+    from routefit import ratelimit
+
+    monkeypatch.setattr(config, "PLAN_RATE_PER_MIN", 2)
+    ratelimit.reset()
+    body = {"query": QUERY}
+    assert [client.post("/api/plan", json=body).status_code for _ in range(3)] == [200, 200, 429]
+    res = client.post("/api/plan", json=body)
+    assert res.status_code == 429 and int(res.headers["Retry-After"]) > 0
+    ratelimit.reset()
+
+
+def test_travel_builder_with_mocked_kakao(restore_places):
+    import httpx
+
+    from routefit import data, travel
+
+    calls = []
+
+    def kakao(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.params["origin"])
+        return httpx.Response(200, json={"routes": [{"result_code": 0, "summary": {"duration": 601}}]})
+
+    with httpx.Client(transport=httpx.MockTransport(kakao)) as mock:
+        result = travel.build(mock, pause_s=0)
+    assert result["called"] == len(calls) > 0 and result["failed"] == 0
+    data.invalidate()
+
+    a, b = travel.pairs(data.load_anchors() + data.load_places(), both_ways=False)[0]
+    expected = 11 + travel.CAR_OVERHEAD_MIN  # 601초 -> 11분 + 승차·주차
+    assert data.travel_minutes(a, b) == data.travel_minutes(b, a) == expected
+
+    with httpx.Client(transport=httpx.MockTransport(kakao)) as mock:
+        assert travel.build(mock, pause_s=0)["called"] == 0  # 이미 채운 구간은 다시 부르지 않는다

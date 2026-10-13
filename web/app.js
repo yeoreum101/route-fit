@@ -1,10 +1,3 @@
-const $ = (id) => document.getElementById(id);
-
-const CATEGORY_KO = {
-  sight: "명소·산책", culture: "문화·전시", market: "전통시장", food: "식당",
-  cafe: "카페·디저트", shop: "상점가", night: "야간 콘텐츠", venue: "행사장",
-};
-
 // 지도: 기본은 OSM 타일. 카카오/네이버 지도로 바꿀 때는 이 블록과 drawMap 만 교체하면 된다.
 const map = L.map("map").setView([35.1487, 126.9165], 14);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -12,13 +5,6 @@ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors",
 }).addTo(map);
 const layer = L.layerGroup().addTo(map);
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
 
 async function loadMustOptions() {
   const [anchors, places] = await Promise.all(
@@ -33,7 +19,21 @@ async function loadMustOptions() {
     select.append(group);
   }
   select.value = "champions_field";
+  for (const p of [...anchors, ...places]) stayDefaults[p.id] = p.stay_min;
+  syncMustDetail();
 }
+
+// 필수 방문지를 고르지 않으면 시작 시각·머무는 시간은 쓸 데가 없으므로 잠근다.
+const stayDefaults = {};
+function syncMustDetail() {
+  const id = $("must").value;
+  for (const input of [$("must-start"), $("must-stay")]) input.disabled = !id;
+  $("must-detail").classList.toggle("off", !id);
+  $("must-stay").placeholder = id ? `기본 ${stayDefaults[id]}` : ""; // 장소마다 기본 체류시간이 다르다
+  $("must-help-on").hidden = !id;
+  $("must-help-off").hidden = !!id;
+}
+$("must").addEventListener("change", syncMustDetail);
 
 function drawTimeline(course) {
   $("summary").textContent = course.summary;
@@ -84,18 +84,37 @@ function drawMap(course) {
 }
 
 let currentCourseId = null;
+let currentRating = 0;
+
+function paintStars() {
+  $("rating").querySelectorAll("button").forEach((b, i) => {
+    b.classList.toggle("on", i < currentRating);
+    b.setAttribute("aria-checked", String(i + 1 === currentRating));
+  });
+}
 
 function showShare(course) {
   currentCourseId = course.id;
+  currentRating = 0;
   $("share").hidden = !course.id; // 저장에 실패한 코스는 공유할 수 없다
   $("share-status").textContent = "";
+  $("comment").value = "";
+  $("feedback-form").hidden = false;
+  $("feedback-form").querySelector("button[type=submit]").disabled = true;
   $("rating").replaceChildren(...[1, 2, 3, 4, 5].map((n) => {
     const b = el("button", "star", "★");
     b.type = "button";
     b.title = `${n}점`;
-    b.addEventListener("click", () => sendRating(n));
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-label", `${n}점`);
+    b.addEventListener("click", () => {
+      currentRating = n;
+      paintStars();
+      $("feedback-form").querySelector("button[type=submit]").disabled = false;
+    });
     return b;
   }));
+  paintStars();
 }
 
 function showCourse(course) {
@@ -104,15 +123,20 @@ function showCourse(course) {
   showShare(course);
 }
 
-async function sendRating(rating) {
+$("feedback-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
   const res = await fetch(`/api/courses/${currentCourseId}/feedback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ rating }),
+    body: JSON.stringify({ rating: currentRating, comment: $("comment").value.trim() }),
   });
-  $("share-status").textContent = res.ok ? `${rating}점 평가를 저장했습니다.` : "평가를 저장하지 못했습니다.";
-  if (res.ok) $("rating").querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i < rating));
-}
+  if (res.ok) {
+    $("feedback-form").hidden = true; // 한 코스에 한 번만
+    $("share-status").textContent = `${currentRating}점 평가를 보냈습니다. 고맙습니다!`;
+  } else {
+    $("share-status").textContent = "평가를 저장하지 못했습니다.";
+  }
+});
 
 $("copy-link").addEventListener("click", async () => {
   const url = `${location.origin}${location.pathname}?course=${currentCourseId}`;

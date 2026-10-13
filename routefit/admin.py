@@ -2,13 +2,13 @@
 import secrets
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import ValidationError
 from sqlalchemy import func, select
 
-from . import config, db
+from . import config, courses, db
 from .data import invalidate, to_place
-from .models import PlaceKind, PlaceRecord, Rating, RatingIn, TravelTime
+from .models import Feedback, PlaceKind, PlaceRecord, Rating, RatingIn, TravelTime
 
 
 def require_admin(x_admin_token: Optional[str] = Header(default=None)) -> None:
@@ -21,7 +21,14 @@ router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(re
 
 def _record(s, row: db.PlaceRow) -> PlaceRecord:
     n = s.scalar(select(func.count()).select_from(db.RatingRow).where(db.RatingRow.place_id == row.id))
-    return PlaceRecord(**to_place(row).model_dump(), kind=row.kind, updated_at=row.updated_at, n_ratings=n)
+    place = to_place(row)
+    return PlaceRecord(
+        **place.model_dump(),
+        kind=row.kind,
+        updated_at=row.updated_at,
+        n_ratings=n,
+        local_contribution=round(place.local_score, 3),
+    )
 
 
 def _get_row(s, place_id: str) -> db.PlaceRow:
@@ -32,7 +39,7 @@ def _get_row(s, place_id: str) -> db.PlaceRow:
 
 
 def _apply(row: db.PlaceRow, rec: PlaceRecord) -> None:
-    data = rec.model_dump(exclude={"id", "updated_at", "n_ratings"})
+    data = rec.model_dump(exclude={"id", "updated_at", "n_ratings", "local_contribution"})
     data["open_time"] = data.pop("open")
     data["close_time"] = data.pop("close")
     for key, value in data.items():
@@ -189,6 +196,15 @@ def put_travel_times(items: list[TravelTime]):
         s.commit()
     invalidate()
     return {"saved": len(items)}
+
+
+# ---------- 피드백 ----------
+
+
+@router.get("/feedback", response_model=list[Feedback])
+def list_feedback(limit: int = Query(default=50, ge=1, le=500)):
+    """최근 별점·한줄평. 사용자가 쓴 글이라 공개 API 가 아닌 관리자 API 로 둔다."""
+    return courses.recent_feedback(limit)
 
 
 # ---------- 가져오기 / 내보내기 ----------

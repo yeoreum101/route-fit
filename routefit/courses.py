@@ -73,6 +73,15 @@ def add_feedback(course_id: str, fb: FeedbackIn) -> Optional[Feedback]:
         return Feedback(id=row.id, course_id=course_id, rating=row.rating, comment=row.comment, created_at=row.created_at)
 
 
+def recent_feedback(limit: int) -> list[Feedback]:
+    with db.session() as s:
+        rows = s.scalars(select(db.FeedbackRow).order_by(db.FeedbackRow.id.desc()).limit(limit))
+        return [
+            Feedback(id=r.id, course_id=r.course_id, rating=r.rating, comment=r.comment, created_at=r.created_at)
+            for r in rows
+        ]
+
+
 def stats(top: int = 10) -> Stats:
     """실증 비교 지표. 코스 생성기(planner)별로 평균을 낸다."""
     C = db.CourseRow

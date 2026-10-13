@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Route-Fit 장소 관리</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Route-Fit</h1>
+    <p>장소 관리 · 현장조사 입력</p>
+    <nav><a href="/">코스 만들기</a><a href="/stats.html">실증 통계</a><a href="/admin.html" aria-current="page">장소 관리</a></nav>
+  </header>
+
+  <main class="page">
+    <section class="toolbar">
+      <p class="muted small">저장하면 다음 코스부터 바로 반영됩니다. 다 고친 뒤에는 <b>JSON 내보내기</b>로 받아 <code>data/</code>에 커밋해 두세요.</p>
+      <div class="actions">
+        <button type="button" id="export" class="inline secondary">JSON 내보내기</button>
+        <button type="button" id="import" class="inline secondary">예시 데이터로 초기화</button>
+      </div>
+    </section>
+
+    <div class="admin-grid">
+      <section class="panel">
+        <div class="list-head">
+          <h2>장소 <span id="count" class="muted small"></span></h2>
+          <button type="button" id="new-place" class="inline">+ 새 장소</button>
+        </div>
+        <div class="filters">
+          <input id="search" type="search" placeholder="이름 · id · 지역 검색" aria-label="검색">
+          <select id="filter-kind" aria-label="구분">
+            <option value="">전체</option>
+            <option value="candidate">AI 추천 후보</option>
+            <option value="anchor">Must Visit 목적지</option>
+          </select>
+          <select id="filter-verified" aria-label="검증 여부">
+            <option value="">검증 전체</option>
+            <option value="false">미검증</option>
+            <option value="true">검증 완료</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table id="places" class="clickable">
+            <thead>
+              <tr>
+                <th>이름</th><th>유형</th><th class="col-area">지역</th><th class="col-hours">영업</th>
+                <th class="num col-cost">1인 비용</th><th class="num">지역상권 점수</th><th class="num">채점</th><th>검증</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="editor">
+        <p id="empty" class="muted">왼쪽에서 장소를 고르거나 <b>새 장소</b>를 누르세요.</p>
+
+        <form id="place-form" hidden>
+          <div class="list-head">
+            <h2 id="form-title">장소 편집</h2>
+            <span id="updated-at" class="muted small"></span>
+            <div class="actions">
+              <button type="button" class="inline danger" id="delete">삭제</button>
+              <button type="submit" class="inline" id="save">저장</button>
+            </div>
+          </div>
+          <p id="form-status" class="form-status" role="status"></p>
+
+          <h3>기본 정보</h3>
+          <div class="form-grid">
+            <div class="field span-2">
+              <label for="f-name">이름</label>
+              <input id="f-name" required>
+            </div>
+            <div class="field">
+              <label for="f-id">id <span class="muted small">(만든 뒤 변경 불가)</span></label>
+              <input id="f-id" required pattern="[a-z0-9_]+" maxlength="64" placeholder="영문 소문자·숫자·_" title="영문 소문자, 숫자, _ 만 쓸 수 있습니다">
+            </div>
+            <div class="field">
+              <label for="f-kind">구분</label>
+              <select id="f-kind">
+                <option value="candidate">AI 추천 후보</option>
+                <option value="anchor">Must Visit 목적지</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-category">유형</label>
+              <select id="f-category"></select>
+            </div>
+            <div class="field">
+              <label for="f-area">지역</label>
+              <input id="f-area" required placeholder="동구 동명동">
+            </div>
+            <div class="field span-2">
+              <label for="f-aliases">다른 이름 <span class="muted small">(쉼표로 구분)</span></label>
+              <input id="f-aliases" placeholder="ACC, 아시아문화전당" title="사용자 문장에서 이 장소를 찾을 때 씁니다">
+            </div>
+            <div class="field span-4">
+              <label for="f-description">설명 <span class="muted small">(AI 취향 매칭에 쓰이므로 분위기·할 거리를 구체적으로)</span></label>
+              <textarea id="f-description" rows="2"></textarea>
+            </div>
+          </div>
+
+          <h3>위치 <span class="muted small">지도를 클릭하면 좌표가 들어갑니다</span></h3>
+          <div class="form-grid location">
+            <div id="mini-map" class="span-3"></div>
+            <div class="field-stack">
+              <div class="field"><label for="f-lat">위도</label><input id="f-lat" type="number" step="any" required></div>
+              <div class="field"><label for="f-lng">경도</label><input id="f-lng" type="number" step="any" required></div>
+            </div>
+          </div>
+
+          <h3>운영 <span class="muted small">자정을 넘기면 새벽 1시를 25:00처럼 적습니다</span></h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="f-open">여는 시각</label>
+              <input id="f-open" required pattern="\d{1,2}:[0-5]\d" placeholder="10:00">
+            </div>
+            <div class="field">
+              <label for="f-close">닫는 시각</label>
+              <input id="f-close" required pattern="\d{1,2}:[0-5]\d" placeholder="22:00">
+            </div>
+            <div class="field"><label for="f-stay">머무는 시간(분)</label><input id="f-stay" type="number" min="5" max="600" step="5" required></div>
+            <div class="field"><label for="f-cost">1인 예상 지출(원)</label><input id="f-cost" type="number" min="0" step="1000" required></div>
+            <div class="field span-4">
+              <span class="label">휴무 요일</span>
+              <div id="f-closed" class="checks" role="group" aria-label="휴무 요일"></div>
+            </div>
+          </div>
+
+          <h3>현장조사</h3>
+          <p id="scores-note" class="muted small"></p>
+          <div class="form-grid">
+            <div class="field"><label for="f-gwangju">광주다움 (1~5)</label><input id="f-gwangju" type="number" min="1" max="5" step="0.1" required></div>
+            <div class="field"><label for="f-stayind">체류 유도성 (1~5)</label><input id="f-stayind" type="number" min="1" max="5" step="0.1" required></div>
+            <div class="field"><label for="f-commerce">상권 연계성 (1~5)</label><input id="f-commerce" type="number" min="1" max="5" step="0.1" required></div>
+            <div class="field checks-col">
+              <label class="check" title="전통시장·골목상권·로컬카페"><input id="f-local" type="checkbox"> 지역상권 장소</label>
+              <label class="check"><input id="f-verified" type="checkbox"> 현장 검증 완료</label>
+            </div>
+          </div>
+        </form>
+
+        <section id="ratings-section" hidden>
+          <h3>팀원별 채점</h3>
+          <p class="muted small">채점을 저장하면 위 3속성이 채점 평균으로 바뀝니다. 같은 이름으로 다시 저장하면 덮어씁니다.</p>
+          <div class="table-wrap">
+            <table id="ratings">
+              <thead><tr><th>채점자</th><th class="num">광주다움</th><th class="num">체류 유도성</th><th class="num">상권 연계성</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <form id="rating-form" class="rating-form">
+            <input id="r-rater" placeholder="이름" required maxlength="50" aria-label="채점자 이름">
+            <input id="r-gwangju" type="number" min="1" max="5" step="0.5" placeholder="광주다움" required aria-label="광주다움">
+            <input id="r-stayind" type="number" min="1" max="5" step="0.5" placeholder="체류" required aria-label="체류 유도성">
+            <input id="r-commerce" type="number" min="1" max="5" step="0.5" placeholder="상권" required aria-label="상권 연계성">
+            <button type="submit" class="inline">채점 저장</button>
+          </form>
+          <p id="rating-status" class="form-status" role="status"></p>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="common.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
