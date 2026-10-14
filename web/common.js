@@ -13,7 +13,8 @@ const CATEGORY_KO = {
   cafe: "카페·디저트", shop: "상점가", night: "야간 콘텐츠", venue: "행사장",
 };
 
-const PLANNER_KO = { greedy: "그리디 (Phase 1)", ortools: "OR-Tools (Phase 2)" };
+// 화면에는 쉬운 이름을, 괄호 안에는 발표·보고서에서 쓰는 알고리즘 이름을 둔다.
+const PLANNER_KO = { greedy: "기본 추천 (그리디)", ortools: "최적화 추천 (OR-Tools)" };
 
 // 관리자 토큰은 탭을 닫으면 사라지도록 sessionStorage 에 둔다. 저장소를 못 쓰는 환경에서도 동작해야 한다.
 const adminToken = {

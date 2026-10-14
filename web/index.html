@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Route-Fit</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,50 +21,30 @@
 
       <fieldset class="must-box">
         <legend>필수 방문지 <span class="tag must">필수</span></legend>
-        <p class="muted small">이미 가기로 정한 곳입니다. 코스는 이 일정을 중심으로 짜입니다.</p>
-
-        <label for="must">장소</label>
-        <select id="must"></select>
-        <div class="row" id="must-detail">
-          <div>
-            <label for="must-start">시작 시각</label>
-            <input id="must-start" type="time" value="18:30" aria-describedby="must-start-help">
-          </div>
-          <div>
-            <label for="must-stay">머무는 시간</label>
-            <div class="with-unit">
-              <input id="must-stay" type="number" min="10" step="10" placeholder="기본값" aria-describedby="must-stay-help">
-              <span>분</span>
-            </div>
-          </div>
-        </div>
-        <p class="muted small" id="must-help-on">
-          <span id="must-start-help">시작 시각은 경기·공연처럼 정해져 있을 때만 넣으세요.</span>
-          <span id="must-stay-help">비워 두면 영업시간·기본 체류시간에 맞춰 배치합니다.</span>
-        </p>
-        <p class="muted small" id="must-help-off" hidden>문장에서 필수 방문지를 찾습니다. 예: “챔필에서 야구 보기 전에…”</p>
+        <div id="must-list"></div>
+        <p class="muted small" id="must-help-off" hidden>문장에서 찾습니다. 예: “챔필에서 야구 보기 전에…”</p>
+        <button type="button" id="add-must" class="add-must">+ 필수 방문지 추가</button>
       </fieldset>
 
       <label for="query">어떤 하루를 원하세요? <span class="tag ai">AI 추천</span></label>
       <textarea id="query" rows="4" required aria-describedby="query-help">토요일 야구 보기 전에 사진 찍기 좋은 데랑 로컬 맛집 가고 싶어</textarea>
-      <p id="query-help" class="muted small help">어떤 곳에서 무엇을 하고 싶은지 적어 주세요. 요일·시간·동행을 함께 적어도 알아서 읽습니다.</p>
+      <p id="query-help" class="muted small help">하고 싶은 것을 적어 주세요. 요일·시간·동행도 알아서 읽습니다.</p>
 
       <fieldset class="optional-box">
         <legend>직접 지정 <span class="muted small">(선택)</span></legend>
-        <p class="muted small">비워 두면 문장에서 찾고, 없으면 기본값(10:00–22:00, 예산 제한 없음)을 씁니다. 입력하면 문장보다 우선합니다.</p>
-        <label for="visit-date">방문 날짜 <span class="muted small">(그날 쉬는 곳을 뺍니다)</span></label>
+        <label for="visit-date">방문 날짜 <span class="muted small">(휴무 제외)</span></label>
         <div class="with-unit">
           <input id="visit-date" type="date">
           <span id="visit-weekday" class="weekday"></span>
         </div>
         <div class="row">
           <div>
-            <label for="day-start">하루 시작</label>
-            <input id="day-start" type="time">
+            <label for="day-start-field">하루 시작</label>
+            <span id="day-start" class="time-pick" data-label="하루 시작"></span>
           </div>
           <div>
-            <label for="day-end">하루 종료</label>
-            <input id="day-end" type="time">
+            <label for="day-end-field">하루 종료</label>
+            <span id="day-end" class="time-pick" data-label="하루 종료"></span>
           </div>
         </div>
         <label for="budget">1인 예산</label>
@@ -74,18 +55,22 @@
         <button type="button" id="clear-optional" class="link">모두 비우기</button>
       </fieldset>
 
-      <label for="planner">코스 생성기</label>
-      <select id="planner">
-        <option value="greedy">그리디 (Phase 1)</option>
-        <option value="ortools">OR-Tools 최적화 (Phase 2)</option>
+      <label for="planner">코스 짜는 방식</label>
+      <select id="planner" aria-describedby="planner-help">
+        <option value="greedy">기본 추천</option>
+        <option value="ortools">최적화 추천</option>
       </select>
+      <p id="planner-help" class="muted small help"></p>
 
       <button type="submit">코스 만들기</button>
       <p id="status" role="status"></p>
     </form>
 
     <section class="panel" id="course">
-      <h2>AI 생성 코스</h2>
+      <div class="panel-head">
+        <h2>AI 생성 코스</h2>
+        <button type="button" id="course-on-map" class="inline secondary" hidden>지도에서 보기</button>
+      </div>
       <div id="conditions" hidden>
         <h3>인식된 조건</h3>
         <ul id="condition-chips" class="chips"></ul>
@@ -95,7 +80,10 @@
       <p id="summary" class="muted">조건을 입력하고 코스를 만들어 보세요.</p>
       <ul id="metrics"></ul>
       <ol id="timeline"></ol>
-      <p id="engine" class="muted small"></p>
+      <details id="engine-box" hidden>
+        <summary>생성 정보</summary>
+        <p id="engine"></p>
+      </details>
       <div id="share" hidden>
         <button type="button" id="copy-link" class="inline">공유 링크 복사</button>
         <form id="feedback-form">
@@ -115,6 +103,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="common.js"></script>
+  <script src="map.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
