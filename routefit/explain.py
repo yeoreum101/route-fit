@@ -14,7 +14,7 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
 코스는 이미 알고리즘이 확정했다. 너는 주어진 계산 결과를 근거로 "왜 이 코스인가"를 한국어로 설명만 한다.
 
 규칙:
-- 입력 JSON 에 있는 사실(장소 설명, 유사도, 이동시간, 라벨 점수, 시간)만 근거로 쓴다. 메뉴·가격·행사 등 없는 정보를 지어내지 않는다.
+- 입력 JSON 에 있는 사실(장소 설명, 유사도, 이동시간, 라벨 점수, 시간, 동행 적합 여부)만 근거로 쓴다. 메뉴·가격·행사 등 없는 정보를 지어내지 않는다.
 - 장소를 추가·삭제하거나 순서를 바꾸자고 제안하지 않는다.
 - reasons: kind 가 "ai" 인 장소마다 1~2문장. 사용자의 취향 문장과 어떻게 맞는지, 동선상 왜 이 자리인지를 구체적으로 쓴다.
 - summary: 코스 전체를 2~3문장으로. 필수 방문지를 중심으로 하루가 어떻게 이어지는지 설명한다.
@@ -52,6 +52,7 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "stay_inducement_1to5": v.node.place.stay_inducement,
                 "commerce_link_1to5": v.node.place.commerce_link,
                 "is_local_commerce": v.node.place.is_local_commerce,
+                "suits_companions": v.node.companion_fit,  # 장소 태그 기준으로 동행과 어울리는지
             }
             for v in visits
         ],

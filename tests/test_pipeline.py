@@ -46,8 +46,50 @@ def test_conflicting_fixed_times_raise():
         query="야구랑 공연",
         must_visits=[BASEBALL, MustVisitInput(id="arts_center", start="19:00")],
     )
-    with pytest.raises(PlanError):
+    with pytest.raises(PlanError, match="시간이 겹칩니다") as e:
         make_course(req)
+    assert "광주-기아 챔피언스 필드" in str(e.value)
+
+
+def test_fixed_times_need_travel_gap():
+    # 야구가 18:30~19:00 로 끝나도, 이동시간이 있으니 19:00 에 바로 시작하는 공연은 갈 수 없다.
+    req = PlanRequest(
+        query="야구랑 공연",
+        must_visits=[
+            MustVisitInput(id="champions_field", start="18:30", stay_min=30),
+            MustVisitInput(id="arts_center", start="19:00"),
+        ],
+    )
+    with pytest.raises(PlanError, match="이동"):
+        make_course(req)
+
+
+def test_companions_are_read_as_tag_values():
+    from routefit.parser import normalize_companions
+
+    places = load_anchors() + load_places()
+    assert parse_rule_based("아이랑 주말에 산책", places).companions == "아이 동반"
+    assert parse_rule_based("데이트 코스 추천", places).companions == "연인"
+    assert parse_rule_based("아이스크림 먹고 싶어", places).companions is None
+    # LLM 이 자유롭게 쓴 값도 태그 값으로 맞춘다
+    assert normalize_companions("친구 2명") == "친구"
+    assert normalize_companions("커플") == "연인"
+    assert normalize_companions("직장 동료") is None
+
+
+def test_companion_tag_raises_place_value():
+    from routefit.models import Constraints
+    from routefit.pipeline import _candidate_nodes
+
+    places = load_places()
+    sims = {p.id: 0.5 for p in places}
+    base = dict(taste="", day_start="10:00", day_end="22:00", budget=None, weekday=None, avoid_categories=[])
+    alone = {n.id: n for n in _candidate_nodes(Constraints(**base, companions=None), sims, set())}
+    couple = {n.id: n for n in _candidate_nodes(Constraints(**base, companions="연인"), sims, set())}
+    for p in places:
+        fits = "연인" in p.tags.get("companions", [])
+        assert couple[p.id].companion_fit == fits
+        assert (couple[p.id].value > alone[p.id].value) == fits
 
 
 def test_rule_based_parser():

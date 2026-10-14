@@ -74,14 +74,24 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return 6371 * 2 * math.asin(math.sqrt(a))
 
 
+# 실측값이 없을 때 쓰는 추정치. 여행자는 걷거나 시내버스를 탄다고 본다.
+ROAD_DETOUR = 1.3  # 직선거리 -> 도로 거리
+WALK_KM = 1.2  # 도로 거리가 이 이하면 걷는다
+WALK_KMH = 4.5
+BUS_ACCESS_MIN = 6  # 정류장까지 걷기 + 내려서 걷기
+BUS_WAIT_MIN = 7  # 평균 대기 (배차 15분 안팎의 절반)
+BUS_KMH = 15  # 정차·신호를 포함한 도심 버스 평균 속도
+
+
 def travel_minutes(a, b) -> int:
-    """a -> b 이동시간(분). a, b 는 id/lat/lng 를 가진 객체."""
+    """a -> b 이동시간(분). a, b 는 id/lat/lng 를 가진 객체.
+    travel_times 에 실측값이 있으면 그것을, 없으면 도보·시내버스 추정치를 쓴다."""
     if a.id == b.id:
         return 0
     known = _travel_matrix().get(f"{a.id}|{b.id}")
     if known is not None:
         return int(known)
-    km = haversine_km(a.lat, a.lng, b.lat, b.lng) * 1.3  # 도로 우회 보정
-    if km <= 1.2:
-        return max(2, round(km / 4.5 * 60))  # 도보
-    return round(8 + km / 20 * 60)  # 대중교통·택시 (대기 8분 + 시속 20km)
+    km = haversine_km(a.lat, a.lng, b.lat, b.lng) * ROAD_DETOUR
+    if km <= WALK_KM:
+        return max(2, round(km / WALK_KMH * 60))
+    return round(BUS_ACCESS_MIN + BUS_WAIT_MIN + km / BUS_KMH * 60)

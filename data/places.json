@@ -29,7 +29,7 @@
    "gwangju_ness": 5, "stay_inducement": 4, "commerce_link": 5, "is_local_commerce": true, "verified": false,
    "tags": {"activity": ["시장 구경", "길거리 음식", "식사", "사진"], "mood": ["레트로", "예술적", "서민적"], "setting": ["실내외"], "time": ["오후", "저녁"], "companions": ["친구", "연인"]}},
 
-  {"id": "yangdong_market", "name": "양동시장", "category": "market", "area": "서구 양동", "lat": 35.1548, "lng": 126.9028,
+  {"id": "yangdong_market", "name": "양동시장", "category": "market", "area": "서구 양동", "lat": 35.1546, "lng": 126.9017,
    "description": "호남 최대 규모 전통시장. 통닭과 홍어, 반찬 골목 등 활기찬 시장 분위기와 저렴한 먹거리.",
    "open": "08:00", "close": "20:00", "stay_min": 50, "cost": 12000,
    "gwangju_ness": 5, "stay_inducement": 3, "commerce_link": 5, "is_local_commerce": true, "verified": false,
@@ -47,7 +47,7 @@
    "gwangju_ness": 3, "stay_inducement": 3, "commerce_link": 5, "is_local_commerce": true, "verified": false,
    "tags": {"activity": ["식사"], "mood": ["활기찬", "감성적"], "setting": ["실내"], "time": ["오후", "저녁"], "companions": ["친구", "연인"]}},
 
-  {"id": "penguin_village", "name": "양림동 펭귄마을", "category": "sight", "area": "남구 양림동", "lat": 35.1403, "lng": 126.9146,
+  {"id": "penguin_village", "name": "양림동 펭귄마을", "category": "sight", "area": "남구 양림동", "lat": 35.1402, "lng": 126.9169,
    "description": "주민들이 폐품으로 꾸민 정크아트 골목과 공예거리. 레트로한 분위기에서 사진 찍기 좋고 공방 체험이 가능하다.",
    "aliases": ["펭귄마을"], "open": "09:00", "close": "18:00", "stay_min": 40, "cost": 0,
    "gwangju_ness": 5, "stay_inducement": 3, "commerce_link": 4, "is_local_commerce": true, "verified": false,
@@ -77,13 +77,13 @@
    "gwangju_ness": 4, "stay_inducement": 4, "commerce_link": 5, "is_local_commerce": true, "verified": false,
    "tags": {"activity": ["카페·디저트", "휴식"], "mood": ["조용한", "전통적", "감성적"], "setting": ["실내외"], "time": ["오후", "저녁"], "companions": ["혼자", "친구", "연인"]}},
 
-  {"id": "sajik_tower", "name": "사직공원 전망타워", "category": "sight", "area": "남구 사직동", "lat": 35.1423, "lng": 126.9093,
+  {"id": "sajik_tower", "name": "사직공원 전망타워", "category": "sight", "area": "남구 사직동", "lat": 35.1417, "lng": 126.9114,
    "description": "사직공원 언덕 위 전망대. 광주 도심과 무등산이 한눈에 보이고 노을과 야경이 좋다.",
    "open": "09:00", "close": "22:00", "stay_min": 40, "cost": 0,
    "gwangju_ness": 4, "stay_inducement": 3, "commerce_link": 2, "is_local_commerce": false, "verified": false,
    "tags": {"activity": ["야경", "사진", "산책"], "mood": ["자연 속"], "setting": ["실외"], "time": ["저녁", "밤"], "companions": ["친구", "연인", "가족"]}},
 
-  {"id": "gwangju_theater", "name": "광주극장", "category": "culture", "area": "동구 충장로", "lat": 35.1512, "lng": 126.9143,
+  {"id": "gwangju_theater", "name": "광주극장", "category": "culture", "area": "동구 충장로", "lat": 35.1499, "lng": 126.9123,
    "description": "1935년 개관한 단관 극장. 손으로 그린 간판과 오래된 객석에서 독립·예술영화를 본다.",
    "open": "12:00", "close": "22:00", "stay_min": 120, "cost": 10000,
    "gwangju_ness": 5, "stay_inducement": 5, "commerce_link": 4, "is_local_commerce": true, "verified": false,

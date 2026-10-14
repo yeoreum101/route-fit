@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 
-from . import checklist, courses, db
+from . import checklist, config, courses, db
 from . import tags as tag_vocab
 from .admin import router as admin_router
 from .config import WEB_DIR
@@ -39,6 +39,12 @@ def health() -> dict:
         "places": len(load_places()),
         "anchors": len(load_anchors()),
     }
+
+
+@app.get("/api/config")
+def client_config() -> dict:
+    """화면이 쓰는 공개 설정. 카카오맵 JavaScript 키는 원래 브라우저에 노출되는 키다."""
+    return {"kakao_js_key": config.KAKAO_JS_KEY or None}
 
 
 @app.get("/api/tags")
@@ -98,4 +104,14 @@ def stats():
     return courses.stats()
 
 
-app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+class WebFiles(StaticFiles):
+    """화면 파일(html·js·css). 브라우저가 예전 사본을 그대로 쓰지 않고 매번 바뀌었는지 확인하게 한다.
+    바뀌지 않았으면 304 로 끝나므로 부담은 거의 없고, 화면을 고친 뒤 새로고침 한 번이면 반영된다."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/", WebFiles(directory=WEB_DIR, html=True), name="web")

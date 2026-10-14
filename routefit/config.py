@@ -14,13 +14,14 @@ load_dotenv(ROOT / ".env")
 
 @dataclass(frozen=True)
 class Weights:
-    """추천 점수식: 취향 적합도 + 지역상권 기여도 - 이동 부담 - 시간 초과 페널티.
+    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 - 이동 부담 - 시간 초과 페널티.
 
     초기값이며 검증되지 않았다. 중간발표 직후 보정 기간에 내부 테스트로 조정한다.
     """
 
     taste: float = 1.0  # 취향 적합도 (후보 내 0~1 정규화된 코사인 유사도)
     local: float = 0.6  # 지역상권 기여도 (0~1)
+    companion: float = 0.3  # 문장의 동행이 장소의 '어울리는 동행' 태그에 있으면 더한다
     travel_per_min: float = 0.012  # 이동 1분당 감점
     overtime_per_min: float = 0.05  # 종료 희망 시각 초과 1분당 감점
     stop_cost: float = 0.3  # 장소 1곳을 추가하려면 넘어야 하는 최소 가치
@@ -57,3 +58,6 @@ PLAN_RATE_PER_MIN = int(os.getenv("ROUTEFIT_PLAN_RATE", "20") or 0)
 TRUST_PROXY = os.getenv("ROUTEFIT_TRUST_PROXY", "false").strip().lower() == "true"
 # 카카오모빌리티 길찾기 REST API 키 (python -m routefit.travel 로 이동시간을 채울 때만 필요)
 KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY", "").strip()
+# 카카오맵 JavaScript 키. 화면에 그대로 내려가는 공개용 키이며, 카카오 콘솔에 등록한 사이트 도메인에서만 동작한다.
+# 비워 두면 코스 지도는 OpenStreetMap 으로 그린다.
+KAKAO_JS_KEY = os.getenv("KAKAO_JS_KEY", "").strip()

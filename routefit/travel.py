@@ -19,18 +19,17 @@ import httpx
 from sqlalchemy import select
 
 from . import config, db
-from .data import haversine_km, load_anchors, load_places
+from .data import ROAD_DETOUR, WALK_KM, haversine_km, load_anchors, load_places
 from .models import Place
 
 log = logging.getLogger(__name__)
 
 API_URL = "https://apis-navi.kakaomobility.com/v1/directions"
-WALK_KM = 1.2  # data.travel_minutes 의 도보 기준과 같게
 CAR_OVERHEAD_MIN = 5
 
 
 def needs_api(a: Place, b: Place) -> bool:
-    return haversine_km(a.lat, a.lng, b.lat, b.lng) * 1.3 > WALK_KM
+    return haversine_km(a.lat, a.lng, b.lat, b.lng) * ROAD_DETOUR > WALK_KM
 
 
 def fetch_minutes(client: httpx.Client, a: Place, b: Place) -> Optional[int]:

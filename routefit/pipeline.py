@@ -89,6 +89,20 @@ def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> li
     return nodes
 
 
+def _check_fixed_conflicts(musts: list[Node]) -> None:
+    """시작 시각이 고정된 필수 방문지끼리 (머무는 시간 + 이동시간) 겹치면 어느 두 곳인지 알려 준다."""
+    fixed = sorted((m for m in musts if m.fixed_start is not None), key=lambda m: m.fixed_start)
+    for a, b in zip(fixed, fixed[1:]):
+        end = a.fixed_start + a.stay
+        move = travel_minutes(a, b)
+        if end + move > b.fixed_start:
+            gap = f" + 이동 {move}분" if move and end <= b.fixed_start else ""
+            raise PlanError(
+                f"필수 방문지 시간이 겹칩니다: '{a.place.name}'({to_hm(a.fixed_start)}~{to_hm(end)}{gap}) 과 "
+                f"'{b.place.name}'({to_hm(b.fixed_start)} 시작). 방문 예정 시각이나 머무는 시간을 조정해 주세요."
+            )
+
+
 def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str]) -> list[Node]:
     places = [
         p
@@ -110,6 +124,7 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str]) 
             cost=p.cost,
             taste=(sims[p.id] - lo) / span,
             similarity=sims[p.id],
+            companion_fit=bool(c.companions) and c.companions in p.tags.get("companions", []),
         )
         for p in places
     ]
@@ -173,6 +188,7 @@ def make_course(req: PlanRequest) -> Course:
     # ① 자연어 조건 파싱
     parsed, parser_used = parse_query(req.query, known)
     musts = _must_nodes(req, parsed, known)
+    _check_fixed_conflicts(musts)
     sources: dict[str, str] = {}
     notes: list[str] = []
 

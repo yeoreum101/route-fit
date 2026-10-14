@@ -39,6 +39,11 @@ def missing_required(tags: dict[str, list[str]]) -> list[str]:
     return [g["label"] for g in groups() if g["required"] and not tags.get(g["key"])]
 
 
+def values(key: str) -> list[str]:
+    """그룹 하나의 값 목록. 예: values("companions") -> ["혼자", "친구", ...]"""
+    return next((g["values"] for g in groups() if g["key"] == key), [])
+
+
 def sentence(tags: dict[str, list[str]]) -> str:
     """'할 거리: 사진 / 산책 | 분위기: 조용한 | 공간: 실외 …' 형태의 표준 문장.
     값에 쉼표·마침표를 붙이지 않는다. 글자 단위로 보는 임베딩에서 '술,' 이 '술' 과 다른 말이 되기 때문이다."""

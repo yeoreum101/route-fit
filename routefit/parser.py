@@ -2,6 +2,7 @@
 import re
 
 from . import llm
+from . import tags as tag_vocab
 from .models import ParsedMustVisit, ParsedQuery, Place
 
 SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 파서다.
@@ -17,6 +18,7 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 �
   "가보고 싶다" 수준의 취향은 must_visits 가 아니라 taste 에 넣는다.
   장소 이름 없이 예정된 일정만 말했더라도(예: "야구 보러 간다"), 그 일정이 열리는 곳이 [알려진 목적지] 중
   하나로 분명하면 그 목적지를 넣는다. 분명하지 않으면 넣지 않는다.
+- companions: 같이 가는 사람. 혼자, 친구, 연인, 가족, 아이 동반 중 하나만. 아이와 함께면 "아이 동반".
 - avoid_categories: 사용자가 피하고 싶다고 한 유형만. 값은 sight, culture, market, food, cafe, shop, night 중에서.
 """
 
@@ -27,8 +29,19 @@ def parse_query(query: str, known: list[Place]) -> tuple[ParsedQuery, str]:
     names = "\n".join(f"- {p.name}" + (f" ({p.description})" if p.category == "venue" else "") for p in known)
     parsed = llm.structured(SYSTEM, f"[알려진 목적지]\n{names}\n\n[사용자 문장]\n{query}", ParsedQuery)
     if parsed is not None:
+        parsed.companions = normalize_companions(parsed.companions)
         return parsed, llm.name()
     return parse_rule_based(query, known), "rule"
+
+
+def normalize_companions(text: str | None) -> str | None:
+    """동행을 장소 태그 '어울리는 동행' 값(혼자·친구·연인·가족·아이 동반)으로 맞춘다. 모르면 None."""
+    if not text:
+        return None
+    text = text.strip()
+    if text in tag_vocab.values("companions"):
+        return text
+    return next((v for k, v in _COMPANIONS.items() if k in text), None)
 
 
 # ---------- 규칙 기반 대체 파서 (API 키 없이 개발·테스트할 때) ----------
@@ -36,14 +49,22 @@ def parse_query(query: str, known: list[Place]) -> tuple[ParsedQuery, str]:
 _PM = ("오후", "저녁", "밤")
 _TIME = re.compile(r"(오전|아침|낮|오후|저녁|밤)?\s*(\d{1,2})\s*시\s*(반|\d{1,2}\s*분)?\s*(부터|까지)?")
 _WEEKDAYS = "월화수목금토일"
+# 앞에 있는 것이 먼저 잡힌다. 아이와 함께면 가족보다 '아이 동반'이 더 구체적이다.
+# '아이스크림' 같은 말에 걸리지 않도록 '아이' 단독은 쓰지 않는다.
 _COMPANIONS = {
+    "아이 동반": "아이 동반",
+    "아이랑": "아이 동반",
+    "아이와": "아이 동반",
+    "아이들": "아이 동반",
+    "아기": "아이 동반",
+    "애기": "아이 동반",
+    "유아": "아이 동반",
     "혼자": "혼자",
     "친구": "친구",
     "연인": "연인",
     "커플": "연인",
     "데이트": "연인",
     "가족": "가족",
-    "아이": "가족",
     "부모님": "가족",
 }
 

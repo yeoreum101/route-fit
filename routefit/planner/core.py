@@ -22,6 +22,7 @@ class Node:
     mandatory: bool = False  # Must Visit: 절대 제외하지 않는다
     fixed_start: Optional[int] = None  # 경기·공연처럼 시작 시각이 고정된 경우
     taste: float = 0.0  # 후보 내 0~1 로 정규화한 취향 적합도
+    companion_fit: bool = False  # 문장의 동행이 이 장소의 '어울리는 동행' 태그에 있다
     similarity: float = 0.0  # 코사인 유사도 원값
 
     @property
@@ -39,7 +40,12 @@ class Node:
     @property
     def value(self) -> float:
         """이 장소를 코스에 넣었을 때 얻는 가치 (이동 부담 반영 전)."""
-        return WEIGHTS.taste * self.taste + WEIGHTS.local * self.place.local_score - WEIGHTS.stop_cost
+        return (
+            WEIGHTS.taste * self.taste
+            + WEIGHTS.local * self.place.local_score
+            + WEIGHTS.companion * self.companion_fit
+            - WEIGHTS.stop_cost
+        )
 
 
 @dataclass
@@ -89,7 +95,7 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
 
 
 def objective(visits: list[Visit], day_end: int, weights: Weights = WEIGHTS) -> float:
-    """추천 점수식: 취향 적합도 + 지역상권 기여도 - 이동 부담 - 시간 초과 페널티."""
+    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 - 이동 부담 - 시간 초과 페널티."""
     value = sum(v.node.value for v in visits if not v.node.mandatory)
     travel = sum(v.travel for v in visits)
     overtime = max(0, visits[-1].end - day_end) if visits else 0
