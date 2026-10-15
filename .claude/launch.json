@@ -6,6 +6,18 @@
       "runtimeExecutable": ".venv/Scripts/python.exe",
       "runtimeArgs": ["-m", "uvicorn", "routefit.api:app", "--port", "8000"],
       "port": 8000
+    },
+    {
+      "name": "route-fit-api-mac",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "routefit.api:app", "--port", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "route-fit-fe",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "fe", "run", "dev"],
+      "port": 5173
     }
   ]
 }
