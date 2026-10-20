@@ -3,7 +3,7 @@ import re
 
 from . import llm
 from . import tags as tag_vocab
-from .models import ParsedMustVisit, ParsedQuery, Place
+from .models import CATEGORY_KO, ParsedMustVisit, ParsedQuery, Place
 
 SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 파서다.
 사용자가 자유롭게 쓴 한국어 문장에서 여행 제약조건을 뽑아 구조화한다.
@@ -29,9 +29,53 @@ def parse_query(query: str, known: list[Place]) -> tuple[ParsedQuery, str]:
     names = "\n".join(f"- {p.name}" + (f" ({p.description})" if p.category == "venue" else "") for p in known)
     parsed = llm.structured(SYSTEM, f"[알려진 목적지]\n{names}\n\n[사용자 문장]\n{query}", ParsedQuery)
     if parsed is not None:
-        parsed.companions = normalize_companions(parsed.companions)
-        return parsed, llm.name()
+        return sanitize(parsed, known), llm.name()
     return parse_rule_based(query, known), "rule"
+
+
+_HM = re.compile(r"^([01]?\d|2[0-9]):([0-5]\d)$")
+_AVOIDABLE = {k for k in CATEGORY_KO if k != "venue"}
+
+
+def _hm(value: str | None) -> str | None:
+    value = (value or "").strip()
+    return value if _HM.match(value) else None
+
+
+def find_by_name(known: list[Place], name: str | None) -> Place | None:
+    """이름·별칭이 서로 포함되면 같은 장소로 본다(공백 무시)."""
+    key = (name or "").replace(" ", "")
+    if not key:
+        return None
+    for p in known:
+        names = [n.replace(" ", "") for n in [p.name, *p.aliases]]
+        if any(key == n or n in key or key in n for n in names):
+            return p
+    return None
+
+
+def sanitize(parsed: ParsedQuery, known: list[Place]) -> ParsedQuery:
+    """LLM 출력을 믿지 않고 규칙에 맞게 정리한다. 형식이 틀린 값은 null 로 두어 기본값·화면 입력이 쓰이게 하고,
+    알려진 목적지가 아닌 필수 방문지는 버린다(없으면 사용자에게 '찾을 수 없다'는 오류가 나기 때문)."""
+    parsed.companions = normalize_companions(parsed.companions)
+    parsed.day_start = _hm(parsed.day_start)
+    parsed.day_end = _hm(parsed.day_end)
+    if parsed.budget is not None and parsed.budget <= 0:
+        parsed.budget = None
+    if parsed.weekday is not None and not 0 <= parsed.weekday <= 6:
+        parsed.weekday = None
+    parsed.avoid_categories = [c for c in dict.fromkeys(parsed.avoid_categories) if c in _AVOIDABLE]
+    musts = []
+    for m in parsed.must_visits:
+        place = find_by_name(known, m.name)
+        if place is None:
+            continue
+        m.name = place.name
+        m.start = _hm(m.start)
+        m.stay_min = m.stay_min if m.stay_min and m.stay_min > 0 else None
+        musts.append(m)
+    parsed.must_visits = musts
+    return parsed
 
 
 def normalize_companions(text: str | None) -> str | None:

@@ -21,7 +21,7 @@ from .models import (
     to_hm,
     to_min,
 )
-from .parser import parse_query
+from .parser import find_by_name, parse_query
 from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule
 
 log = logging.getLogger(__name__)
@@ -52,14 +52,7 @@ def warm_up() -> None:
 def _find(known: list[Place], id: Optional[str], name: Optional[str]) -> Optional[Place]:
     if id:
         return next((p for p in known if p.id == id), None)
-    key = (name or "").replace(" ", "")
-    if not key:
-        return None
-    for p in known:
-        names = [n.replace(" ", "") for n in [p.name, *p.aliases]]
-        if any(key == n or n in key or key in n for n in names):
-            return p
-    return None
+    return find_by_name(known, name)
 
 
 def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> list[Node]:

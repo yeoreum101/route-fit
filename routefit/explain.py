@@ -3,6 +3,7 @@
 LLM 에는 점수 계산 결과(유사도·이동시간·라벨 점수)만 넘기고, 그 사실을 문장으로 옮기게 한다.
 """
 import json
+import re
 
 from pydantic import BaseModel
 
@@ -61,23 +62,51 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
 
 def explain(visits: list[Visit], c: Constraints) -> tuple[str, dict[str, str], str]:
     """(코스 요약, {place_id: 추천 이유}, 사용된 설명기 이름)."""
-    facts = json.dumps(_facts(visits, c), ensure_ascii=False, indent=1)
-    result = llm.structured(SYSTEM, facts, Explanation)
-    if result is not None:
-        return result.summary, {r.place_id: r.reason for r in result.reasons}, llm.name()
-    return _template(visits)
-
-
-def _template(visits: list[Visit]) -> tuple[str, dict[str, str], str]:
+    facts = _facts(visits, c)
+    result = llm.structured(SYSTEM, json.dumps(facts, ensure_ascii=False, indent=1), Explanation)
+    if result is None:
+        return _template(visits)
+    # 모델 출력은 그대로 믿지 않는다: 근거 없는 금액·시간이 섞였거나 빠진 문장은 템플릿으로 바꾼다.
+    fallback_summary, fallback_reasons, _ = _template(visits)
+    allowed_min = {s["travel_min_from_prev"] for s in facts["stops"]}
+    given = {r.place_id: r.reason.strip() for r in result.reasons}
     reasons = {}
     for v in visits:
         if v.node.mandatory:
             continue
-        p = v.node.place
-        # 이동시간과 지역상권 여부는 화면의 타임라인·태그에 따로 나오므로 이유에는 쓰지 않는다.
-        reasons[v.node.id] = (
-            f"취향 유사도 {v.node.similarity:.2f}, 광주다움 {p.gwangju_ness:g}/5 · 체류 유도성 {p.stay_inducement:g}/5"
-        )
+        text = given.get(v.node.id, "")
+        reasons[v.node.id] = text if text and _grounded(text, c.budget, allowed_min) else fallback_reasons[v.node.id]
+    summary = result.summary.strip()
+    if not summary or not _grounded(summary, c.budget, allowed_min):
+        summary = fallback_summary
+    return summary, reasons, llm.name()
+
+
+_MONEY = re.compile(r"(\d[\d,.]*)\s*([천만])?\s*원")
+_MINUTES = re.compile(r"(\d+)\s*분")
+
+
+def _grounded(text: str, budget: int | None, travel_min: set[int]) -> bool:
+    """입력에 없는 사실을 지어냈는지 검사한다. 장소별 가격은 입력에 없으므로 금액은 예산과 같을 때만 허용하고,
+    '○분'은 입력의 이동시간과 같을 때만 허용한다."""
+    for num, unit in _MONEY.findall(text):
+        try:
+            value = float(num.replace(",", "")) * {"천": 1000, "만": 10000}.get(unit, 1)
+        except ValueError:
+            return False
+        if budget is None or int(value) != budget:
+            return False
+    return all(int(m) in travel_min for m in _MINUTES.findall(text))
+
+
+def _reason(v: Visit) -> str:
+    p = v.node.place
+    # 이동시간과 지역상권 여부는 화면의 타임라인·태그에 따로 나오므로 이유에는 쓰지 않는다.
+    return f"취향 유사도 {v.node.similarity:.2f}, 광주다움 {p.gwangju_ness:g}/5 · 체류 유도성 {p.stay_inducement:g}/5"
+
+
+def _template(visits: list[Visit]) -> tuple[str, dict[str, str], str]:
+    reasons = {v.node.id: _reason(v) for v in visits if not v.node.mandatory}
     musts = " · ".join(v.node.place.name for v in visits if v.node.mandatory) or "자유 일정"
     summary = f"{musts}을(를) 고정하고, 앞뒤 시간을 취향과 동선에 맞는 원도심 {len(reasons)}곳으로 채웠습니다."
     return summary, reasons, "template"
