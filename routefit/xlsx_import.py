@@ -2,10 +2,11 @@
 
     python -m routefit.xlsx_import docs/가게조사양식.xlsx --dry-run   # 검사만 (DB 는 바뀌지 않는다)
     python -m routefit.xlsx_import docs/가게조사양식.xlsx             # DB 에 넣기 (같은 id 는 덮어씀)
+    python -m routefit.xlsx_import 파일.xlsx --replace                # AI 추천 후보를 모두 지우고 이 파일로 바꿈(Must Visit 목적지는 그대로)
 
 - 가게정보: 가게 이름이 비어 있는 줄은 건너뛴다. 틀린 줄은 어느 줄 어느 칸이 문제인지 알려 주고 나머지만 넣는다.
 - 체크리스트: 채점자 한 줄 = 팀원 1명의 체크 (admin.put_checklist 와 같다). 넣은 뒤 3속성 점수를 다시 계산한다.
-- [참고] 열(대표 메뉴·음식 종류·식사 시간대), 도로명 주소, 조사자, 조사일, 정보 출처, 메모는 저장 칸이 없어 넣지 않는다.
+- [참고] 열(브레이크타임·라스트 오더·휴무 예외·메뉴·편의·네이버 링크·확인한 날짜·조사자·메모)과 도로명 주소(좌표를 못 구할 때만 씀)는 저장 칸이 없어 넣지 않는다.
 - 서버가 켜져 있다면 끝난 뒤 재시작해야 반영된다(장소 목록을 캐시한다).
 """
 import argparse
@@ -16,6 +17,7 @@ from datetime import datetime, time
 from typing import Any, Optional
 
 from pydantic import ValidationError
+from sqlalchemy import delete
 
 from . import checklist, config, db
 from .admin import _apply_checklist
@@ -33,6 +35,11 @@ CATEGORY_CODES = {
 }
 TAG_COLUMNS = {"할 거리": "activity", "분위기": "mood", "공간": "setting", "어울리는 시간": "time", "어울리는 동행": "companions"}
 WEEKDAYS = "월화수목금토일"
+# (머리글 이름, 화면에 보일 이름). 한 줄에서 비어 있는 필수 칸을 한꺼번에 알려 주려고 쓴다
+REQUIRED_CELLS = [
+    ("유형", "유형"), ("지역", "지역"), ("영업시간", "영업시간"), ("머무는시간(분)", "머무는 시간"),
+    ("1인예상지출(원)", "1인 예상 지출"), ("할거리", "할 거리"), ("분위기", "분위기"), ("공간", "공간"),
+]
 PLACEHOLDER = (35.1460, 126.9230)  # 동구 중심(임시). --placeholder 일 때만 쓴다
 _YES = {"o", "ㅇ", "예", "네", "y", "yes", "true", "1", "✓", "v"}
 _NO = {"x", "아니오", "아니요", "n", "no", "false", "0"}
@@ -44,6 +51,7 @@ class Report:
     sheets: int = 0
     errors: list[str] = field(default_factory=list)
     placeholders: list[str] = field(default_factory=list)
+    removed: int = 0
 
 
 # ---------- 칸 값 읽기 ----------
@@ -81,6 +89,25 @@ def _hm(v: Any) -> Optional[str]:
     if not m:
         raise ValueError(f"'{_text(v)}' 은(는) 시각이 아닙니다 (예: 11:00, 25:00)")
     return f"{int(m[1]):02d}:{m[2]}"
+
+
+def _hours(v: Any) -> tuple[Optional[str], Optional[str]]:
+    """'11:30-22:00' · '11:30 ~ 22:00' · '24시간' -> ('11:30', '22:00'). 닫는 시각이 여는 시각보다 이르면 다음 날로 본다(18:00-03:00 -> 27:00).
+    비어 있으면 (None, None), 읽을 수 없으면 ValueError."""
+    t = _text(v)
+    if not t:
+        return None, None
+    if "24시간" in t or t in ("상시", "상시개방"):
+        return "00:00", "24:00"
+    parts = [p.strip() for p in re.split(r"\s*[-~～–—]\s*", t) if p.strip()]
+    if len(parts) != 2:
+        raise ValueError(f"영업시간: '{t}' 은(는) 읽을 수 없습니다 (예: 11:30-22:00, 자정을 넘기면 25:00)")
+    o, c = _hm(parts[0]), _hm(parts[1])
+    if o is None or c is None:
+        raise ValueError(f"영업시간: '{t}' 은(는) 읽을 수 없습니다")
+    if c != "24:00" and int(c[:2]) * 60 + int(c[3:]) <= int(o[:2]) * 60 + int(o[3:]):
+        c = f"{int(c[:2]) + 24:02d}:{c[3:]}"
+    return o, c
 
 
 def _blank(what: str):
@@ -163,7 +190,7 @@ def _geocode(address: str) -> Optional[tuple[float, float]]:
 
 def parse_stores(ws, report: Report, geocode: bool = False, placeholder: bool = False) -> dict[str, Place]:
     cols, rows = _rows(ws)
-    required = ["가게이름", "유형", "지역", "여는시각", "닫는시각", "머무는시간(분)", "1인예상지출(원)", "할거리", "분위기", "공간"]
+    required = ["가게이름", "유형", "지역", "영업시간", "머무는시간(분)", "1인예상지출(원)", "할거리", "분위기", "공간"]
     missing = [c for c in required if c not in cols]
     if missing:
         raise SystemExit(f"'가게정보' 시트의 머리글을 찾을 수 없습니다: {', '.join(missing)} (양식의 1행을 고치지 마세요)")
@@ -178,9 +205,12 @@ def parse_stores(ws, report: Report, geocode: bool = False, placeholder: bool = 
         label = f"가게정보 {n}행 '{name}'"
         try:
             if not re.fullmatch(r"[a-z0-9_]+", sid):
-                raise ValueError(f"id(A열) '{sid}' 가 비었거나 형식이 틀립니다 (store_001 처럼 소문자·숫자·_ 만)")
+                raise ValueError(f"id(A열) '{sid}' 가 비었거나 형식이 틀립니다 (s_001 처럼 소문자·숫자·_ 만)")
             if sid in stores:
                 raise ValueError(f"id '{sid}' 가 위 줄과 겹칩니다")
+            blanks = [label for key, label in REQUIRED_CELLS if not _text(get(row, key))]
+            if blanks:
+                raise ValueError(f"필수 칸이 비어 있습니다: {', '.join(blanks)}")
             cat = _text(get(row, "유형"))
             if cat not in CATEGORY_CODES:
                 raise ValueError(f"유형: '{cat}' 은(는) 목록에 없습니다 ({', '.join(CATEGORY_CODES)})")
@@ -196,6 +226,7 @@ def parse_stores(ws, report: Report, geocode: bool = False, placeholder: bool = 
                 else:
                     raise ValueError("좌표(위도·경도)가 없습니다. 칸에 적거나, --geocode(카카오 키 필요) / --placeholder 를 쓰세요")
             tags = {key: _split(get(row, _header(col))) for col, key in TAG_COLUMNS.items()}
+            opens, closes = _hours(get(row, "영업시간"))
             place = Place(
                 id=sid,
                 name=name,
@@ -206,8 +237,8 @@ def parse_stores(ws, report: Report, geocode: bool = False, placeholder: bool = 
                 description=_text(get(row, "한줄소개")),
                 tags=tags,
                 aliases=_split(get(row, "별칭")),
-                open=_hm(get(row, "여는시각")) or _blank("여는 시각"),
-                close=_hm(get(row, "닫는시각")) or _blank("닫는 시각"),
+                open=opens or _blank("영업시간"),
+                close=closes or _blank("영업시간"),
                 closed_days=_closed_days(get(row, "휴무요일")),
                 stay_min=_int(get(row, "머무는시간(분)"), "머무는 시간"),
                 cost=_int(get(row, "1인예상지출(원)"), "1인 예상 지출"),
@@ -286,7 +317,7 @@ def parse_checklists(ws, known_ids: set[str], report: Report) -> list[tuple[str,
 _KEEP = {"gwangju_ness", "stay_inducement", "commerce_link", "is_local_commerce", "verified"}
 
 
-def load(path: str, dry_run: bool = False, geocode: bool = False, placeholder: bool = False) -> Report:
+def load(path: str, dry_run: bool = False, geocode: bool = False, placeholder: bool = False, replace: bool = False) -> Report:
     import openpyxl
 
     wb = openpyxl.load_workbook(path, data_only=True)
@@ -297,6 +328,16 @@ def load(path: str, dry_run: bool = False, geocode: bool = False, placeholder: b
     stores = parse_stores(wb["가게정보"], report, geocode, placeholder)
 
     with db.session() as s:
+        if replace:
+            if report.errors:  # 지운 뒤 일부만 들어가는 일이 없도록, 고칠 곳이 남아 있으면 아무것도 바꾸지 않는다
+                s.rollback()
+                return report
+            ids = [r.id for r in s.query(db.PlaceRow.id).filter(db.PlaceRow.kind == "candidate")]
+            s.execute(delete(db.ChecklistRow).where(db.ChecklistRow.place_id.in_(ids)))
+            s.execute(delete(db.TravelRow).where(db.TravelRow.from_id.in_(ids) | db.TravelRow.to_id.in_(ids)))
+            s.execute(delete(db.PlaceRow).where(db.PlaceRow.id.in_(ids)))
+            s.flush()
+            report.removed = len(ids)
         existing = {r.id: r for r in s.query(db.PlaceRow).filter(db.PlaceRow.id.in_(list(stores) or [""]))}
         for sid, place in list(stores.items()):
             row = existing.get(sid)
@@ -334,10 +375,18 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--dry-run", action="store_true", help="검사만 하고 DB 는 바꾸지 않는다")
     ap.add_argument("--geocode", action="store_true", help="좌표가 빈 줄은 도로명 주소로 카카오에서 찾는다 (KAKAO_REST_API_KEY)")
     ap.add_argument("--placeholder", action="store_true", help="좌표가 빈 줄은 동구 중심의 임시 좌표로 넣는다 (나중에 관리 화면에서 고칠 것)")
+    ap.add_argument("--replace", action="store_true", help="AI 추천 후보를 모두 지우고 이 파일로 바꾼다(Must Visit 목적지는 그대로). 고칠 곳이 있으면 아무것도 바꾸지 않는다")
     args = ap.parse_args(argv)
 
-    r = load(args.xlsx, args.dry_run, args.geocode, args.placeholder)
+    r = load(args.xlsx, args.dry_run, args.geocode, args.placeholder, args.replace)
+    if args.replace and r.errors:
+        print("고쳐야 할 곳이 있어 아무것도 바꾸지 않았습니다 (--replace 는 오류가 없을 때만 지웁니다):")
+        for e in r.errors:
+            print("  -", e)
+        return 1
     verb = "넣을 수 있음" if args.dry_run else "넣음"
+    if args.replace:
+        print(f"기존 AI 추천 후보 {r.removed}곳을 {'지울 예정' if args.dry_run else '지움'}")
     print(f"가게 {len(r.places)}곳 {verb}, 체크리스트 {r.sheets}줄 {verb}")
     for p in r.placeholders:
         print(f"  임시 좌표: {p}  <- 관리 화면에서 지도를 눌러 고치세요")
