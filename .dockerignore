@@ -5,3 +5,5 @@ logs/
 tests/
 **/__pycache__/
 *.db
+fe/node_modules/
+fe/dist/

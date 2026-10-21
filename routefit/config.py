@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
-WEB_DIR = ROOT / "web"
+# 화면(React)을 빌드한 결과. 없으면 `cd fe && npm install && npm run build` (Docker 는 이미지를 만들 때 알아서 빌드한다)
+WEB_DIR = ROOT / "fe" / "dist"
 
 load_dotenv(ROOT / ".env")
 

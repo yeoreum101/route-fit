@@ -7,7 +7,7 @@
 ## 실행
 
 저장소를 받은 뒤 아래 **A, B 중 하나**로 켜고 브라우저에서 http://localhost:8000 을 연다.
-서버 하나가 화면과 API 를 함께 제공하므로 프론트엔드를 따로 켤 필요는 없다. 지도는 인터넷에서 불러오므로 인터넷 연결이 필요하다.
+서버 하나가 화면(React, `fe/`)과 API 를 함께 제공한다. A(Docker)는 이미지를 만들 때 화면을 자동으로 빌드하고, B(Python)는 화면을 **한 번 빌드**해 둬야 한다(아래). 지도는 인터넷에서 불러오므로 인터넷 연결이 필요하다.
 
 ```bash
 git clone https://github.com/yeoreum101/route-fit.git
@@ -38,6 +38,18 @@ python -m venv .venv
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
+
+화면은 React(Vite)라서 Node.js 22 이상이 필요하고, 처음 한 번(그리고 `fe/` 를 고친 뒤) 빌드한다. 빌드 결과는 `fe/dist/` 에 생긴다.
+
+```bash
+cd fe
+npm install
+npm run build
+cd ..
+```
+
+빌드하지 않아도 서버와 API(`/docs`)는 켜지고, 화면 자리에는 빌드 안내가 나온다.
+화면을 고치는 중이라면 서버(8000)를 켜 둔 채 `cd fe && npm run dev` 로 http://localhost:5173 을 열면 고칠 때마다 바로 반영된다.
 
 켜기 (코드를 고치면 자동으로 다시 시작된다. 끄기는 Ctrl+C):
 
@@ -127,11 +139,10 @@ data/
   tags.json      장소 취향 태그 목록 (할 거리·분위기·공간·시간·동행)
   checklist.json 현장조사 채점 체크리스트 (docs/field-checklist.md)
   anchors.json   Must Visit 목적지 (야구장·공연장·컨벤션센터) — DB 시드
-web/             정적 파일 (Leaflet 지도)
-  index.html     코스 만들기         app.js
-  stats.html     실증 통계           stats.js
-  admin.html     장소 관리           admin.js
-  common.js      공통 도우미 (관리자 토큰, 오류 문구)
+fe/              화면 (React + Vite). 빌드 결과 fe/dist 를 서버가 내보낸다 → fe/README.md
+  index.html     코스 만들기         src/pages/PlanPage.jsx
+  stats.html     실증 통계           src/pages/StatsPage.jsx
+  admin.html     장소 관리           src/pages/AdminPage.jsx
 ```
 
 ### API
@@ -228,4 +239,4 @@ web/             정적 파일 (Leaflet 지도)
 - 이동시간은 `python -m routefit.travel`(카카오 키 필요), `PUT /api/admin/travel-times`, `data/travel_matrix.json` (`{"출발id|도착id": 분}`) 중 하나로 넣으면 직선거리 추정 대신 쓰인다.
 - `config.py` 의 가중치는 검증되지 않은 초기값이다.
 - 임베딩 API 를 쓰려면 `embedding.py` 에 `Embedder` 구현을 하나 추가하고 `get_embedder()` 에 연결한다.
-- 지도는 OSM 타일이다. 카카오/네이버 지도로 바꿀 때는 `web/app.js` 의 지도 초기화와 `drawMap` 만 바꾸면 된다.
+- 지도는 `KAKAO_JS_KEY` 가 있으면 카카오맵, 없으면 OSM 타일이다. 지도 엔진을 바꿀 때는 `fe/src/map/mapView.js` 만 바꾸면 된다.

@@ -4,6 +4,7 @@ import threading
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import checklist, config, courses, db
@@ -114,4 +115,21 @@ class WebFiles(StaticFiles):
         return response
 
 
-app.mount("/", WebFiles(directory=WEB_DIR, html=True), name="web")
+NOT_BUILT = """<!doctype html><meta charset="utf-8"><title>Route-Fit</title>
+<body style="font-family:sans-serif;max-width:640px;margin:15vh auto;padding:0 16px;line-height:1.6">
+<h1>화면이 아직 빌드되지 않았습니다</h1>
+<p>API 는 정상입니다(<a href="/docs">/docs</a>). 화면을 보려면 한 번만 빌드하세요.</p>
+<pre style="background:#f3f3f3;padding:12px;border-radius:6px">cd fe
+npm install
+npm run build</pre>
+<p>Docker 로 켜면(<code>docker compose up -d --build</code>) 이미지를 만들 때 자동으로 빌드됩니다.</p>"""
+
+if WEB_DIR.is_dir():
+    app.mount("/", WebFiles(directory=WEB_DIR, html=True), name="web")
+else:
+    # 화면을 빌드하지 않은 사람도 서버와 테스트는 돌릴 수 있게, 시작을 막지 않고 안내만 한다.
+    @app.get("/{path:path}", include_in_schema=False)
+    def not_built(path: str):
+        if path.startswith("api/"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        return HTMLResponse(NOT_BUILT, status_code=503)
