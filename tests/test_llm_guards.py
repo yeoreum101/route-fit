@@ -107,3 +107,15 @@ def test_grounded_rules():
     assert not _grounded("3만원이면 돼요", None, set())
     assert not _grounded("이동 15분", 100000, {8})
     assert explain_mod._grounded("예산 100,000원", 100000, set())
+
+
+def test_grounded_allows_stay_minutes_and_clock_times():
+    # 머무는 시간(40분·80분)과 시각('5시 35분', '17:35')은 지어낸 숫자가 아니다
+    allowed = {5, 40, 80, 20}
+    assert _grounded("오후 2시 첫 방문지로 40분간 둘러본 뒤, 5분 이동합니다.", None, allowed)
+    assert _grounded("오후 5시 35분부터 80분간 머문 뒤 이동합니다.", None, allowed)
+    assert _grounded("17:35에 도착해 80분 머뭅니다.", None, allowed)
+    assert _grounded("1시간 20분 머뭅니다.", None, allowed)
+    # 입력에 없는 시간은 여전히 막는다
+    assert not _grounded("커피 한 잔에 45분은 걸려요.", None, allowed)
+    assert not _grounded("5시 35분부터 90분간 머뭅니다.", None, allowed)

@@ -54,8 +54,8 @@ cd ..
 켜기 (코드를 고치면 자동으로 다시 시작된다. 끄기는 Ctrl+C):
 
 ```bash
-.venv\Scripts\python -m uvicorn routefit.api:app --reload      # Windows
-.venv/bin/python -m uvicorn routefit.api:app --reload          # macOS / Linux
+.venv\Scripts\python -m uvicorn routefit.api:app --reload --reload-dir routefit      # Windows
+.venv/bin/python -m uvicorn routefit.api:app --reload --reload-dir routefit          # macOS / Linux
 ```
 
 DB 는 `data/routefit.db` 파일로 자동으로 만들어진다. A 와 B 는 DB 가 따로라서 데이터가 공유되지 않는다.

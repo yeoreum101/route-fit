@@ -14,7 +14,7 @@ cd fe
 npm install
 npm run build        # → fe/dist/
 cd ..
-.venv/bin/python -m uvicorn routefit.api:app --reload      # http://localhost:8000
+.venv/bin/python -m uvicorn routefit.api:app --reload --reload-dir routefit      # http://localhost:8000
 ```
 
 **화면을 고치는 중** — 백엔드를 먼저 띄운(8000) 상태에서:

@@ -174,15 +174,23 @@ def _geocode(address: str) -> Optional[tuple[float, float]]:
     """카카오 주소 검색 -> (위도, 경도). KAKAO_REST_API_KEY 가 있어야 한다. 못 찾으면 None."""
     import httpx
 
-    r = httpx.get(
-        "https://dapi.kakao.com/v2/local/search/address.json",
-        params={"query": address},
-        headers={"Authorization": f"KakaoAK {config.KAKAO_REST_API_KEY}"},
-        timeout=10,
-    )
-    r.raise_for_status()
-    docs = r.json().get("documents", [])
-    return (float(docs[0]["y"]), float(docs[0]["x"])) if docs else None
+    def search(query: str) -> Optional[tuple[float, float]]:
+        r = httpx.get(
+            "https://dapi.kakao.com/v2/local/search/address.json",
+            params={"query": query},
+            headers={"Authorization": f"KakaoAK {config.KAKAO_REST_API_KEY}"},
+            timeout=10,
+        )
+        r.raise_for_status()
+        docs = r.json().get("documents", [])
+        return (float(docs[0]["y"]), float(docs[0]["x"])) if docs else None
+
+    found = search(address)
+    if found:
+        return found
+    # '1, 2층', '101,102호' 처럼 도로명 번호 뒤에 붙은 층·호 표기가 있으면 카카오가 못 찾는다. 번호까지만 다시 찾는다.
+    m = re.match(r".*?(?:로|길)(?:\d+번길)?\s*\d+(?:-\d+)?", address)
+    return search(m.group(0)) if m and m.group(0) != address else None
 
 
 # ---------- 가게정보 시트 ----------

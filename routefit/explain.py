@@ -47,6 +47,7 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "area": v.node.place.area,
                 "description": v.node.place.description,
                 "time": f"{to_hm(v.start)}~{to_hm(v.end)}",
+                "stay_min": v.node.stay,
                 "travel_min_from_prev": v.travel,
                 "taste_similarity": round(v.node.similarity, 3),
                 "gwangju_ness_1to5": v.node.place.gwangju_ness,
@@ -68,7 +69,7 @@ def explain(visits: list[Visit], c: Constraints) -> tuple[str, dict[str, str], s
         return _template(visits)
     # 모델 출력은 그대로 믿지 않는다: 근거 없는 금액·시간이 섞였거나 빠진 문장은 템플릿으로 바꾼다.
     fallback_summary, fallback_reasons, _ = _template(visits)
-    allowed_min = {s["travel_min_from_prev"] for s in facts["stops"]}
+    allowed_min = _allowed_minutes(facts)
     given = {r.place_id: r.reason.strip() for r in result.reasons}
     reasons = {}
     for v in visits:
@@ -86,9 +87,23 @@ _MONEY = re.compile(r"(\d[\d,.]*)\s*([천만])?\s*원")
 _MINUTES = re.compile(r"(\d+)\s*분")
 
 
-def _grounded(text: str, budget: int | None, travel_min: set[int]) -> bool:
+_CLOCK = re.compile(r"\d{1,2}\s*시\s*(\d{1,2}\s*분)?|\d{1,2}:\d{2}")
+
+
+def _allowed_minutes(facts: dict) -> set[int]:
+    """문장에 나와도 되는 '○분': 장소 사이 이동시간과 장소에 머무는 시간('1시간 30분'의 30분도 포함)."""
+    out = set()
+    for s in facts["stops"]:
+        out.add(s["travel_min_from_prev"])
+        out.add(s["stay_min"])
+        if s["stay_min"] >= 60:
+            out.add(s["stay_min"] % 60)
+    return out
+
+
+def _grounded(text: str, budget: int | None, allowed_min: set[int]) -> bool:
     """입력에 없는 사실을 지어냈는지 검사한다. 장소별 가격은 입력에 없으므로 금액은 예산과 같을 때만 허용하고,
-    '○분'은 입력의 이동시간과 같을 때만 허용한다."""
+    '○분'은 입력의 이동시간·머무는 시간과 같을 때만 허용한다. '5시 35분' 같은 시각은 시간 길이가 아니므로 뺀다."""
     for num, unit in _MONEY.findall(text):
         try:
             value = float(num.replace(",", "")) * {"천": 1000, "만": 10000}.get(unit, 1)
@@ -96,7 +111,7 @@ def _grounded(text: str, budget: int | None, travel_min: set[int]) -> bool:
             return False
         if budget is None or int(value) != budget:
             return False
-    return all(int(m) in travel_min for m in _MINUTES.findall(text))
+    return all(int(m) in allowed_min for m in _MINUTES.findall(_CLOCK.sub(" ", text)))
 
 
 def _reason(v: Visit) -> str:
