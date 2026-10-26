@@ -91,6 +91,22 @@ function Timeline({ course, activeOrder, onFocusStop }) {
   );
 }
 
+function copyWithTextarea(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.append(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length); // iOS Safari
+  try {
+    return document.execCommand("copy");
+  } finally {
+    ta.remove();
+  }
+}
+
 // 공유 링크 복사 · 별점과 한줄평. 코스가 새로 만들어지면(key) 처음 상태로 돌아간다.
 function ShareBox({ course }) {
   const [rating, setRating] = useState(0);
@@ -116,10 +132,12 @@ function ShareBox({ course }) {
   async function copyLink() {
     const url = `${location.origin}${location.pathname}?course=${course.id}`;
     try {
-      await navigator.clipboard.writeText(url);
+      // navigator.clipboard 는 HTTPS·localhost 에서만 있다. http://<서버 IP> 배포에서는 예전 방식으로 복사한다.
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(url);
+      else if (!copyWithTextarea(url)) throw new Error("copy failed");
       setStatus("링크를 복사했습니다.");
     } catch {
-      setStatus(url);
+      setStatus(`복사하지 못했습니다. 이 주소를 직접 복사해 주세요: ${url}`);
     }
   }
 
