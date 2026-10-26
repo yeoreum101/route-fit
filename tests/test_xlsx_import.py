@@ -6,14 +6,15 @@ from routefit import db, xlsx_import, xlsx_template
 from routefit.data import invalidate
 
 GOOD = {
-    "id": "s_001", "name": "테스트 국밥", "category": "식당", "area": "동구 동명동", "address": "광주 동구 동명로 1",
+    # 실제 가게 데이터(data/places.json 의 s_001~)와 겹치지 않게 테스트 가게는 s_9xx 를 쓴다
+    "id": "s_901", "name": "테스트 국밥", "category": "식당", "area": "동구 동명동", "address": "광주 동구 동명로 1",
     "lat": 35.1495, "lng": 126.9285, "hours": "11:30 - 22:00", "closed": "월", "stay": 60, "cost": "9,000",
     "activity": "식사, 사진", "mood": "정겨운, 활기찬", "setting": "실내", "time": "오후, 저녁", "companions": "혼자, 친구",
     "aliases": "테스트국밥집", "desc": "2008년 개업.",
 }
-BAD = {**GOOD, "id": "s_002", "name": "잘못된 카페", "category": "술집", "hours": "열한시", "activity": "없는태그", "setting": "실내, 실외"}
-NO_COORDS = {**GOOD, "id": "s_003", "name": "좌표 없는 가게", "lat": None, "lng": None}
-OLD_MOOD = {**GOOD, "id": "s_004", "name": "옛 분위기", "mood": "서민적"}  # 새 분위기 목록에 없는 값
+BAD = {**GOOD, "id": "s_902", "name": "잘못된 카페", "category": "술집", "hours": "열한시", "activity": "없는태그", "setting": "실내, 실외"}
+NO_COORDS = {**GOOD, "id": "s_903", "name": "좌표 없는 가게", "lat": None, "lng": None}
+OLD_MOOD = {**GOOD, "id": "s_904", "name": "옛 분위기", "mood": "서민적"}  # 새 분위기 목록에 없는 값
 
 
 def _make(tmp_path, stores, checks=(), name="filled.xlsx"):
@@ -36,35 +37,35 @@ def filled(tmp_path):
     return _make(
         tmp_path,
         [GOOD, BAD, NO_COORDS, OLD_MOOD],
-        [("s_001", "홍길동", None), ("s_001", "김철수", ["X"] * 8), ("s_999", "홍길동", None)],
+        [("s_901", "홍길동", None), ("s_901", "김철수", ["X"] * 8), ("s_999", "홍길동", None)],
     )
 
 
 def test_dry_run_reports_each_problem_without_writing(filled):
     report = xlsx_import.load(filled, dry_run=True)
-    assert report.places == ["s_001 테스트 국밥"]
+    assert report.places == ["s_901 테스트 국밥"]
     text = "\n".join(report.errors)
     assert "가게정보 4행 '잘못된 카페'" in text and "유형" in text and "술집" in text
     assert "가게정보 5행 '좌표 없는 가게'" in text and "좌표" in text
     assert "가게정보 6행 '옛 분위기'" in text and "서민적" in text
     assert "체크리스트 5행 s_999" in text
     with db.session() as s:
-        assert s.get(db.PlaceRow, "s_001") is None  # dry-run 은 DB 를 바꾸지 않는다
+        assert s.get(db.PlaceRow, "s_901") is None  # dry-run 은 DB 를 바꾸지 않는다
 
 
 def test_import_writes_places_checklists_and_scores(filled):
     try:
         report = xlsx_import.load(filled, placeholder=True)
-        assert report.placeholders == ["s_003 좌표 없는 가게"]
+        assert report.placeholders == ["s_903 좌표 없는 가게"]
         assert report.sheets == 2
         with db.session() as s:
-            row = s.get(db.PlaceRow, "s_001")
+            row = s.get(db.PlaceRow, "s_901")
             assert (row.name, row.category, row.open_time, row.close_time, row.closed_days) == ("테스트 국밥", "food", "11:30", "22:00", [0])
             assert (row.cost, row.stay_min, row.aliases) == (9000, 60, ["테스트국밥집"])
             assert row.tags["activity"] == ["사진", "식사"] and row.tags["setting"] == ["실내"]
             assert row.tags["mood"] == ["활기찬", "정겨운"]
             assert row.verified is False
-            sheets = s.scalars(select(db.ChecklistRow).where(db.ChecklistRow.place_id == "s_001")).all()
+            sheets = s.scalars(select(db.ChecklistRow).where(db.ChecklistRow.place_id == "s_901")).all()
             assert {c.rater for c in sheets} == {"홍길동", "김철수"}
             honggildong = next(c for c in sheets if c.rater == "홍길동")
             assert honggildong.checks["history_site"] is True and honggildong.checks["heritage"] is False
@@ -76,10 +77,10 @@ def test_import_writes_places_checklists_and_scores(filled):
         # 같은 파일을 다시 넣어도 중복되지 않는다 (덮어씀)
         xlsx_import.load(filled, placeholder=True)
         with db.session() as s:
-            assert len(s.scalars(select(db.PlaceRow).where(db.PlaceRow.id == "s_001")).all()) == 1
-            assert len(s.scalars(select(db.ChecklistRow).where(db.ChecklistRow.place_id == "s_001")).all()) == 2
+            assert len(s.scalars(select(db.PlaceRow).where(db.PlaceRow.id == "s_901")).all()) == 1
+            assert len(s.scalars(select(db.ChecklistRow).where(db.ChecklistRow.place_id == "s_901")).all()) == 2
     finally:
-        _cleanup(["s_001", "s_003"])
+        _cleanup(["s_901", "s_903"])
 
 
 def _cleanup(ids):
@@ -107,7 +108,7 @@ def test_replace_removes_candidates_but_keeps_anchors(tmp_path):
         assert not r.errors and r.removed == n_candidates
         with db.session() as s:
             ids = [p.id for p in s.scalars(select(db.PlaceRow).where(db.PlaceRow.kind == "candidate"))]
-            assert ids == ["s_001"]
+            assert ids == ["s_901"]
             assert len(s.scalars(select(db.PlaceRow).where(db.PlaceRow.kind == "anchor")).all()) == n_anchors
     finally:
         with db.session() as s:

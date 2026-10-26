@@ -20,7 +20,9 @@ PROVIDERS = {
         # 무료 등급은 모델별로 과부하(503)가 잦아 여러 개를 순서대로 둔다.
         ("gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"),
     ),
-    "openai": ("OPENAI_API_KEY", None, ("gpt-6.1-sol",)),
+    # 응답 속도 기준으로 골랐다(추천 이유 생성: gpt-5.4-mini 약 3초, gpt-6.1-sol 약 13초, gpt-5-nano 30초 이상).
+    # 앞 모델이 안 되면 다음 모델로.
+    "openai": ("OPENAI_API_KEY", None, ("gpt-5.4-mini", "gpt-6.1-sol", "gpt-5-nano")),
 }
 TIMEOUT_S = 45.0  # 모델 하나가 이 시간 안에 답하지 않으면 끊고 다음 모델로 넘어간다
 BUDGET_S = 75.0  # 호출 한 번에 모델을 바꿔 가며 기다리는 총 시간. 넘으면 규칙 기반으로 넘어간다

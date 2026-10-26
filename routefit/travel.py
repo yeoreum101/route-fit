@@ -19,13 +19,12 @@ import httpx
 from sqlalchemy import select
 
 from . import config, db
-from .data import ROAD_DETOUR, WALK_KM, haversine_km, load_anchors, load_places
+from .data import CAR_OVERHEAD_MIN, ROAD_DETOUR, WALK_KM, haversine_km, load_anchors, load_places
 from .models import Place
 
 log = logging.getLogger(__name__)
 
 API_URL = "https://apis-navi.kakaomobility.com/v1/directions"
-CAR_OVERHEAD_MIN = 5
 
 
 def needs_api(a: Place, b: Place) -> bool:

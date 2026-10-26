@@ -82,6 +82,7 @@ DB 는 `data/routefit.db` 파일로 자동으로 만들어진다. A 와 B 는 DB
 ### 배포 서버 (AWS EC2)
 
 시연 서버는 AWS 서울 리전 EC2(Ubuntu, t3.small) 에서 위 **A(Docker)** 방식 그대로 돌고 있다. 주소·관리자 토큰·접속 키는 팀 채널에서 받는다.
+Docker 이미지에는 sentence-transformers 가 없으므로, 서버 `.env` 에 `OPENAI_API_KEY` 가 있어야 취향 매칭이 해싱이 아닌 OpenAI 임베딩으로 돈다(화면 하단 `임베딩 openai:…` 로 확인).
 
 - **보기만 할 때**: 브라우저로 `http://<서버 주소>:8000` 을 연다. 장소 관리(`/admin.html`)는 관리자 토큰을 입력해야 저장된다.
 - **서버에 들어갈 때**: AWS 콘솔 → EC2 → 인스턴스 `route-fit` → **연결** → EC2 Instance Connect(브라우저, 키 파일 필요 없음).
@@ -250,7 +251,7 @@ fe/              화면 (React + Vite). 빌드 결과 fe/dist 를 서버가 내�
 | 단계 | 기본 | 없을 때 |
 |---|---|---|
 | ① 파싱 · ④ 이유 | `ROUTEFIT_LLM_PROVIDER`: `gemini`(무료 사용량, 기본) 또는 `openai`(유료). 호출부는 `llm.py` 한 곳 | 정규식 파서 · 템플릿 문장 |
-| ② 임베딩 | sentence-transformers (`ROUTEFIT_SBERT_MODEL`) | 문자 n-gram 해싱 (글자 겹침만 봄, 개발용) |
+| ② 임베딩 | `OPENAI_API_KEY` 가 있으면 OpenAI 임베딩 API (`ROUTEFIT_OPENAI_EMBED_MODEL`), 없으면 sentence-transformers (`ROUTEFIT_SBERT_MODEL`) | 문자 n-gram 해싱 (글자 겹침만 봄, 개발용) |
 | ③ 최적화 | 요청의 `planner` 값 | OR-Tools 실패 시 그리디 |
 
 응답의 `engine` 필드와 화면 하단에 실제로 어떤 경로가 쓰였는지 표시된다.
@@ -260,5 +261,4 @@ fe/              화면 (React + Vite). 빌드 결과 fe/dist 를 서버가 내�
 - **`data/places.json` 은 예시 데이터다.** 좌표·영업시간·체류시간·비용·3속성 점수 모두 임의로 넣은 값이고 전부 `verified: false` 다. 현장조사 결과로 교체한다(관리자 API 로 입력하거나 JSON 을 고쳐 `reset`). 고친 결과는 `/api/admin/export` 로 받아 `data/*.json` 에 커밋해 둔다.
 - 이동시간은 `python -m routefit.travel`(카카오 키 필요), `PUT /api/admin/travel-times`, `data/travel_matrix.json` (`{"출발id|도착id": 분}`) 중 하나로 넣으면 직선거리 추정 대신 쓰인다.
 - `config.py` 의 가중치는 검증되지 않은 초기값이다.
-- 임베딩 API 를 쓰려면 `embedding.py` 에 `Embedder` 구현을 하나 추가하고 `get_embedder()` 에 연결한다.
 - 지도는 `KAKAO_JS_KEY` 가 있으면 카카오맵, 없으면 OSM 타일이다. 지도 엔진을 바꿀 때는 `fe/src/map/mapView.js` 만 바꾸면 된다.

@@ -19,6 +19,33 @@ class Embedder(Protocol):
         """L2 정규화된 (len(texts), dim) 행렬."""
 
 
+class OpenAIEmbedder:
+    """OpenAI 임베딩 API. 모델을 내려받지 않아 서버가 바로 뜨고, Docker 이미지에도 torch 가 필요 없다."""
+
+    BATCH = 512  # 요청 한 번에 보내는 문장 수
+
+    def __init__(self, model_name: str):
+        import os
+
+        from openai import OpenAI
+
+        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY 가 비어 있습니다")
+        self.name = f"openai:{model_name}"
+        self._model = model_name
+        self._client = OpenAI(api_key=api_key, timeout=30.0)
+        self.encode(["광주"])  # 키·모델이 맞는지 시작할 때 확인한다
+
+    def encode(self, texts: list[str]) -> np.ndarray:
+        rows = []
+        for i in range(0, len(texts), self.BATCH):
+            res = self._client.embeddings.create(model=self._model, input=texts[i : i + self.BATCH])
+            rows.extend(d.embedding for d in sorted(res.data, key=lambda d: d.index))
+        out = np.asarray(rows, dtype=np.float32)
+        return out / np.maximum(np.linalg.norm(out, axis=1, keepdims=True), 1e-9)
+
+
 class SbertEmbedder:
     """한국어 문장 임베딩 모델 (sentence-transformers)."""
 
@@ -54,6 +81,13 @@ class HashingEmbedder:
 
 @lru_cache
 def get_embedder() -> Embedder:
+    if config.EMBEDDER in ("auto", "openai"):
+        try:
+            return OpenAIEmbedder(config.OPENAI_EMBED_MODEL)
+        except Exception as e:
+            if config.EMBEDDER == "openai":
+                raise
+            log.warning("OpenAI 임베딩을 쓸 수 없어 sbert 로 대체: %s", e)
     if config.EMBEDDER in ("auto", "sbert"):
         try:
             return SbertEmbedder(config.SBERT_MODEL)

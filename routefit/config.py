@@ -45,7 +45,9 @@ LLM_MODE = os.getenv("ROUTEFIT_LLM", "auto").strip().lower()
 LLM_PROVIDER = os.getenv("ROUTEFIT_LLM_PROVIDER", "gemini").strip().lower()
 # 비우면 제공자 기본 모델 (llm.PROVIDERS). 쉼표로 여러 개 적으면 앞에서부터 시도한다.
 LLM_MODEL = os.getenv("ROUTEFIT_LLM_MODEL", "").strip()
+# auto: OPENAI_API_KEY 가 있으면 OpenAI 임베딩 API, 없으면 sentence-transformers, 그것도 없으면 해싱
 EMBEDDER = os.getenv("ROUTEFIT_EMBEDDER", "auto").strip().lower()
+OPENAI_EMBED_MODEL = os.getenv("ROUTEFIT_OPENAI_EMBED_MODEL", "text-embedding-3-large").strip()
 SBERT_MODEL = os.getenv("ROUTEFIT_SBERT_MODEL", "jhgan/ko-sroberta-multitask").strip()
 DEFAULT_PLANNER = os.getenv("ROUTEFIT_PLANNER", "greedy").strip().lower()
 
