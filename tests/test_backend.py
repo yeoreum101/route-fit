@@ -147,6 +147,10 @@ def test_admin_token(monkeypatch):
     assert client.get("/api/admin/places", headers={"X-Admin-Token": "wrong"}).status_code == 401
     assert client.get("/api/admin/places", headers={"X-Admin-Token": "secret"}).status_code == 200
     assert client.get("/api/places").status_code == 200  # 공개 API 는 토큰 없이
+    # 실증 통계(통계·최근 코스 목록)는 관리자 전용
+    for url in ("/api/stats", "/api/courses"):
+        assert client.get(url).status_code == 401
+        assert client.get(url, headers={"X-Admin-Token": "secret"}).status_code == 200
 
 
 def test_rate_limit(monkeypatch):

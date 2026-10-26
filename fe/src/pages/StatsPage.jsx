@@ -85,16 +85,8 @@ function RecentRows({ items }) {
   });
 }
 
-function Feedback({ feedback, onAuth }) {
+function Feedback({ feedback }) {
   if (feedback === null) return null;
-  if (feedback === "auth") {
-    return (
-      <li>
-        <p className="muted small">한줄평은 관리자만 볼 수 있습니다.</p>
-        <button type="button" className="inline secondary" onClick={onAuth}>관리자 토큰 입력 후 보기</button>
-      </li>
-    );
-  }
   if (!feedback.length) return <li className="muted small">아직 한줄평이 없습니다.</li>;
   return feedback.map((f, i) => (
     <li key={i}>
@@ -110,38 +102,40 @@ function Feedback({ feedback, onAuth }) {
 export default function StatsPage() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState(null);
-  const [feedback, setFeedback] = useState(null); // null(불러오는 중) | "auth"(토큰 필요) | 한줄평 목록
+  const [feedback, setFeedback] = useState(null);
+  const [locked, setLocked] = useState(false); // 관리자 토큰이 없거나 틀렸다
   const [updated, setUpdated] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function loadFeedback() {
-    const res = await adminFetch("/api/admin/feedback?limit=20", {}, false);
-    if (res.status === 401) {
-      setFeedback("auth");
-      return;
+  // 실증 통계는 관리자 전용. 토큰이 없거나 틀리면(401) 잠긴 화면에서 토큰을 입력받는다.
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await adminFetch("/api/stats", {}, false);
+      if (res.status === 401) {
+        setLocked(true);
+        return;
+      }
+      const [s, r, f] = await Promise.all([
+        res.json(),
+        adminFetch("/api/courses?limit=10", {}, false).then((x) => x.json()),
+        adminFetch("/api/admin/feedback?limit=20", {}, false).then((x) => x.json()),
+      ]);
+      setLocked(false);
+      setStats(s);
+      setRecent(r);
+      setFeedback(f.filter((x) => x.comment));
+      setUpdated(`(${new Date().toLocaleTimeString("ko-KR")} 기준)`);
+    } catch {
+      setLocked(true);
+    } finally {
+      setLoading(false);
     }
-    setFeedback((await res.json()).filter((f) => f.comment));
   }
 
   function askToken() {
     const token = prompt("관리자 토큰을 입력하세요 (ROUTEFIT_ADMIN_TOKEN)");
-    if (token) { adminToken.set(token); loadFeedback(); }
-  }
-
-  async function load() {
-    setLoading(true);
-    try {
-      const [s, r] = await Promise.all([
-        fetch("/api/stats").then((res) => res.json()),
-        fetch("/api/courses?limit=10").then((res) => res.json()),
-      ]);
-      setStats(s);
-      setRecent(r);
-      await loadFeedback();
-      setUpdated(`(${new Date().toLocaleTimeString("ko-KR")} 기준)`);
-    } finally {
-      setLoading(false);
-    }
+    if (token) { adminToken.set(token); load(); }
   }
 
   useEffect(() => { load(); }, []);
@@ -151,6 +145,13 @@ export default function StatsPage() {
       <Header tagline="실증 통계" current="stats" />
 
       <main className="page">
+        {locked ? (
+          <section className="panel">
+            <p className="muted small">실증 통계는 관리자만 볼 수 있습니다.</p>
+            <button type="button" className="inline secondary" onClick={askToken}>관리자 토큰 입력</button>
+          </section>
+        ) : (
+        <>
         <section className="toolbar">
           <p className="muted small">생성된 모든 코스를 집계합니다. <span id="updated">{updated}</span></p>
           <button type="button" id="refresh" className="inline secondary" disabled={loading} onClick={load}>새로고침</button>
@@ -197,10 +198,12 @@ export default function StatsPage() {
           <section className="panel dash-feedback">
             <h2>최근 한줄평</h2>
             <ul id="feedback" className="list">
-              <Feedback feedback={feedback} onAuth={askToken} />
+              <Feedback feedback={feedback} />
             </ul>
           </section>
         </div>
+        </>
+        )}
       </main>
     </>
   );

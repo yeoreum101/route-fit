@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import checklist, config, courses, db
 from . import tags as tag_vocab
+from .admin import require_admin
 from .admin import router as admin_router
 from .config import WEB_DIR
 from .data import load_anchors, load_places
@@ -79,7 +80,8 @@ def plan(req: PlanRequest):
         raise HTTPException(status_code=422, detail=str(e))
 
 
-@app.get("/api/courses", response_model=list[CourseSummary])
+# 최근 코스 목록과 통계는 실증 통계 화면(관리자 전용)에서만 쓴다. 코스 하나(공유 링크)는 누구나 볼 수 있다.
+@app.get("/api/courses", response_model=list[CourseSummary], dependencies=[Depends(require_admin)])
 def recent_courses(limit: int = Query(default=20, ge=1, le=100)):
     return courses.recent_courses(limit)
 
@@ -100,7 +102,7 @@ def feedback(course_id: str, fb: FeedbackIn):
     return saved
 
 
-@app.get("/api/stats", response_model=Stats)
+@app.get("/api/stats", response_model=Stats, dependencies=[Depends(require_admin)])
 def stats():
     return courses.stats()
 
