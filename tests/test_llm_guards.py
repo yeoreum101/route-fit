@@ -68,6 +68,15 @@ def test_sanitize_keeps_good_values():
     assert (out.must_visits[0].start, out.must_visits[0].stay_min) == ("18:30", 150)
 
 
+def test_avoid_categories_need_avoid_words_in_query():
+    # LLM 이 가고 싶다는 유형을 거꾸로 회피로 읽어도, 문장에 피하는 말이 없으면 버린다
+    known = load_anchors() + load_places()
+    wrong = parser.sanitize(_parsed(avoid_categories=["food", "cafe"]), known, "동명동에서 점심 먹고 카페 가고 싶어요")
+    assert wrong.avoid_categories == []
+    right = parser.sanitize(_parsed(avoid_categories=["market"]), known, "시장은 빼고 카페랑 밥집")
+    assert right.avoid_categories == ["market"]
+
+
 def test_unknown_must_visit_from_llm_does_not_break_course(monkeypatch):
     # LLM 이 없는 장소를 필수 방문지로 지어내도 오류 없이 코스가 만들어진다
     _fake_llm(monkeypatch, {ParsedQuery: _parsed(must_visits=[ParsedMustVisit(name="우주정거장", start=None, stay_min=None)])})

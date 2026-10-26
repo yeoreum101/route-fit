@@ -19,7 +19,8 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 �
   장소 이름 없이 예정된 일정만 말했더라도(예: "야구 보러 간다"), 그 일정이 열리는 곳이 [알려진 목적지] 중
   하나로 분명하면 그 목적지를 넣는다. 분명하지 않으면 넣지 않는다.
 - companions: 같이 가는 사람. 혼자, 친구, 연인, 가족, 아이 동반 중 하나만. 아이와 함께면 "아이 동반".
-- avoid_categories: 사용자가 피하고 싶다고 한 유형만. 값은 sight, culture, market, food, cafe, shop, night 중에서.
+- avoid_categories: 사용자가 "빼고", "말고", "싫다"처럼 분명히 피하고 싶다고 한 유형만. 값은 sight, culture, market, food, cafe, shop, night 중에서.
+  가고 싶다고 한 유형(예: "점심 먹고 카페 가고 싶어" 의 food, cafe)은 절대 넣지 않는다. 피하는 말이 없으면 빈 목록.
 """
 
 
@@ -29,12 +30,15 @@ def parse_query(query: str, known: list[Place]) -> tuple[ParsedQuery, str]:
     names = "\n".join(f"- {p.name}" + (f" ({p.description})" if p.category == "venue" else "") for p in known)
     parsed = llm.structured(SYSTEM, f"[알려진 목적지]\n{names}\n\n[사용자 문장]\n{query}", ParsedQuery)
     if parsed is not None:
-        return sanitize(parsed, known), llm.name()
+        return sanitize(parsed, known, query), llm.name()
     return parse_rule_based(query, known), "rule"
 
 
 _HM = re.compile(r"^([01]?\d|2[0-9]):([0-5]\d)$")
 _AVOIDABLE = {k for k in CATEGORY_KO if k != "venue"}
+# 피하는 말. 문장에 하나도 없는데 LLM 이 avoid_categories 를 채우면 가고 싶다는 유형을 거꾸로 넣은 것이다
+# (gpt-5.4-mini 가 "점심 먹고 카페 가고 싶어요" 를 가끔 food·cafe 회피로 읽는다).
+_AVOID_WORDS = ("빼", "말고", "제외", "싫", "피하", "피해", "없이", "별로", "질려", "안 가", "안가", "말아")
 
 
 def _hm(value: str | None) -> str | None:
@@ -54,9 +58,10 @@ def find_by_name(known: list[Place], name: str | None) -> Place | None:
     return None
 
 
-def sanitize(parsed: ParsedQuery, known: list[Place]) -> ParsedQuery:
+def sanitize(parsed: ParsedQuery, known: list[Place], query: str | None = None) -> ParsedQuery:
     """LLM 출력을 믿지 않고 규칙에 맞게 정리한다. 형식이 틀린 값은 null 로 두어 기본값·화면 입력이 쓰이게 하고,
-    알려진 목적지가 아닌 필수 방문지는 버린다(없으면 사용자에게 '찾을 수 없다'는 오류가 나기 때문)."""
+    알려진 목적지가 아닌 필수 방문지는 버린다(없으면 사용자에게 '찾을 수 없다'는 오류가 나기 때문).
+    query(원문)를 주면, 피하는 말이 없는 문장의 avoid_categories 는 버린다."""
     parsed.companions = normalize_companions(parsed.companions)
     parsed.day_start = _hm(parsed.day_start)
     parsed.day_end = _hm(parsed.day_end)
@@ -65,6 +70,8 @@ def sanitize(parsed: ParsedQuery, known: list[Place]) -> ParsedQuery:
     if parsed.weekday is not None and not 0 <= parsed.weekday <= 6:
         parsed.weekday = None
     parsed.avoid_categories = [c for c in dict.fromkeys(parsed.avoid_categories) if c in _AVOIDABLE]
+    if query is not None and not any(w in query for w in _AVOID_WORDS):
+        parsed.avoid_categories = []
     musts = []
     for m in parsed.must_visits:
         place = find_by_name(known, m.name)
