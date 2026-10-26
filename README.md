@@ -79,6 +79,28 @@ DB 는 `data/routefit.db` 파일로 자동으로 만들어진다. A 와 B 는 DB
 | http://localhost:8000/admin.html | 장소 관리 · 현장조사 입력: 장소 추가/수정(지도 클릭으로 좌표), 취향 태그, 채점 체크리스트, JSON 내보내기 |
 | http://localhost:8000/docs | API 문서 |
 
+### 배포 서버 (AWS EC2)
+
+시연 서버는 AWS 서울 리전 EC2(Ubuntu, t3.small) 에서 위 **A(Docker)** 방식 그대로 돌고 있다. 주소·관리자 토큰·접속 키는 팀 채널에서 받는다.
+
+- **보기만 할 때**: 브라우저로 `http://<서버 주소>:8000` 을 연다. 장소 관리(`/admin.html`)는 관리자 토큰을 입력해야 저장된다.
+- **서버에 들어갈 때**: AWS 콘솔 → EC2 → 인스턴스 `route-fit` → **연결** → EC2 Instance Connect(브라우저, 키 파일 필요 없음).
+  키 파일(`route-fit.pem`)을 받았다면 터미널에서 `ssh -i route-fit.pem ubuntu@<서버 주소>` 도 된다. 이때는 보안 그룹 SSH 규칙에 내 IP 를 추가해야 하고, 키 파일은 저장소·메신저에 올리지 않는다.
+
+서버에 들어간 뒤 (`cd route-fit` 에서):
+
+```bash
+git pull && docker compose up -d --build   # main 의 최신 코드로 다시 켜기 (DB 데이터는 남는다)
+docker compose ps                          # 켜져 있는지 확인
+docker compose logs -f app                 # 서버 로그 (Ctrl+C 로 빠져나옴)
+docker compose restart app                 # 엑셀 가져오기 등으로 DB 를 고친 뒤 다시 읽히기
+nano .env                                  # 키 바꾸기. 저장 후 docker compose up -d
+```
+
+- 인스턴스가 재부팅돼도 `restart: unless-stopped` 라서 서버가 자동으로 다시 켜진다. **인스턴스를 '중지'하면 주소가 바뀌니** 탄력적 IP 를 쓰지 않는 한 함부로 중지하지 않는다.
+- `docker compose down -v` 는 서버 DB(코스·한줄평 포함)를 지운다. 서버에서는 쓰지 않는다.
+- 서버에서 넣은 장소를 팀 데이터로 남기려면 관리 화면의 **JSON 내보내기** 결과를 `data/*.json` 에 커밋한다.
+
 ### 설정 (.env)
 
 API 키가 없어도 끝까지 동작한다(아래 "대체 경로"). 키·관리자 토큰 등을 넣으려면 `.env.example` 을 `.env` 로 복사해 채운다.

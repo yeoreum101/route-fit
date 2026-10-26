@@ -4,6 +4,7 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped  # 서버(PC)가 재부팅돼도 다시 켜진다. docker compose down/stop 으로 끈 경우는 그대로
     environment:
       POSTGRES_USER: routefit
       POSTGRES_PASSWORD: routefit
@@ -20,6 +21,7 @@ services:
 
   app:
     build: .
+    restart: unless-stopped
     env_file:
       - path: .env
         required: false
