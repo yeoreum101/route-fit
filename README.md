@@ -192,9 +192,15 @@ fe/              화면 (React + Vite). 빌드 결과 fe/dist 를 서버가 내�
 ### 이동시간 채우기
 
 ```bash
-.venv\Scripts\python -m routefit.travel --dry-run   # 호출할 구간 수 확인
-.venv\Scripts\python -m routefit.travel             # 비어 있는 구간만 카카오 길찾기로 채움
+.venv\Scripts\python -m routefit.travel --dry-run              # 호출할 구간 수 확인
+.venv\Scripts\python -m routefit.travel --transit --limit 10   # 대중교통(TMAP): 빈 구간 중 10개만 채움
+.venv\Scripts\python -m routefit.travel                        # 자동차(카카오 길찾기)로 빈 구간을 채움
 ```
+
+대중교통은 `.env` 의 `TMAP_APP_KEY`(SK open API 앱 키, **TMAP 대중교통** 상품 사용 신청)로 TMAP 대중교통 길찾기를 부른다.
+후보 경로 중 가장 빠른 것의 걷기+탑승 시간에 평균 대기 7분을 더해 저장한다(TMAP 응답에는 기다리는 시간이 없다).
+Free 는 하루 10건이라 `--limit` 로 나눠 돌리고, 한도에 걸리면 멈춘다. 다시 돌리면 빈 구간부터 이어서 채운다.
+Docker 서버에서는 `docker compose exec app python -m routefit.travel --transit --limit 10` 후 `docker compose restart app`.
 
 실측값이 없는 구간은 추정치를 쓴다(`data.travel_minutes`): 도로 거리(직선 × 1.3) 1.2km 이하는 걸어서 시속 4.5km,
 그보다 멀면 시내버스로 보고 정류장 오가는 걸음 6분 + 평균 대기 7분 + 시속 15km.

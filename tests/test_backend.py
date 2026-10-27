@@ -189,6 +189,32 @@ def test_travel_builder_with_mocked_kakao(restore_places):
         assert travel.build(mock, pause_s=0)["called"] == 0  # 이미 채운 구간은 다시 부르지 않는다
 
 
+def test_travel_builder_with_mocked_tmap_transit(restore_places):
+    import httpx
+
+    from routefit import data, travel
+
+    calls = []
+
+    def tmap(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if len(calls) > 3:
+            return httpx.Response(429, json={"error": {"code": "QUOTA_EXCEEDED"}})
+        itineraries = [{"totalTime": 1376}, {"totalTime": 1452}]  # 가장 빠른 경로를 쓴다
+        return httpx.Response(200, json={"metaData": {"plan": {"itineraries": itineraries}}})
+
+    with httpx.Client(transport=httpx.MockTransport(tmap)) as mock:
+        first = travel.build(mock, pause_s=0, mode="transit", limit=2)
+        assert (first["called"], first["saved"]) == (2, 2)  # limit 만큼만 부른다
+        second = travel.build(mock, pause_s=0, mode="transit")
+    assert second["saved"] == 1 and second["remaining"] == first["remaining"] - 1  # 한도(429)에 걸리면 멈춘다
+    data.invalidate()
+
+    a, b = travel.pairs(data.load_anchors() + data.load_places(), both_ways=False)[0]
+    expected = 23 + data.BUS_WAIT_MIN  # 1376초 -> 23분 + 평균 대기
+    assert data.travel_minutes(a, b) == data.travel_minutes(b, a) == expected
+
+
 def test_tags_validation_and_embedding(restore_places):
     tags = {"activity": ["야경", "술"], "mood": ["활기찬"], "setting": ["실외"]}
     res = client.post("/api/admin/places", json={**NEW_PLACE, "tags": tags, "description": "자유 소개 문장"})

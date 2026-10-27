@@ -61,6 +61,8 @@ PLAN_RATE_PER_MIN = int(os.getenv("ROUTEFIT_PLAN_RATE", "20") or 0)
 TRUST_PROXY = os.getenv("ROUTEFIT_TRUST_PROXY", "false").strip().lower() == "true"
 # 카카오모빌리티 길찾기 REST API 키 (python -m routefit.travel 로 이동시간을 채울 때만 필요)
 KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY", "").strip()
+# SK open API TMAP 대중교통 앱 키 (python -m routefit.travel --transit 로 대중교통 이동시간을 채울 때만 필요)
+TMAP_APP_KEY = os.getenv("TMAP_APP_KEY", "").strip()
 # 카카오맵 JavaScript 키. 화면에 그대로 내려가는 공개용 키이며, 카카오 콘솔에 등록한 사이트 도메인에서만 동작한다.
 # 비워 두면 코스 지도는 OpenStreetMap 으로 그린다.
 KAKAO_JS_KEY = os.getenv("KAKAO_JS_KEY", "").strip()
