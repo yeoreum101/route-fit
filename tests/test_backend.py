@@ -129,7 +129,26 @@ def test_travel_times(restore_places):
     assert client.put("/api/admin/travel-times", json=[{"from_id": "acc", "to_id": "daein_market", "minutes": 42}]).status_code == 200
     assert travel_minutes(a, b) == 42
     assert client.put("/api/admin/travel-times", json=[{"from_id": "acc", "to_id": "nope", "minutes": 1}]).status_code == 422
-    assert client.get("/api/admin/export").json()["travel_matrix"] == {"acc|daein_market": 42}
+    assert client.get("/api/admin/export").json()["travel_matrix"] == {"acc|daein_market": {"minutes": 42, "mode": None}}
+
+
+def test_travel_mode_survives_export_and_seed(restore_places, monkeypatch):
+    # 내보낸 이동시간을 data/travel_matrix.json 으로 다시 채워도 이동 수단이 남는다. 예전 형식(분 숫자만)도 읽는다.
+    from routefit import db
+
+    items = [{"from_id": "acc", "to_id": "daein_market", "minutes": 33, "mode": "transit"}]
+    assert client.put("/api/admin/travel-times", json=items).status_code == 200
+    exported = client.get("/api/admin/export").json()["travel_matrix"]
+    assert exported == {"acc|daein_market": {"minutes": 33, "mode": "transit"}}
+
+    read_json = db._read_json
+    matrix = {**exported, "daein_market|acc": 31}
+    monkeypatch.setattr(db, "_read_json", lambda name: matrix if name == "travel_matrix.json" else read_json(name))
+    assert client.post("/api/admin/import").json()["travel"] == 2
+    rows = {(t["from_id"], t["to_id"]): t for t in client.get("/api/admin/travel-times").json()}
+    assert (rows[("acc", "daein_market")]["minutes"], rows[("acc", "daein_market")]["mode"]) == (33, "transit")
+    assert (rows[("daein_market", "acc")]["minutes"], rows[("daein_market", "acc")]["mode"]) == (31, None)
+    monkeypatch.undo()
 
 
 def test_export_matches_seed():

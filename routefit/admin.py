@@ -238,7 +238,11 @@ def export_json():
     """현재 DB 의 장소를 data/places.json · anchors.json · travel_matrix.json · checklists.json 형식으로 내보낸다(저장소에 커밋할 때)."""
     with db.session() as s:
         rows = s.scalars(select(db.PlaceRow).order_by(db.PlaceRow.id)).all()
-        travel = {f"{r.from_id}|{r.to_id}": r.minutes for r in s.scalars(select(db.TravelRow))}
+        # 구간마다 분과 이동 수단(transit·car, 모르면 null). 수단이 있어야 다시 채울 때 같은 구간을 또 부르지 않는다.
+        travel = {
+            f"{r.from_id}|{r.to_id}": {"minutes": r.minutes, "mode": r.mode}
+            for r in s.scalars(select(db.TravelRow).order_by(db.TravelRow.from_id, db.TravelRow.to_id))
+        }
         sheets: dict[str, list] = {}
         for c in s.scalars(select(db.ChecklistRow).order_by(db.ChecklistRow.place_id, db.ChecklistRow.rater)):
             sheets.setdefault(c.place_id, []).append({"rater": c.rater, "checks": c.checks, "evidence": c.evidence or {}})

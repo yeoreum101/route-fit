@@ -220,10 +220,12 @@ def seed(s: Session) -> dict[str, int]:
             counts[kind] += 1
     s.flush()
     known = set(s.scalars(select(PlaceRow.id)))
-    for key, minutes in (_read_json("travel_matrix.json") or {}).items():
+    # 값은 {"minutes": 분, "mode": "transit"|"car"|null}. 예전 형식(분 숫자만)도 읽는다.
+    for key, value in (_read_json("travel_matrix.json") or {}).items():
         a, b = key.split("|")
         if a in known and b in known:
-            s.add(TravelRow(from_id=a, to_id=b, minutes=int(minutes)))
+            minutes, mode = (value["minutes"], value.get("mode")) if isinstance(value, dict) else (value, None)
+            s.add(TravelRow(from_id=a, to_id=b, minutes=int(minutes), mode=mode))
             counts["travel"] += 1
     # 관리 화면 '내보내기'로 받은 체크리스트 (장소 점수는 places.json 에 이미 계산돼 있다)
     for place_id, sheets in (_read_json("checklists.json") or {}).items():
