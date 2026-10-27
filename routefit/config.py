@@ -15,7 +15,7 @@ load_dotenv(ROOT / ".env")
 
 @dataclass(frozen=True)
 class Weights:
-    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 - 이동 부담 - 시간 초과 페널티.
+    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 - 이동 부담 - 빈 시간 - 시간 초과 페널티.
 
     초기값이며 검증되지 않았다. 중간발표 직후 보정 기간에 내부 테스트로 조정한다.
     """
@@ -25,6 +25,7 @@ class Weights:
     companion: float = 0.3  # 문장의 동행이 장소의 '어울리는 동행' 태그에 있으면 더한다
     travel_per_min: float = 0.012  # 이동 1분당 감점
     overtime_per_min: float = 0.05  # 종료 희망 시각 초과 1분당 감점
+    wait_per_min: float = 0.006  # 일정 사이 빈 시간 1분당 감점 (식당이 식사 시간대를 기다리며 생기는 공백)
     stop_cost: float = 0.3  # 장소 1곳을 추가하려면 넘어야 하는 최소 가치
 
 
@@ -33,6 +34,9 @@ class Limits:
     overtime_grace_min: int = 30  # 종료 희망 시각을 이만큼까지는 넘길 수 있다(감점)
     max_ai_stops: int = 6
     category_caps: tuple[tuple[str, int], ...] = (("food", 2), ("cafe", 2), ("night", 1))
+    min_cafe_stay: int = 90  # 카페는 이보다 짧게 머물지 않는다 (장소의 머무는 시간이 더 길면 그것을 쓴다)
+    # AI 가 고른 식당은 식사 시간대 안에서 시작하고, 한 끼에 한 곳만 넣는다. (이름, 시작 가능 구간, 자정 기준 분)
+    meal_windows: tuple[tuple[str, int, int], ...] = (("점심", 11 * 60, 13 * 60 + 30), ("저녁", 17 * 60, 19 * 60 + 30))
 
 
 WEIGHTS = Weights()

@@ -278,3 +278,32 @@ def test_tags_column_added_to_old_database(tmp_path, monkeypatch):
     with db._sessionmaker()() as s:
         assert "전시 관람" in s.get(db.PlaceRow, "acc").tags["activity"]
     db._add_missing_columns()  # 두 번 불러도 괜찮다
+
+
+def test_break_columns_added_to_old_database(tmp_path, monkeypatch):
+    """브레이크 타임 도입 전에 만든 DB 도 서버를 켜면 컬럼이 생기고 data/places.json 의 값으로 채워진다."""
+    from sqlalchemy import create_engine, inspect, text
+    from sqlalchemy.orm import sessionmaker
+
+    from routefit import db
+
+    old = create_engine(f"sqlite:///{(tmp_path / 'old.db').as_posix()}")
+    db.Base.metadata.create_all(old)
+    with old.begin() as conn:
+        conn.execute(text("ALTER TABLE places DROP COLUMN break_start"))
+        conn.execute(text("ALTER TABLE places DROP COLUMN break_end"))
+        conn.execute(text(
+            "INSERT INTO places (id, kind, name, category, area, lat, lng, description, tags, aliases, open_time,"
+            " close_time, closed_days, stay_min, cost, gwangju_ness, stay_inducement, commerce_link, is_local_commerce,"
+            " verified, updated_at) VALUES ('s_001', 'candidate', '왕산식당 동명점', 'food', '동구', 35.1, 126.9, '',"
+            " '{}', '[]', '11:30', '22:00', '[]', 40, 0, 3, 3, 3, 0, 0, '2026-01-01')"
+        ))
+    monkeypatch.setattr(db, "engine", lambda: old)
+    monkeypatch.setattr(db, "_sessionmaker", lambda: sessionmaker(old, expire_on_commit=False))
+
+    db._add_missing_columns()
+    assert {"break_start", "break_end"} <= {c["name"] for c in inspect(old).get_columns("places")}
+    with db._sessionmaker()() as s:
+        row = s.get(db.PlaceRow, "s_001")
+        assert (row.break_start, row.break_end) == ("15:00", "17:00")
+    db._add_missing_columns()  # 두 번 불러도 괜찮다

@@ -47,6 +47,9 @@ class Place(BaseModel):
     aliases: list[str] = []
     open: str = Field(default="00:00", pattern=HM_PATTERN)
     close: str = Field(default="24:00", pattern=HM_PATTERN)
+    # 브레이크 타임. 이 사이에는 머무를 수 없다(둘 다 적거나 둘 다 비운다)
+    break_start: Optional[str] = Field(default=None, pattern=HM_PATTERN)
+    break_end: Optional[str] = Field(default=None, pattern=HM_PATTERN)
     closed_days: list[int] = []  # 0=월 ... 6=일
     stay_min: int = Field(default=60, ge=5, le=600)
     cost: int = Field(default=0, ge=0)  # 1인 예상 지출(원)
@@ -73,6 +76,12 @@ class Place(BaseModel):
     def _hours(self) -> "Place":
         if to_min(self.open) >= to_min(self.close):
             raise ValueError("닫는 시각은 여는 시각보다 늦어야 합니다 (자정을 넘기면 '25:00'처럼 적습니다)")
+        if (self.break_start is None) != (self.break_end is None):
+            raise ValueError("브레이크 타임은 시작과 끝을 함께 적어야 합니다")
+        if self.break_start is not None and not (
+            to_min(self.open) < to_min(self.break_start) < to_min(self.break_end) < to_min(self.close)
+        ):
+            raise ValueError("브레이크 타임은 영업시간 안에 있어야 하고, 끝이 시작보다 늦어야 합니다")
         return self
 
     @property

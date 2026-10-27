@@ -3,11 +3,36 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from ..config import LIMITS, WEIGHTS, Limits, Weights
-from ..models import Place
+from ..models import Place, to_min
 
 
 class PlanError(Exception):
     """Must Visit 을 지키는 코스를 만들 수 없을 때."""
+
+
+Window = tuple[int, int]  # 방문을 시작할 수 있는 (가장 이른, 가장 늦은) 시각
+
+
+def start_windows(place: Place, stay: int, meal: bool = False, limits: Limits = LIMITS) -> list[Window]:
+    """영업시간에서 브레이크 타임을 빼고, 그 안에서 stay 분을 머물 수 있는 시작 시각 구간들.
+    meal 이면 식사 시간대와 겹치는 부분만 남긴다."""
+    opens = [(to_min(place.open), to_min(place.close))]
+    if place.break_start and place.break_end:
+        opens = [(opens[0][0], to_min(place.break_start)), (to_min(place.break_end), opens[0][1])]
+    windows = [(o, c - stay) for o, c in opens if c - stay >= o]
+    if meal:
+        windows = [
+            (max(lo, m0), min(hi, m1))
+            for lo, hi in windows
+            for _, m0, m1 in limits.meal_windows
+            if max(lo, m0) <= min(hi, m1)
+        ]
+    return sorted(windows)
+
+
+def meal_slot(start: int, limits: Limits = LIMITS) -> Optional[int]:
+    """start 가 몇 번째 식사 시간대(0=점심, 1=저녁)에 드는지."""
+    return next((i for i, (_, m0, m1) in enumerate(limits.meal_windows) if m0 <= start <= m1), None)
 
 
 @dataclass
@@ -15,10 +40,10 @@ class Node:
     """코스에 들어갈 수 있는 장소 1곳. 시간은 모두 자정 기준 분."""
 
     place: Place
-    open: int
-    close: int
+    windows: list[Window]  # start_windows()
     stay: int
     cost: int
+    meal: bool = False  # 식사 시간대 식당: 한 끼(meal_slot)에 한 곳
     mandatory: bool = False  # Must Visit: 절대 제외하지 않는다
     fixed_start: Optional[int] = None  # 경기·공연처럼 시작 시각이 고정된 경우
     taste: float = 0.0  # 후보 내 0~1 로 정규화한 취향 적합도
@@ -60,11 +85,30 @@ class Visit:
 Travel = Callable[[Node, Node], int]
 
 
+def back_to_back_cafes(a: Node, b: Node) -> bool:
+    """카페 다음에 바로 카페. 둘 다 사용자가 고른 곳이면 막지 않는다."""
+    return a.place.category == b.place.category == "cafe" and not (a.mandatory and b.mandatory)
+
+
+def _earliest_start(node: Node, arrive: int, meals_taken: set[int]) -> Optional[int]:
+    for lo, hi in node.windows:
+        if arrive > hi:
+            continue
+        start = max(arrive, lo)
+        if node.meal and meal_slot(start) in meals_taken:
+            continue  # 이 끼니에는 이미 식당이 있다. 다음 끼니까지 기다린다
+        return start
+    return None
+
+
 def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -> Optional[list[Visit]]:
-    """순서가 정해진 route 의 시간표. 영업시간·고정 시각·종료 한계를 못 지키면 None."""
+    """순서가 정해진 route 의 시간표. 영업시간·브레이크 타임·식사 시간대·고정 시각·종료 한계를 못 지키면 None."""
     visits: list[Visit] = []
+    meals_taken: set[int] = set()
     t = day_start
     for i, node in enumerate(route):
+        if i and back_to_back_cafes(route[i - 1], node):
+            return None
         move = travel(route[i - 1], node) if i else 0
         arrive = t + move
         if node.fixed_start is not None:
@@ -72,9 +116,11 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
                 return None
             start = node.fixed_start
         else:
-            start = max(arrive, node.open)
-            if start + node.stay > node.close:
+            start = _earliest_start(node, arrive, meals_taken)
+            if start is None:
                 return None
+            if node.meal:
+                meals_taken.add(meal_slot(start))
         end = start + node.stay
         if end > hard_end:
             return None
@@ -86,7 +132,9 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
         v, nxt = visits[i], visits[i + 1]
         if v.node.fixed_start is not None:
             continue
-        latest = min(nxt.start - nxt.travel, v.node.close) - v.node.stay
+        # 지금 시작 시각이 든 구간 안에서만 당긴다 (브레이크 타임을 넘거나 끼니가 바뀌지 않게)
+        window_end = next(hi for lo, hi in v.node.windows if lo <= v.start <= hi)
+        latest = min(nxt.start - nxt.travel - v.node.stay, window_end)
         if latest > v.start:
             v.start, v.end = latest, latest + v.node.stay
     for i, v in enumerate(visits):
@@ -95,11 +143,17 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
 
 
 def objective(visits: list[Visit], day_end: int, weights: Weights = WEIGHTS) -> float:
-    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 - 이동 부담 - 시간 초과 페널티."""
+    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 - 이동 부담 - 빈 시간 - 시간 초과 페널티."""
     value = sum(v.node.value for v in visits if not v.node.mandatory)
     travel = sum(v.travel for v in visits)
+    wait = sum(v.start - v.arrive for v in visits)
     overtime = max(0, visits[-1].end - day_end) if visits else 0
-    return value - weights.travel_per_min * travel - weights.overtime_per_min * overtime
+    return (
+        value
+        - weights.travel_per_min * travel
+        - weights.wait_per_min * wait
+        - weights.overtime_per_min * overtime
+    )
 
 
 def within_caps(route: list[Node], budget: Optional[int], limits: Limits = LIMITS) -> bool:

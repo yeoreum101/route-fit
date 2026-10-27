@@ -9,7 +9,7 @@ const NO_STATUS = { text: "", ok: false };
 
 const BLANK_PLACE = {
   id: "", kind: "candidate", name: "", category: "sight", area: "", aliases: [], description: "",
-  lat: "", lng: "", open: "10:00", close: "22:00", closed_days: [], stay_min: 60, cost: 0,
+  lat: "", lng: "", open: "10:00", close: "22:00", break_start: null, break_end: null, closed_days: [], stay_min: 60, cost: 0,
   gwangju_ness: 3, stay_inducement: 3, commerce_link: 3, is_local_commerce: false, verified: false, n_ratings: 0,
 };
 
@@ -28,6 +28,8 @@ function toForm(p) {
     lng: p.lng,
     open: p.open,
     close: p.close,
+    breakStart: p.break_start ?? "",
+    breakEnd: p.break_end ?? "",
     closed: p.closed_days,
     stay: p.stay_min,
     cost: p.cost,
@@ -192,6 +194,8 @@ export default function AdminPage() {
       lng: Number(form.lng),
       open: form.open.trim(),
       close: form.close.trim(),
+      break_start: form.breakStart.trim() || null,
+      break_end: form.breakEnd.trim() || null,
       closed_days: [...form.closed].sort((a, b) => a - b),
       stay_min: Number(form.stay),
       cost: Number(form.cost),
@@ -400,7 +404,10 @@ export default function AdminPage() {
                       </td>
                       <td className="nowrap">{CATEGORY_KO[p.category]}</td>
                       <td className="nowrap col-area">{p.area}</td>
-                      <td className="nowrap col-hours">{`${p.open}–${p.close}`}</td>
+                      <td className="nowrap col-hours">
+                        {`${p.open}–${p.close}`}
+                        {p.break_start && <div className="muted small">{`쉼 ${p.break_start}–${p.break_end}`}</div>}
+                      </td>
                       <td className="num nowrap col-cost">{p.cost ? `${p.cost.toLocaleString()}원` : "무료"}</td>
                       <td className="num">{Math.round(p.local_contribution * 100) /* 알고리즘이 쓰는 지역상권 기여도(0~1)를 100점 만점으로 */}</td>
                       <td className="num">{p.n_ratings ? `${p.n_ratings}명` : "–"}</td>
@@ -512,6 +519,14 @@ export default function AdminPage() {
                 <div className="field">
                   <label htmlFor="f-close">닫는 시각</label>
                   <input id="f-close" required pattern="\d{1,2}:[0-5]\d" placeholder="22:00" {...text("close")} />
+                </div>
+                <div className="field">
+                  <label htmlFor="f-break-start">브레이크 시작</label>
+                  <input id="f-break-start" pattern="\d{1,2}:[0-5]\d" placeholder="없으면 비움" {...text("breakStart")} />
+                </div>
+                <div className="field">
+                  <label htmlFor="f-break-end">브레이크 끝</label>
+                  <input id="f-break-end" pattern="\d{1,2}:[0-5]\d" placeholder="예: 17:00" {...text("breakEnd")} />
                 </div>
                 <div className="field"><label htmlFor="f-stay">머무는 시간(분)</label><input id="f-stay" type="number" min="5" max="600" step="5" required {...text("stay")} /></div>
                 <div className="field"><label htmlFor="f-cost">1인 예상 지출(원)</label><input id="f-cost" type="number" min="0" step="1000" required {...text("cost")} /></div>

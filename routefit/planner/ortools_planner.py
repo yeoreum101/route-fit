@@ -10,7 +10,7 @@ import logging
 from typing import Optional
 
 from ..config import LIMITS, WEIGHTS
-from .core import Node, PlanError, Travel
+from .core import Node, PlanError, Travel, Window, back_to_back_cafes, meal_slot
 from .greedy import plan_greedy
 
 log = logging.getLogger(__name__)
@@ -36,14 +36,35 @@ def plan_ortools(
 
     hard_end = day_end + LIMITS.overtime_grace_min
 
-    def window(n: Node) -> tuple[int, int]:
+    def windows(n: Node, slot: Optional[int] = None) -> list[Window]:
+        """하루 안으로 자른 시작 가능 구간. slot 을 주면 그 끼니의 구간만."""
         if n.fixed_start is not None:
-            return n.fixed_start, n.fixed_start
-        return max(n.open, day_start), min(n.close, hard_end) - n.stay
+            return [(n.fixed_start, n.fixed_start)]
+        out = [(max(lo, day_start), min(hi, hard_end - n.stay)) for lo, hi in n.windows]
+        return [(lo, hi) for lo, hi in out if lo <= hi and (slot is None or meal_slot(lo) == slot)]
 
     # 하루 안에 들어갈 수 없는 후보와 가치가 없는 후보는 미리 뺀다.
-    optional = [n for n in candidates if window(n)[0] <= window(n)[1] and n.value > 0]
-    nodes = musts + optional
+    # 식당은 끼니마다 따로 한 개씩 노드를 만들고, 그중 하나만 고르게 한다(disjunction).
+    nodes: list[Node] = []
+    node_windows: list[list[Window]] = []
+    slots: list[Optional[int]] = []  # 식당 노드의 끼니
+    groups: list[list[int]] = []  # 같은 장소의 노드 번호들 (AI 추천 후보만)
+
+    def add(n: Node, w: list[Window], slot: Optional[int] = None) -> int:
+        nodes.append(n)
+        node_windows.append(w)
+        slots.append(slot)
+        return len(nodes)
+
+    for n in musts:
+        add(n, windows(n))
+    for n in candidates:
+        if n.value <= 0:
+            continue
+        meal_slots = range(len(LIMITS.meal_windows)) if n.meal else [None]
+        group = [add(n, windows(n, slot), slot) for slot in meal_slots if windows(n, slot)]
+        if group:
+            groups.append(group)
     size = len(nodes) + 1  # 0번은 출발·도착용 가상 노드(어디서든 이동시간 0)
 
     manager = pywrapcp.RoutingIndexManager(size, 1, 0)
@@ -70,11 +91,15 @@ def plan_ortools(
     time.CumulVar(routing.Start(0)).SetRange(day_start, hard_end)
     time.CumulVar(routing.End(0)).SetRange(day_start, hard_end)
     time.SetCumulVarSoftUpperBound(routing.End(0), day_end, round(SCALE * WEIGHTS.overtime_per_min))
-    for k, n in enumerate(nodes, 1):
-        lo, hi = window(n)
-        if lo > hi:
+    time.SetSlackCostCoefficientForAllVehicles(round(SCALE * WEIGHTS.wait_per_min))  # 일정 사이 빈 시간
+    for k, (n, w) in enumerate(zip(nodes, node_windows), 1):
+        if not w:
             raise PlanError(f"'{n.place.name}' 을(를) 하루 일정 안에 넣을 수 없습니다.")
-        time.CumulVar(manager.NodeToIndex(k)).SetRange(lo, hi)
+        cumul = time.CumulVar(manager.NodeToIndex(k))
+        cumul.SetRange(w[0][0], w[-1][1])
+        for (_, prev_hi), (next_lo, _) in zip(w, w[1:]):  # 브레이크 타임처럼 구간 사이에 비는 시각
+            if prev_hi + 1 <= next_lo - 1:
+                cumul.RemoveInterval(prev_hi + 1, next_lo - 1)
 
     def add_capacity(name: str, demand: list[int], capacity: int):
         cb = routing.RegisterUnaryTransitCallback(lambda i: demand[manager.IndexToNode(i)])
@@ -86,10 +111,17 @@ def plan_ortools(
         add_capacity(f"Cap_{cat}", [0] + [int(not n.mandatory and n.place.category == cat) for n in nodes], cap)
     if budget is not None:
         add_capacity("Budget", [0] + [-(-n.cost // COST_UNIT) for n in nodes], budget // COST_UNIT)
+    for slot in range(len(LIMITS.meal_windows)):  # 한 끼에 식당 한 곳
+        add_capacity(f"Meal_{slot}", [0] + [int(not n.mandatory and s == slot) for n, s in zip(nodes, slots)], 1)
 
-    for k, n in enumerate(nodes, 1):
-        if not n.mandatory:
-            routing.AddDisjunction([manager.NodeToIndex(k)], round(SCALE * n.value))
+    for i, a in enumerate(nodes, 1):  # 카페 다음에 바로 카페로 가는 길은 없앤다
+        for j, b in enumerate(nodes, 1):
+            if i != j and back_to_back_cafes(a, b):
+                routing.NextVar(manager.NodeToIndex(i)).RemoveValue(manager.NodeToIndex(j))
+
+    for group in groups:
+        value = nodes[group[0] - 1].value
+        routing.AddDisjunction([manager.NodeToIndex(k) for k in group], round(SCALE * value), 1)
 
     params = pywrapcp.DefaultRoutingSearchParameters()
     params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC

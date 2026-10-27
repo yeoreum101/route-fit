@@ -21,6 +21,8 @@ def to_place(row: db.PlaceRow) -> Place:
         aliases=row.aliases or [],
         open=row.open_time,
         close=row.close_time,
+        break_start=row.break_start,
+        break_end=row.break_end,
         closed_days=row.closed_days or [],
         stay_min=row.stay_min,
         cost=row.cost,

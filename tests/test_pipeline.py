@@ -7,6 +7,7 @@ from routefit.models import MustVisitInput, PlanRequest, to_min
 from routefit.parser import parse_rule_based
 from routefit.pipeline import make_course
 from routefit.planner import PlanError
+from routefit.planner.core import meal_slot
 
 QUERY = "토요일 야구 보기 전에 사진 찍기 좋은 데랑 로컬 맛집 가고 싶어. 예산 10만원"
 BASEBALL = MustVisitInput(id="champions_field", start="18:30")
@@ -26,8 +27,17 @@ def test_must_visit_is_kept_and_course_is_executable(planner):
         assert to_min(prev.end) + cur.travel_min <= to_min(cur.start)
     for s in course.stops:
         if s.kind == "ai":
-            assert to_min(places[s.place_id].open) <= to_min(s.start)
-            assert to_min(s.end) <= to_min(places[s.place_id].close)
+            p = places[s.place_id]
+            assert to_min(p.open) <= to_min(s.start)
+            assert to_min(s.end) <= to_min(p.close)
+            if p.break_start:
+                assert to_min(s.end) <= to_min(p.break_start) or to_min(p.break_end) <= to_min(s.start)
+    for prev, cur in zip(course.stops, course.stops[1:]):
+        assert not prev.category == cur.category == "cafe"  # 카페 연달아 금지
+    assert all(s.stay_min >= 90 for s in course.stops if s.category == "cafe")
+    meals = [s for s in course.stops if s.kind == "ai" and s.category == "food"]
+    slots = [meal_slot(to_min(s.start)) for s in meals]
+    assert None not in slots and len(set(slots)) == len(slots)  # 식사 시간대 안, 한 끼에 한 곳
     assert course.metrics.total_cost <= 100000
 
 

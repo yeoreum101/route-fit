@@ -6,7 +6,8 @@
 
 - 가게정보: 가게 이름이 비어 있는 줄은 건너뛴다. 틀린 줄은 어느 줄 어느 칸이 문제인지 알려 주고 나머지만 넣는다.
 - 체크리스트: 채점자 한 줄 = 팀원 1명의 체크 (admin.put_checklist 와 같다). 넣은 뒤 3속성 점수를 다시 계산한다.
-- [참고] 열(브레이크타임·라스트 오더·휴무 예외·메뉴·편의·네이버 링크·확인한 날짜·조사자·메모)과 도로명 주소(좌표를 못 구할 때만 씀)는 저장 칸이 없어 넣지 않는다.
+- 브레이크타임은 '15:00-17:00' 처럼 적힌 첫 구간만 넣는다('평일만' 같은 설명은 무시하고 매일 쉬는 것으로 본다).
+- [참고] 열(라스트 오더·휴무 예외·메뉴·편의·네이버 링크·확인한 날짜·조사자·메모)과 도로명 주소(좌표를 못 구할 때만 씀)는 저장 칸이 없어 넣지 않는다.
 - 서버가 켜져 있다면 끝난 뒤 재시작해야 반영된다(장소 목록을 캐시한다).
 """
 import argparse
@@ -108,6 +109,17 @@ def _hours(v: Any) -> tuple[Optional[str], Optional[str]]:
     if c != "24:00" and int(c[:2]) * 60 + int(c[3:]) <= int(o[:2]) * 60 + int(o[3:]):
         c = f"{int(c[:2]) + 24:02d}:{c[3:]}"
     return o, c
+
+
+def _break(v: Any) -> tuple[Optional[str], Optional[str]]:
+    """'15:00-17:00' · '15:00-17:00 (평일). 주말은 없음' -> ('15:00', '17:00'). 비었거나 '없음' 이면 (None, None)."""
+    t = _text(v)
+    m = re.search(r"(\d{1,2}\s*:\s*\d{2})\s*[-~～–—]\s*(\d{1,2}\s*:\s*\d{2})", t)
+    if m:
+        return _hm(m[1]), _hm(m[2])
+    if not t or "없" in t:
+        return None, None
+    raise ValueError(f"브레이크타임: '{t}' 은(는) 읽을 수 없습니다 (예: 15:00-17:00, 없으면 비움)")
 
 
 def _blank(what: str):
@@ -235,6 +247,8 @@ def parse_stores(ws, report: Report, geocode: bool = False, placeholder: bool = 
                     raise ValueError("좌표(위도·경도)가 없습니다. 칸에 적거나, --geocode(카카오 키 필요) / --placeholder 를 쓰세요")
             tags = {key: _split(get(row, _header(col))) for col, key in TAG_COLUMNS.items()}
             opens, closes = _hours(get(row, "영업시간"))
+            # 예전 양식은 머리글이 '브레이크타임 [참고]'
+            break_start, break_end = _break(get(row, "브레이크타임") or get(row, "브레이크타임[참고]"))
             place = Place(
                 id=sid,
                 name=name,
@@ -247,6 +261,8 @@ def parse_stores(ws, report: Report, geocode: bool = False, placeholder: bool = 
                 aliases=_split(get(row, "별칭")),
                 open=opens or _blank("영업시간"),
                 close=closes or _blank("영업시간"),
+                break_start=break_start,
+                break_end=break_end,
                 closed_days=_closed_days(get(row, "휴무요일")),
                 stay_min=_int(get(row, "머무는시간(분)"), "머무는 시간"),
                 cost=_int(get(row, "1인예상지출(원)"), "1인 예상 지출"),

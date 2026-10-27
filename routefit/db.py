@@ -66,6 +66,8 @@ class PlaceRow(Base):
     # '25:00' 처럼 자정을 넘기는 표기를 쓰므로 TIME 이 아닌 문자열
     open_time: Mapped[str] = mapped_column(String(5), default="00:00")
     close_time: Mapped[str] = mapped_column(String(5), default="24:00")
+    break_start: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    break_end: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     closed_days: Mapped[list] = mapped_column(Json, default=list)
     stay_min: Mapped[int] = mapped_column(Integer, default=60)
     cost: Mapped[int] = mapped_column(Integer, default=0)
@@ -172,19 +174,29 @@ def _add_missing_columns() -> None:
     """create_all 은 이미 있는 테이블에 새 컬럼을 넣지 않는다. 마이그레이션 도구 대신, 나중에 추가한 컬럼만 여기서 넣는다.
 
     places.tags: 태그 도입 전 DB 면 컬럼을 만들고, data/places.json 에 같은 id 가 있으면 그 태그로 채운다.
+    places.break_start · break_end: 브레이크 타임 도입 전 DB 면 컬럼을 만들고, data/places.json 의 값으로 채운다.
     """
     columns = {c["name"] for c in inspect(engine()).get_columns("places")}
-    if "tags" in columns:
-        return
-    column_type = "JSONB" if engine().dialect.name == "postgresql" else "JSON"
-    with engine().begin() as conn:
-        conn.execute(text(f"ALTER TABLE places ADD COLUMN tags {column_type}"))
-    seed_tags = {p["id"]: p["tags"] for p in (_read_json("places.json") or []) if p.get("tags")}
-    with _sessionmaker()() as s:
-        for row in s.scalars(select(PlaceRow).where(PlaceRow.id.in_(seed_tags))):
-            row.tags = seed_tags[row.id]
-        s.commit()
-    log.info("places.tags 컬럼 추가, 예시 태그 %d곳 채움", len(seed_tags))
+    if "tags" not in columns:
+        column_type = "JSONB" if engine().dialect.name == "postgresql" else "JSON"
+        with engine().begin() as conn:
+            conn.execute(text(f"ALTER TABLE places ADD COLUMN tags {column_type}"))
+        seed_tags = {p["id"]: p["tags"] for p in (_read_json("places.json") or []) if p.get("tags")}
+        with _sessionmaker()() as s:
+            for row in s.scalars(select(PlaceRow).where(PlaceRow.id.in_(seed_tags))):
+                row.tags = seed_tags[row.id]
+            s.commit()
+        log.info("places.tags 컬럼 추가, 예시 태그 %d곳 채움", len(seed_tags))
+    if "break_start" not in columns:
+        with engine().begin() as conn:
+            conn.execute(text("ALTER TABLE places ADD COLUMN break_start VARCHAR(5)"))
+            conn.execute(text("ALTER TABLE places ADD COLUMN break_end VARCHAR(5)"))
+        seed_breaks = {p["id"]: p for p in (_read_json("places.json") or []) if p.get("break_start")}
+        with _sessionmaker()() as s:
+            for row in s.scalars(select(PlaceRow).where(PlaceRow.id.in_(seed_breaks))):
+                row.break_start, row.break_end = seed_breaks[row.id]["break_start"], seed_breaks[row.id]["break_end"]
+            s.commit()
+        log.info("places.break_start · break_end 컬럼 추가, 브레이크 타임 %d곳 채움", len(seed_breaks))
 
 
 # ---------- 시드 ----------

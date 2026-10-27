@@ -22,7 +22,7 @@ from .models import (
     to_min,
 )
 from .parser import find_by_name, parse_query
-from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule
+from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule, start_windows
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +55,13 @@ def _find(known: list[Place], id: Optional[str], name: Optional[str]) -> Optiona
     return find_by_name(known, name)
 
 
+def _stay(place: Place) -> int:
+    """머무는 시간. 카페는 커피만 마시고 나오지 않도록 최소 시간을 둔다."""
+    if place.category == "cafe":
+        return max(place.stay_min, config.LIMITS.min_cafe_stay)
+    return place.stay_min
+
+
 def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> list[Node]:
     # 화면에서 직접 지정한 Must Visit 이 있으면 그것이 우선, 없으면 문장에서 파싱한 것을 쓴다.
     inputs = req.must_visits or [
@@ -68,12 +75,12 @@ def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> li
         if place.id in seen:
             continue
         seen.add(place.id)
+        stay = m.stay_min or _stay(place)  # 사용자가 적은 머무는 시간이 우선
         nodes.append(
             Node(
                 place=place,
-                open=to_min(place.open),
-                close=to_min(place.close),
-                stay=m.stay_min or place.stay_min,
+                windows=start_windows(place, stay),  # 사용자가 고른 곳은 식사 시간대를 강제하지 않는다
+                stay=stay,
                 cost=place.cost,
                 mandatory=True,
                 fixed_start=to_min(m.start) if m.start else None,
@@ -108,19 +115,20 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str]) 
         return []
     lo = min(sims[p.id] for p in places)
     span = (max(sims[p.id] for p in places) - lo) or 1.0
-    return [
+    nodes = [
         Node(
             place=p,
-            open=to_min(p.open),
-            close=to_min(p.close),
-            stay=p.stay_min,
+            windows=start_windows(p, _stay(p), meal=p.category == "food"),
+            stay=_stay(p),
             cost=p.cost,
+            meal=p.category == "food",
             taste=(sims[p.id] - lo) / span,
             similarity=sims[p.id],
             companion_fit=bool(c.companions) and c.companions in p.tags.get("companions", []),
         )
         for p in places
     ]
+    return [n for n in nodes if n.windows]  # 머무는 시간만큼 열려 있는 구간이 없는 곳은 뺀다
 
 
 def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> Course:
