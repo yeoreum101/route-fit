@@ -8,6 +8,7 @@ import re
 from pydantic import BaseModel
 
 from . import llm
+from .data import travel_mode
 from .models import CATEGORY_KO, Constraints, to_hm
 from .planner import Visit
 
@@ -21,6 +22,9 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
 - summary: 코스 전체를 2~3문장으로. 필수 방문지를 중심으로 하루가 어떻게 이어지는지 설명한다.
 - 점수 숫자를 그대로 나열하지 말고 자연스러운 말로 풀어 쓴다.
 """
+
+
+TRAVEL_MODE_KO = {"walk": "도보", "transit": "대중교통", "car": "자동차"}
 
 
 class StopReason(BaseModel):
@@ -49,6 +53,8 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "time": f"{to_hm(v.start)}~{to_hm(v.end)}",
                 "stay_min": v.node.stay,
                 "travel_min_from_prev": v.travel,
+                # 도보·대중교통 구분. 이유에서 이동을 말할 때 이 수단으로 쓴다(예: "걸어서 6분")
+                "travel_mode_from_prev": TRAVEL_MODE_KO[travel_mode(visits[i - 1].node, v.node)] if i else None,
                 "taste_similarity": round(v.node.similarity, 3),
                 "gwangju_ness_1to5": v.node.place.gwangju_ness,
                 "stay_inducement_1to5": v.node.place.stay_inducement,
@@ -56,7 +62,7 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "is_local_commerce": v.node.place.is_local_commerce,
                 "suits_companions": v.node.companion_fit,  # 장소 태그 기준으로 동행과 어울리는지
             }
-            for v in visits
+            for i, v in enumerate(visits)
         ],
     }
 

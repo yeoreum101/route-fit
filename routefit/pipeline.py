@@ -6,7 +6,7 @@ from typing import Optional
 
 from . import config
 from .courses import save_course
-from .data import load_anchors, load_places, travel_minutes
+from .data import load_anchors, load_places, travel_minutes, travel_mode
 from .embedding import PlaceIndex, get_embedder
 from .explain import explain
 from .models import (
@@ -147,6 +147,7 @@ def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> C
             start=to_hm(v.start),
             end=to_hm(v.end),
             travel_min=v.travel,
+            travel_mode=travel_mode(visits[i - 2].node, v.node) if i > 1 else None,
             stay_min=v.node.stay,
             cost=v.node.cost,
             similarity=None if v.node.mandatory else round(v.node.similarity, 3),

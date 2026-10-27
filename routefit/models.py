@@ -172,6 +172,8 @@ class Stop(BaseModel):
     start: str
     end: str
     travel_min: int  # 직전 장소에서의 이동시간
+    # 직전 장소에서 무엇으로 오는지: walk(도보) | transit(대중교통) | car. 첫 장소와 예전에 저장된 코스는 None
+    travel_mode: Optional[Literal["walk", "transit", "car"]] = None
     stay_min: int
     cost: int
     similarity: Optional[float] = None  # 취향 코사인 유사도(원값)

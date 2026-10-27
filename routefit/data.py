@@ -1,6 +1,7 @@
 """데이터셋 로딩과 이동시간. 원본은 DB(db.py), 처음 실행할 때 data/*.json 으로 채워진다."""
 import math
 from functools import lru_cache
+from typing import Literal, Optional
 
 from sqlalchemy import select
 
@@ -54,10 +55,10 @@ def load_anchors() -> list[Place]:
 
 
 @lru_cache
-def _travel_matrix() -> dict[str, int]:
-    """지도 API 로 보정한 실거리 이동시간. {"출발id|도착id": 분}. 없으면 직선거리 추정."""
+def _travel_matrix() -> dict[str, tuple[int, Optional[str]]]:
+    """지도 API 로 보정한 실거리 이동시간. {"출발id|도착id": (분, 이동 수단)}. 없으면 직선거리 추정."""
     with db.session() as s:
-        return {f"{r.from_id}|{r.to_id}": r.minutes for r in s.scalars(select(db.TravelRow))}
+        return {f"{r.from_id}|{r.to_id}": (r.minutes, r.mode) for r in s.scalars(select(db.TravelRow))}
 
 
 def invalidate() -> None:
@@ -95,8 +96,24 @@ def travel_minutes(a, b) -> int:
         return 0
     known = _travel_matrix().get(f"{a.id}|{b.id}")
     if known is not None:
-        return int(known)
-    km = haversine_km(a.lat, a.lng, b.lat, b.lng) * ROAD_DETOUR
+        return int(known[0])
+    km = _road_km(a, b)
     if km <= WALK_KM:
         return max(2, round(km / WALK_KMH * 60))
     return round(BUS_ACCESS_MIN + BUS_WAIT_MIN + km / BUS_KMH * 60)
+
+
+TravelMode = Literal["walk", "transit", "car"]
+
+
+def travel_mode(a, b) -> TravelMode:
+    """a -> b 를 무엇으로 가는지(travel_minutes 와 같은 기준). 실측값이 있으면 그 수단,
+    없거나 수단을 모르면 도로 거리 WALK_KM 이하는 도보, 그보다 멀면 대중교통(시내버스)."""
+    known = _travel_matrix().get(f"{a.id}|{b.id}")
+    if known is not None and known[1] in ("walk", "transit", "car"):
+        return known[1]
+    return "walk" if _road_km(a, b) <= WALK_KM else "transit"
+
+
+def _road_km(a, b) -> float:
+    return haversine_km(a.lat, a.lng, b.lat, b.lng) * ROAD_DETOUR

@@ -66,13 +66,16 @@ function MapLinks({ stop }) {
   );
 }
 
+// 직전 장소에서 오는 수단. 예전에 저장된 코스에는 없어서 그때는 '이동'으로 보인다.
+const TRAVEL_MODE_KO = { walk: "도보", transit: "대중교통", car: "자동차" };
+
 function Timeline({ course, activeOrder, onFocusStop }) {
   return (
     <ol id="timeline">
       {course.stops.map((s) => (
         <li key={s.order} className={`${s.kind}${activeOrder === s.order ? " active" : ""}`} data-order={s.order}>
           <button type="button" className="dot" aria-label={`${s.order}번 ${s.name} 지도에서 보기`} onClick={() => onFocusStop(s.order)}>{s.order}</button>
-          {s.travel_min ? <div className="move">이동 {s.travel_min}분</div> : null}
+          {s.travel_min ? <div className="move">{TRAVEL_MODE_KO[s.travel_mode] || "이동"} {s.travel_min}분</div> : null}
           <div className="time">
             {`${s.start} – ${s.end}`}
             <span className="cost">{s.cost ? `1인 약 ${s.cost.toLocaleString()}원` : "무료"}</span>

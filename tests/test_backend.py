@@ -122,6 +122,22 @@ def test_checklist_scores(restore_places):
     assert len(client.get("/api/checklist").json()["items"]) == 12
 
 
+def test_stops_say_walk_or_transit(restore_places):
+    from routefit import data
+
+    stops = plan()["stops"]
+    assert stops[0]["travel_mode"] is None  # 첫 장소는 이동이 없다
+    by_id = {p.id: p for p in data.load_places() + data.load_anchors()}
+    for prev, s in zip(stops, stops[1:]):
+        km = data._road_km(by_id[prev["place_id"]], by_id[s["place_id"]])
+        assert s["travel_mode"] == ("walk" if km <= data.WALK_KM else "transit")
+
+    # 실측값의 수단이 있으면 그것을 쓴다
+    a, b = by_id["acc"], by_id["daein_market"]
+    assert client.put("/api/admin/travel-times", json=[{"from_id": "acc", "to_id": "daein_market", "minutes": 9, "mode": "car"}]).status_code == 200
+    assert data.travel_mode(a, b) == "car"
+
+
 def test_travel_times(restore_places):
     from routefit.data import travel_minutes
 
