@@ -202,7 +202,7 @@ fe/              화면 (React + Vite). 빌드 결과 fe/dist 를 서버가 내�
 Free 는 하루 10건이라 `--limit` 로 나눠 돌리고, 한도에 걸리면 멈춘다. 다시 돌리면 빈 구간부터 이어서 채운다.
 Docker 서버에서는 `docker compose exec app python -m routefit.travel --transit --limit 10` 후 `docker compose restart app`.
 
-실측값이 없는 구간은 추정치를 쓴다(`data.travel_minutes`): 도로 거리(직선 × 1.3) 1.2km 이하는 걸어서 시속 4.5km,
+실측값이 없는 구간은 추정치를 쓴다(`data.travel_minutes`): 도로 거리(직선 × 1.3) 1.2km(약 16분) 이하는 걸어서 시속 4.5km,
 그보다 멀면 시내버스로 보고 정류장 오가는 걸음 6분 + 평균 대기 7분 + 시속 15km.
 ODsay 대중교통 실측 29구간과 비교해 평균 2.2분(최대 6분) 차이라서, 지금은 구간별 실측 없이 이 추정치를 기본으로 쓴다.
 (ODsay 무료 사용량은 하루 30건 안팎이라 장소 쌍 전부를 재기는 어렵다.)

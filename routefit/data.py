@@ -78,7 +78,7 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 # ODsay 대중교통 실측 29구간(도로 1.7~6.9km, 2026-10-26)과 비교해 평균 2.2분, 최대 6분 차이.
 # 같은 구간에서 자동차 추정(시속 20km + 5분)은 평균 13분 짧게 나왔다.
 ROAD_DETOUR = 1.3  # 직선거리 -> 도로 거리
-WALK_KM = 1.2  # 도로 거리가 이 이하면 걷는다
+WALK_KM = 1.2  # 도로 거리가 이 이하면 걷는다 (시속 4.5km 로 16분)
 WALK_KMH = 4.5
 BUS_ACCESS_MIN = 6  # 정류장까지 걷기 + 내려서 걷기
 BUS_WAIT_MIN = 7  # 평균 대기 (배차 15분 안팎의 절반)
