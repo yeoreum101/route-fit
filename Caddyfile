@@ -1,0 +1,6 @@
+# 배포 서버의 HTTPS 앞단 (docker-compose.yml 의 caddy). 서버 .env 의 DOMAIN 으로
+# 인증서(Let's Encrypt)를 자동으로 받아 갱신하고, https://<DOMAIN> 요청을 앱으로 넘긴다.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy app:8000
+}

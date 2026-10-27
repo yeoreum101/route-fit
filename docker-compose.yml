@@ -33,5 +33,25 @@ services:
       db:
         condition: service_healthy
 
+  # 배포 서버 전용 HTTPS (Caddyfile). .env 에 COMPOSE_PROFILES=https 와 DOMAIN 이 있을 때만 켜진다
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data  # 발급받은 인증서. 지우면 다시 발급받는다(발급 횟수 제한 있음)
+      - caddy_config:/config
+    depends_on:
+      - app
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
