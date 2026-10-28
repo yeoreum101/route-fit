@@ -12,7 +12,7 @@ const PLANNER_HELP = {
   ortools: "여러 조합을 한꺼번에 비교해 더 나은 코스를 찾습니다. 예상 시간: 약 12초",
 };
 
-const DEFAULT_QUERY = "토요일 야구 보기 전에 사진 찍기 좋은 데랑 로컬 맛집 가고 싶어";
+const DEFAULT_QUERY = "연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어.";
 
 // 날짜 옆에 요일을 보여 준다. 'YYYY-MM-DD' 를 그대로 Date 로 읽으면 UTC 로 해석되므로 나눠서 만든다.
 function weekdayOf(value) {
@@ -132,7 +132,7 @@ export default function PlanPage() {
       const info = {};
       for (const p of [...anchors, ...places]) info[p.id] = p;
       setMustData({ groups: [["목적지", anchors], ["원도심 장소", places]], info });
-      setMustRows([{ id: "champions_field", start: "18:30" }], info);
+      setMustRows([], info); // 처음에는 필수 방문지 없음(빈 줄 하나)
       await loadSharedCourse(info);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
