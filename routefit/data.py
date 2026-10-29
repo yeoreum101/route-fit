@@ -68,6 +68,16 @@ def invalidate() -> None:
     _travel_matrix.cache_clear()
 
 
+def invalidate_travel() -> None:
+    """이동시간만 새로 저장했을 때 호출 (장소 캐시·임베딩 인덱스는 그대로 둔다)."""
+    _travel_matrix.cache_clear()
+
+
+def is_measured(a, b) -> bool:
+    """a -> b 이동시간이 DB 에 있는지(길찾기 API 로 잰 값)."""
+    return f"{a.id}|{b.id}" in _travel_matrix()
+
+
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     p1, p2 = math.radians(lat1), math.radians(lat2)
     a = (
@@ -77,7 +87,8 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return 6371 * 2 * math.asin(math.sqrt(a))
 
 
-# 실측값이 없을 때 쓰는 추정치. 여행자는 걷거나 시내버스를 탄다고 본다.
+# 실측값이 없을 때 쓰는 어림값. 후보를 비교할 때만 쓰고, 코스에 들어간 구간은 travel.measure_route 가
+# TMAP 으로 재서 DB 에 저장한 뒤 그 값으로 시간표를 다시 짠다. 여행자는 걷거나 시내버스를 탄다고 본다.
 # ODsay 대중교통 실측 29구간(도로 1.7~6.9km, 2026-10-26)과 비교해 평균 2.2분, 최대 6분 차이.
 # 같은 구간에서 자동차 추정(시속 20km + 5분)은 평균 13분 짧게 나왔다.
 ROAD_DETOUR = 1.3  # 직선거리 -> 도로 거리
@@ -91,7 +102,7 @@ CAR_OVERHEAD_MIN = 5  # 카카오 자동차 길찾기(routefit.travel) 실측값
 
 def travel_minutes(a, b) -> int:
     """a -> b 이동시간(분). a, b 는 id/lat/lng 를 가진 객체.
-    travel_times 에 실측값이 있으면 그것을, 없으면 도보·시내버스 추정치를 쓴다."""
+    travel_times 에 실측값이 있으면 그것을, 없으면 도보·시내버스 어림값을 쓴다."""
     if a.id == b.id:
         return 0
     known = _travel_matrix().get(f"{a.id}|{b.id}")

@@ -1,6 +1,9 @@
 """장소 간 실제 이동시간을 길찾기 API 로 채운다 (travel_times 테이블).
 
-    python -m routefit.travel --dry-run              # 호출할 구간 수만 확인
+코스를 만들면 그 코스의 구간 중 DB 에 없는 것만 TMAP 으로 재서 저장한다(measure_route, .env 의 TMAP_APP_KEY).
+아래 명령은 미리 한꺼번에 채울 때만 쓴다.
+
+    python -m routefit.travel --dry-run             # 호출할 구간 수만 확인
     python -m routefit.travel --transit --limit 10   # 대중교통(TMAP), 비어 있는 구간 중 10개만
     python -m routefit.travel                        # 자동차(카카오), 비어 있는 구간만 채움
     python -m routefit.travel --refresh              # 전부 다시 계산
@@ -22,7 +25,7 @@ from typing import Optional
 import httpx
 from sqlalchemy import select
 
-from . import config, db
+from . import config, data, db
 from .data import BUS_WAIT_MIN, CAR_OVERHEAD_MIN, ROAD_DETOUR, WALK_KM, haversine_km, load_anchors, load_places
 from .models import Place
 
@@ -30,6 +33,7 @@ log = logging.getLogger(__name__)
 
 API_URL = "https://apis-navi.kakaomobility.com/v1/directions"
 TMAP_TRANSIT_URL = "https://apis.openapi.sk.com/transit/routes"
+TMAP_PEDESTRIAN_URL = "https://apis.openapi.sk.com/tmap/routes/pedestrian"
 
 
 class QuotaExceeded(Exception):
@@ -70,6 +74,65 @@ def fetch_transit_minutes(client: httpx.Client, a: Place, b: Place) -> Optional[
         return None
     seconds = min(it["totalTime"] for it in itineraries)
     return math.ceil(seconds / 60) + BUS_WAIT_MIN
+
+
+def fetch_walk_minutes(client: httpx.Client, a, b) -> Optional[int]:
+    """a -> b 걷는 시간(분). TMAP 보행자 경로. 경로가 없으면 None."""
+    res = client.post(
+        TMAP_PEDESTRIAN_URL,
+        params={"version": 1, "format": "json"},
+        json={
+            "startX": str(a.lng), "startY": str(a.lat), "endX": str(b.lng), "endY": str(b.lat),
+            "startName": "출발", "endName": "도착", "reqCoordType": "WGS84GEO", "resCoordType": "WGS84GEO",
+        },
+    )
+    if res.status_code in (403, 429):
+        raise QuotaExceeded(res.text[:200])
+    res.raise_for_status()
+    features = res.json().get("features") or []
+    seconds = (features[0].get("properties") or {}).get("totalTime") if features else None
+    if seconds is None:
+        log.warning("%s -> %s 보행자 경로 없음", a.id, b.id)
+        return None
+    return max(1, math.ceil(seconds / 60))
+
+
+def fetch_leg(client: httpx.Client, a, b) -> Optional[tuple[int, str]]:
+    """a -> b 를 TMAP 으로 잰다. 도로 거리 WALK_KM 이하는 보행자 경로, 그보다 멀면 대중교통
+    (대중교통 경로가 없으면, 예를 들어 너무 가까우면 보행자 경로). (분, 수단) 또는 None."""
+    if needs_api(a, b):
+        minutes = fetch_transit_minutes(client, a, b)
+        if minutes is not None:
+            return minutes, "transit"
+    minutes = fetch_walk_minutes(client, a, b)
+    return (minutes, "walk") if minutes is not None else None
+
+
+def measure_route(route: list) -> int:
+    """코스에 들어간 구간 중 DB 에 없는 것만 TMAP 으로 재서 저장한다(양방향에 같은 값). 새로 잰 구간 수를 돌려준다.
+    후보를 비교하는 동안에는 data.travel_minutes 의 어림값을 쓰고, 화면에 나가는 구간만 여기서 실측한다.
+    TMAP_APP_KEY 가 없거나 호출이 실패한 구간은 어림값이 남는다."""
+    todo = [(a, b) for a, b in zip(route, route[1:]) if a.id != b.id and not data.is_measured(a, b)]
+    if not todo or not config.TMAP_APP_KEY:
+        return 0
+    saved = 0
+    headers = {"appKey": config.TMAP_APP_KEY, "Accept": "application/json"}
+    with httpx.Client(headers=headers, timeout=10) as client, db.session() as s:
+        for a, b in todo:
+            try:
+                leg = fetch_leg(client, a, b)
+            except (QuotaExceeded, httpx.HTTPError, ValueError) as e:
+                log.error("%s -> %s 이동시간 실측 실패, 어림값을 씁니다: %s", a.id, b.id, e)
+                continue
+            if leg is None:
+                continue
+            for x, y in ((a, b), (b, a)):
+                s.merge(db.TravelRow(from_id=x.id, to_id=y.id, minutes=leg[0], mode=leg[1]))
+            saved += 1
+        s.commit()
+    if saved:
+        data.invalidate_travel()
+    return saved
 
 
 def pairs(places: list[Place], both_ways: bool) -> list[tuple[Place, Place]]:

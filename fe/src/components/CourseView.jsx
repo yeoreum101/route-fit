@@ -199,7 +199,7 @@ export default function CourseView({ course, courseSeq, activeOrder, onFocusStop
       <details id="engine-box" hidden={!course}>
         <summary>생성 정보</summary>
         <p id="engine">
-          {course ? `파싱 ${e.parser} · 임베딩 ${e.embedder} · 최적화 ${PLANNER_KO[e.planner] || e.planner} · 설명 ${e.explainer} · 점수 ${m.score}` : ""}
+          {course ? `파싱 ${e.parser} · 임베딩 ${e.embedder} · 최적화 ${PLANNER_KO[e.planner] || e.planner} · 설명 ${e.explainer} · 이동시간 ${e.travel === "tmap" ? "TMAP 실측" : e.travel === "estimate" ? "어림값 포함" : "-"} · 점수 ${m.score}` : ""}
         </p>
       </details>
       {course ? <ShareBox key={courseSeq} course={course} /> : <div id="share" hidden />}

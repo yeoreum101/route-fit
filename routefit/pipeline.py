@@ -4,9 +4,9 @@ import threading
 import time
 from typing import Optional
 
-from . import config
+from . import config, travel
 from .courses import save_course
-from .data import load_anchors, load_places, travel_minutes, travel_mode
+from .data import is_measured, load_anchors, load_places, travel_minutes, travel_mode
 from .embedding import PlaceIndex, get_embedder
 from .explain import explain
 from .models import (
@@ -26,6 +26,8 @@ from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortool
 
 log = logging.getLogger(__name__)
 
+
+MEASURE_ROUNDS = 3  # 실측한 이동시간으로 시간표가 맞지 않을 때 코스를 다시 고르는 최대 횟수
 
 _index_lock = threading.Lock()
 _index_cache: Optional[PlaceIndex] = None
@@ -92,6 +94,7 @@ def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> li
 def _check_fixed_conflicts(musts: list[Node]) -> None:
     """시작 시각이 고정된 필수 방문지끼리 (머무는 시간 + 이동시간) 겹치면 어느 두 곳인지 알려 준다."""
     fixed = sorted((m for m in musts if m.fixed_start is not None), key=lambda m: m.fixed_start)
+    travel.measure_route(fixed)
     for a, b in zip(fixed, fixed[1:]):
         end = a.fixed_start + a.stay
         move = travel_minutes(a, b)
@@ -262,13 +265,25 @@ def make_course(req: PlanRequest) -> Course:
     # ③ 제약 최적화
     planner_name = req.planner or config.DEFAULT_PLANNER
     planner = plan_ortools if planner_name == "ortools" else plan_greedy
-    route = planner(musts, candidates, day_start, day_end, c.budget, travel_minutes)
-    visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
+    # 후보 비교는 어림값으로 하고, 고른 코스의 구간만 TMAP 으로 재서 시간표를 다시 짠다.
+    # 실측으로 시간이 맞지 않으면 실측값이 반영된 상태로 다시 고른다.
+    for _ in range(MEASURE_ROUNDS):
+        route = planner(musts, candidates, day_start, day_end, c.budget, travel_minutes)
+        new_legs = travel.measure_route(route)
+        visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
+        if visits is not None or not new_legs:
+            break
     if visits is None:
         raise PlanError("실행 가능한 코스를 만들지 못했습니다. 시간·예산 조건을 완화해 주세요.")
 
     # ④ 추천 이유 생성
-    engine = {"parser": parser_used, "embedder": index.embedder.name, "planner": planner_name}
+    measured = all(is_measured(a.node, b.node) for a, b in zip(visits, visits[1:]))
+    engine = {
+        "parser": parser_used,
+        "embedder": index.embedder.name,
+        "planner": planner_name,
+        "travel": "tmap" if measured else "estimate",
+    }
     course = _to_course(visits, c, engine)
     course.id = save_course(req, course)
     return course

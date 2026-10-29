@@ -250,6 +250,58 @@ def test_travel_builder_with_mocked_tmap_transit(restore_places):
     assert data.travel_minutes(a, b) == data.travel_minutes(b, a) == expected
 
 
+def test_course_legs_are_measured_once(restore_places, monkeypatch):
+    # 코스에 들어간 구간만 TMAP 으로 재서 저장하고, 같은 구간은 다시 부르지 않는다.
+    from routefit import data, travel
+
+    calls = []
+
+    def fake_leg(client, a, b):
+        calls.append((a.id, b.id))
+        return 12, "transit"
+
+    monkeypatch.setattr(config, "TMAP_APP_KEY", "test")
+    monkeypatch.setattr(travel, "fetch_leg", fake_leg)
+    data.invalidate()
+
+    course = plan()
+    legs = len(course["stops"]) - 1
+    assert len(calls) == legs > 0  # 후보 비교 구간이 아니라 코스 구간만
+    assert course["engine"]["travel"] == "tmap"
+    assert all((s["travel_min"], s["travel_mode"]) == (12, "transit") for s in course["stops"][1:])
+    rows = {(t["from_id"], t["to_id"]) for t in client.get("/api/admin/travel-times").json()}
+    assert all((b, a) in rows for a, b in calls)  # 양방향 저장
+
+    first = {frozenset(c) for c in calls}
+    calls.clear()
+    plan()  # 실측값이 반영돼 코스가 달라질 수 있다
+    assert not first & {frozenset(c) for c in calls}  # 이미 잰 구간은 다시 부르지 않는다
+
+
+def test_course_without_tmap_key_uses_estimate():
+    assert plan()["engine"]["travel"] == "estimate"
+
+
+def test_fetch_leg_falls_back_to_walking():
+    import httpx
+
+    from routefit import travel
+    from routefit.models import Place
+
+    near = Place(id="x", name="x", category="cafe", area="", lat=35.15, lng=126.92, description="", open="10:00", close="22:00", stay_min=30, cost=0)
+    far = near.model_copy(update={"id": "y", "lat": 35.17})
+    close = near.model_copy(update={"id": "z", "lat": 35.1503})
+
+    def tmap(request: httpx.Request) -> httpx.Response:
+        if "pedestrian" in request.url.path:
+            return httpx.Response(200, json={"features": [{"properties": {"totalTime": 301}}]})
+        return httpx.Response(200, json={"result": {"status": 11, "message": "가까워서 경로 없음"}})
+
+    with httpx.Client(transport=httpx.MockTransport(tmap)) as mock:
+        assert travel.fetch_leg(mock, near, close) == (6, "walk")  # 가까우면 보행자 경로
+        assert travel.fetch_leg(mock, near, far) == (6, "walk")  # 대중교통 경로가 없으면 보행자 경로
+
+
 def test_tags_validation_and_embedding(restore_places):
     tags = {"activity": ["야경", "술"], "mood": ["활기찬"], "setting": ["실외"]}
     res = client.post("/api/admin/places", json={**NEW_PLACE, "tags": tags, "description": "자유 소개 문장"})
