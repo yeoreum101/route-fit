@@ -471,3 +471,14 @@ button.tag-chip[aria-pressed="true"] { color: #fff; background: var(--ai); borde
   .filters { grid-template-columns: 1fr 1fr; }
   .filters input { grid-column: 1 / -1; }
 }
+
+/* 관리자 토큰 입력 창 (common.js askAdminToken) */
+.token-dialog {
+  width: min(360px, calc(100vw - 32px)); padding: 24px; border: 0; border-radius: 16px;
+  color: var(--text); background: var(--panel); box-shadow: 0 12px 40px rgba(16, 24, 40, .18);
+}
+.token-dialog::backdrop { background: rgba(16, 24, 40, .35); }
+.token-dialog label { font-weight: 700; }
+.token-dialog p { margin: 4px 0 12px; }
+.token-actions { display: flex; gap: 8px; }
+.token-actions button { margin-top: 16px; }

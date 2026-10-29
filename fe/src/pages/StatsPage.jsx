@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Header from "../components/Header.jsx";
-import { PLANNER_KO, adminFetch, adminToken, formatTime } from "../common.js";
+import { PLANNER_KO, adminFetch, adminToken, askAdminToken, formatTime } from "../common.js";
 
 const ROWS = [
   ["courses", "코스 수", (v) => `${v}개`],
@@ -133,8 +133,8 @@ export default function StatsPage() {
     }
   }
 
-  function askToken() {
-    const token = prompt("관리자 토큰을 입력하세요 (ROUTEFIT_ADMIN_TOKEN)");
+  async function askToken() {
+    const token = await askAdminToken();
     if (token) { adminToken.set(token); load(); }
   }
 

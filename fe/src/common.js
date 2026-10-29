@@ -35,13 +35,42 @@ export function errorText(data, fallback) {
   return fallback;
 }
 
+// 관리자 토큰 입력 창. 브라우저 기본 prompt() 는 입력값이 그대로 보여서, 비밀번호 칸이 있는 <dialog> 를 띄운다.
+// 확인하면 입력값, 취소·Esc 면 null.
+export function askAdminToken() {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "token-dialog";
+    dialog.innerHTML = `
+      <form method="dialog">
+        <label for="admin-token-input">관리자 토큰</label>
+        <p class="muted small">서버 .env 의 ROUTEFIT_ADMIN_TOKEN 값</p>
+        <input id="admin-token-input" type="password" autocomplete="off" spellcheck="false" required>
+        <div class="token-actions">
+          <button type="button" class="secondary" value="cancel">취소</button>
+          <button type="submit" value="ok">확인</button>
+        </div>
+      </form>`;
+    const input = dialog.querySelector("input");
+    dialog.querySelector('button[value="cancel"]').addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", () => {
+      const token = dialog.returnValue === "ok" ? input.value.trim() : "";
+      dialog.remove();
+      resolve(token || null);
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+    input.focus();
+  });
+}
+
 // 관리자 API 호출. 401 이면 토큰을 물어보고 한 번 다시 시도한다.
 export async function adminFetch(url, options = {}, retry = true) {
   const headers = { ...(options.headers || {}), "X-Admin-Token": adminToken.get() };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401 && retry) {
-    const token = prompt("관리자 토큰을 입력하세요 (ROUTEFIT_ADMIN_TOKEN)");
+    const token = await askAdminToken();
     if (token) {
       adminToken.set(token);
       return adminFetch(url, options, false);
