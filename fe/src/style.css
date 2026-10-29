@@ -478,7 +478,6 @@ button.tag-chip[aria-pressed="true"] { color: #fff; background: var(--ai); borde
   color: var(--text); background: var(--panel); box-shadow: 0 12px 40px rgba(16, 24, 40, .18);
 }
 .token-dialog::backdrop { background: rgba(16, 24, 40, .35); }
-.token-dialog label { font-weight: 700; }
-.token-dialog p { margin: 4px 0 12px; }
+.token-dialog label { display: block; margin-bottom: 10px; font-weight: 700; }
 .token-actions { display: flex; gap: 8px; }
 .token-actions button { margin-top: 16px; }

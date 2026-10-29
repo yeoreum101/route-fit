@@ -44,7 +44,6 @@ export function askAdminToken() {
     dialog.innerHTML = `
       <form method="dialog">
         <label for="admin-token-input">관리자 토큰</label>
-        <p class="muted small">서버 .env 의 ROUTEFIT_ADMIN_TOKEN 값</p>
         <input id="admin-token-input" type="password" autocomplete="off" spellcheck="false" required>
         <div class="token-actions">
           <button type="button" class="secondary" value="cancel">취소</button>
