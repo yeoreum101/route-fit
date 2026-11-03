@@ -121,3 +121,38 @@ def test_planners_never_put_cafes_back_to_back(planner):
     route = planner([], cafes + others, to_min("10:00"), to_min("22:00"), None, no_travel)
     assert schedule(route, to_min("10:00"), to_min("22:30"), no_travel) is not None
     assert not any(a.place.category == b.place.category == "cafe" for a, b in zip(route, route[1:]))
+
+
+GAP = 180  # config.LIMITS.min_meal_gap
+
+
+def test_next_restaurant_waits_for_meal_gap():
+    lunch, dinner = node(place("a")), node(place("b"))
+    visits = schedule([lunch, dinner], to_min("13:30"), to_min("22:00"), no_travel)
+    assert visits[1].start - visits[0].end >= GAP  # 14:30 에 점심이 끝나면 저녁은 17:30 부터
+    assert visits[1].start == to_min("17:30")
+
+
+def test_back_shift_keeps_meal_gap():
+    # 점심을 저녁 쪽으로 당기더라도 식사 간격 아래로는 당기지 않는다
+    lunch, dinner = node(place("a")), node(place("b"))
+    visits = schedule([lunch, dinner], to_min("11:00"), to_min("22:00"), no_travel)
+    assert visits[1].start - visits[0].end >= GAP
+
+
+def test_user_chosen_restaurants_skip_meal_gap():
+    a, b = place("a"), place("b")
+    musts = [Node(place=p, windows=start_windows(p, 60), stay=60, cost=0, mandatory=True) for p in (a, b)]
+    visits = schedule(musts, to_min("12:00"), to_min("22:00"), no_travel)
+    assert visits[1].start == to_min("13:00")
+
+
+@pytest.mark.parametrize("planner", [plan_greedy, plan_ortools])
+def test_planners_keep_meal_gap(planner):
+    foods = [node(place(f"f{i}")) for i in range(4)]
+    cafes = [node(place(f"c{i}", category="cafe"), stay=90, taste=0.8) for i in range(2)]
+    route = planner([], foods + cafes, to_min("12:00"), to_min("22:00"), None, no_travel)
+    visits = schedule(route, to_min("12:00"), to_min("22:30"), no_travel)
+    assert visits is not None  # 식사 간격을 어기는 순서면 시간표가 나오지 않는다
+    meals = [v for v in visits if v.node.place.category == "food"]
+    assert all(b.start - a.end >= GAP for a, b in zip(meals, meals[1:]))

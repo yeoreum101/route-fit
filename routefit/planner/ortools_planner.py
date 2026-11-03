@@ -10,7 +10,7 @@ import logging
 from typing import Optional
 
 from ..config import LIMITS, WEIGHTS
-from .core import Node, PlanError, Travel, Window, back_to_back_cafes, meal_slot
+from .core import Node, PlanError, Travel, Window, back_to_back_cafes, meal_gap_applies, meal_slot
 from .greedy import plan_greedy
 
 log = logging.getLogger(__name__)
@@ -118,6 +118,22 @@ def plan_ortools(
         for j, b in enumerate(nodes, 1):
             if i != j and back_to_back_cafes(a, b):
                 routing.NextVar(manager.NodeToIndex(i)).RemoveValue(manager.NodeToIndex(j))
+
+    solver = routing.solver()
+    for i, a in enumerate(nodes, 1):  # 두 식당이 다 들어가면 사이에 식사 간격을 둔다
+        for j, b in enumerate(nodes, 1):
+            if a is b or not meal_gap_applies(a, b):
+                continue
+            ii, jj = manager.NodeToIndex(i), manager.NodeToIndex(j)
+            ti, tj = time.CumulVar(ii), time.CumulVar(jj)
+            both = 2 - routing.ActiveVar(ii) - routing.ActiveVar(jj)  # 둘 다 들어가면 0
+            if slots[i - 1] is not None and slots[j - 1] is not None:
+                if slots[i - 1] < slots[j - 1]:  # 끼니 순서가 정해져 있으면 앞 끼니 → 뒤 끼니 한 방향만
+                    solver.Add(tj + 24 * 60 * both >= ti + a.stay + LIMITS.min_meal_gap)
+            elif i < j:  # 사용자가 고른 식당은 어느 쪽이 먼저일지 모른다
+                a_first = (tj >= ti + a.stay + LIMITS.min_meal_gap).Var()
+                b_first = (ti >= tj + b.stay + LIMITS.min_meal_gap).Var()
+                solver.Add(a_first + b_first + both >= 1)
 
     for group in groups:
         value = nodes[group[0] - 1].value

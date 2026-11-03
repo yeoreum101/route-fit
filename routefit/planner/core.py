@@ -90,6 +90,11 @@ def back_to_back_cafes(a: Node, b: Node) -> bool:
     return a.place.category == b.place.category == "cafe" and not (a.mandatory and b.mandatory)
 
 
+def meal_gap_applies(a: Node, b: Node) -> bool:
+    """두 곳 다 식당이라 사이에 식사 간격(min_meal_gap)을 둬야 하는지. 둘 다 사용자가 고른 곳이면 두지 않는다."""
+    return a.place.category == b.place.category == "food" and not (a.mandatory and b.mandatory)
+
+
 def _earliest_start(node: Node, arrive: int, meals_taken: set[int]) -> Optional[int]:
     for lo, hi in node.windows:
         if arrive > hi:
@@ -111,12 +116,16 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
             return None
         move = travel(route[i - 1], node) if i else 0
         arrive = t + move
+        # 앞 식당에서 나온 지 얼마 안 됐으면 식사 간격이 찰 때까지 기다린다
+        not_before = max(
+            (v.end + LIMITS.min_meal_gap for v in visits if meal_gap_applies(v.node, node)), default=arrive
+        )
         if node.fixed_start is not None:
-            if arrive > node.fixed_start:
+            if max(arrive, not_before) > node.fixed_start:
                 return None
             start = node.fixed_start
         else:
-            start = _earliest_start(node, arrive, meals_taken)
+            start = _earliest_start(node, max(arrive, not_before), meals_taken)
             if start is None:
                 return None
             if node.meal:
@@ -135,6 +144,9 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
         # 지금 시작 시각이 든 구간 안에서만 당긴다 (브레이크 타임을 넘거나 끼니가 바뀌지 않게)
         window_end = next(hi for lo, hi in v.node.windows if lo <= v.start <= hi)
         latest = min(nxt.start - nxt.travel - v.node.stay, window_end)
+        for later in visits[i + 1 :]:  # 당겨도 다음 식당과의 식사 간격은 지킨다
+            if meal_gap_applies(v.node, later.node):
+                latest = min(latest, later.start - LIMITS.min_meal_gap - v.node.stay)
         if latest > v.start:
             v.start, v.end = latest, latest + v.node.stay
     for i, v in enumerate(visits):
