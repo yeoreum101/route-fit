@@ -28,6 +28,7 @@ from sqlalchemy import select
 from . import config, data, db
 from .data import BUS_WAIT_MIN, CAR_OVERHEAD_MIN, ROAD_DETOUR, WALK_KM, haversine_km, load_anchors, load_places
 from .models import Place
+from .place_search import is_kakao_id
 
 log = logging.getLogger(__name__)
 
@@ -126,8 +127,11 @@ def measure_route(route: list) -> int:
                 continue
             if leg is None:
                 continue
-            for x, y in ((a, b), (b, a)):
-                s.merge(db.TravelRow(from_id=x.id, to_id=y.id, minutes=leg[0], mode=leg[1]))
+            if is_kakao_id(a.id) or is_kakao_id(b.id):  # DB 에 없는 장소는 외래키 때문에 저장하지 않고 기억만 한다
+                data.remember_travel(a, b, *leg)
+            else:
+                for x, y in ((a, b), (b, a)):
+                    s.merge(db.TravelRow(from_id=x.id, to_id=y.id, minutes=leg[0], mode=leg[1]))
             saved += 1
         s.commit()
     if saved:

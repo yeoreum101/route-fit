@@ -22,6 +22,7 @@ from .models import (
     to_min,
 )
 from .parser import find_by_name, parse_query
+from .place_search import DEFAULT_STAY, is_kakao_id
 from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule, start_windows
 
 log = logging.getLogger(__name__)
@@ -51,10 +52,15 @@ def warm_up() -> None:
     _index()
 
 
-def _find(known: list[Place], id: Optional[str], name: Optional[str]) -> Optional[Place]:
-    if id:
-        return next((p for p in known if p.id == id), None)
-    return find_by_name(known, name)
+def _find(known: list[Place], m: MustVisitInput) -> Optional[Place]:
+    if is_kakao_id(m.id):  # 검색으로 고른 카카오 장소: 화면이 보낸 정보로 만든다
+        if m.name is None or m.lat is None or m.lng is None:
+            return None
+        place = Place(id=m.id, name=m.name, category=m.category or "etc", area=m.area or "광주", lat=m.lat, lng=m.lng)
+        return place.model_copy(update={"stay_min": DEFAULT_STAY.get(place.category, 60)})
+    if m.id:
+        return next((p for p in known if p.id == m.id), None)
+    return find_by_name(known, m.name)
 
 
 def _stay(place: Place) -> int:
@@ -71,9 +77,9 @@ def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> li
     ]
     nodes, seen = [], set()
     for m in inputs:
-        place = _find(known, m.id, m.name)
+        place = _find(known, m)
         if place is None:
-            raise PlanError(f"필수 방문지 '{m.name or m.id}' 을(를) 찾을 수 없습니다. 목록에서 선택해 주세요.")
+            raise PlanError(f"필수 방문지 '{m.name or m.id}' 을(를) 찾을 수 없습니다. 검색 결과에서 골라 주세요.")
         if place.id in seen:
             continue
         seen.add(place.id)

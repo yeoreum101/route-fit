@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import checklist, config, courses, db
+from . import place_search as place_search_mod
 from . import tags as tag_vocab
 from .admin import require_admin
 from .admin import router as admin_router
@@ -69,6 +70,16 @@ def anchors():
 @app.get("/api/places", response_model=list[Place])
 def places():
     return load_places()
+
+
+@app.get("/api/place-search", response_model=dict[str, list[Place]])
+def place_search(q: str = Query(min_length=1, max_length=50)):
+    """필수 방문지 검색. known: 등록된 장소(목적지·원도심 장소), kakao: 등록되지 않은 광주의 장소(카카오 장소 검색).
+    카카오는 두 글자부터 찾고, 등록된 장소와 이름이 같은 결과는 뺀다."""
+    known = place_search_mod.search_known(load_anchors() + load_places(), q)
+    kakao = place_search_mod.search_kakao(q) if len(q.strip()) >= 2 else []
+    names = {p.name.replace(" ", "") for p in known}
+    return {"known": known, "kakao": [p for p in kakao if p.name.replace(" ", "") not in names]}
 
 
 # 동기 함수로 두어 LLM·최적화 호출이 스레드풀에서 돌게 한다.

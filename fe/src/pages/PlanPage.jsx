@@ -29,8 +29,8 @@ export default function PlanPage() {
   const [budget, setBudget] = useState("");
   const [planner, setPlanner] = useState("greedy");
 
-  const [mustData, setMustData] = useState({ groups: [], info: {} });
-  const [musts, setMusts] = useState([]); // [{ key, id, start, stay }]
+  const [mustData, setMustData] = useState({ known: [], info: {} });
+  const [musts, setMusts] = useState([]); // [{ key, id, place, start, stay }]
   const mustSeq = useRef(0); // 줄마다 label 과 입력칸을 잇는 고유 id
   const focusMust = useRef(null);
 
@@ -41,15 +41,26 @@ export default function PlanPage() {
   const [activeOrder, setActiveOrder] = useState(null);
   const mapRef = useRef(null);
 
-  const conflicts = useMemo(() => findConflicts(musts, mustData.info), [musts, mustData.info]);
+  const conflicts = useMemo(() => findConflicts(musts), [musts]);
 
   // ---------- 필수 방문지 ----------
 
-  const newMust = ({ id = "", start = "", stay_min = "" } = {}) => ({ key: ++mustSeq.current, id, start, stay: stay_min || "" });
+  const newMust = ({ place = null, start = "", stay_min = "" } = {}) =>
+    ({ key: ++mustSeq.current, id: place ? place.id : "", place, start: start || "", stay: stay_min || "" });
+
+  // 저장된 요청의 필수 방문지 -> 장소. 등록된 곳은 목록에서, 카카오 검색으로 고른 곳은 요청에 담긴 정보로.
+  function placeOf(m, info) {
+    if (info[m.id]) return info[m.id];
+    if (m.id && m.id.startsWith("kakao_") && m.name && m.lat != null && m.lng != null) {
+      return { id: m.id, name: m.name, category: m.category || "etc", area: m.area || "광주", lat: m.lat, lng: m.lng, stay_min: 60 };
+    }
+    return null;
+  }
 
   function setMustRows(list, info) {
     mustSeq.current = 0;
-    setMusts((list.length ? list : [{}]).map((m) => newMust({ ...m, id: info[m.id] ? m.id : "" })));
+    const rows = list.map((m) => ({ ...m, place: placeOf(m, info) })).filter((m) => m.place);
+    setMusts((rows.length ? rows : [{}]).map((m) => newMust(m)));
   }
 
   const changeMust = (key, patch) => setMusts((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -101,7 +112,7 @@ export default function PlanPage() {
   // 저장된 요청으로 입력칸을 되살린다. 받은 사람이 조건을 조금 바꿔 다시 만들어 볼 수 있다.
   function fillForm(req, info) {
     setQuery(req.query);
-    setMustRows(req.must_visits.filter((m) => m.id && info[m.id]), info);
+    setMustRows(req.must_visits, info);
     setDayStart(req.day_start || "");
     setDayEnd(req.day_end || "");
     setBudget(req.budget ?? "");
@@ -131,7 +142,7 @@ export default function PlanPage() {
       );
       const info = {};
       for (const p of [...anchors, ...places]) info[p.id] = p;
-      setMustData({ groups: [["목적지", anchors], ["원도심 장소", places]], info });
+      setMustData({ known: [...anchors, ...places], info });
       setMustRows([], info); // 처음에는 필수 방문지 없음(빈 줄 하나)
       await loadSharedCourse(info);
     })();
@@ -150,8 +161,16 @@ export default function PlanPage() {
     const body = {
       query,
       must_visits: musts
-        .filter((m) => m.id) // 장소를 고르지 않은 줄은 건너뛴다
-        .map((m) => ({ id: m.id, start: m.start || null, stay_min: Number(m.stay) || null })),
+        .filter((m) => m.place) // 장소를 고르지 않은 줄은 건너뛴다
+        .map((m) => ({
+          id: m.id,
+          start: m.start || null,
+          stay_min: Number(m.stay) || null,
+          // 카카오 검색으로 고른 곳은 서버에 없으니 이름·업종·좌표를 함께 보낸다
+          ...(m.id.startsWith("kakao_")
+            ? { name: m.place.name, category: m.place.category, area: m.place.area, lat: m.place.lat, lng: m.place.lng }
+            : {}),
+        })),
       day_start: dayStart || null,
       day_end: dayEnd || null,
       budget: budget === "" ? null : Number(budget),
@@ -190,8 +209,7 @@ export default function PlanPage() {
 
           <MustVisitList
             musts={musts}
-            groups={mustData.groups}
-            info={mustData.info}
+            known={mustData.known}
             conflicts={conflicts}
             onChange={changeMust}
             onRemove={removeMust}

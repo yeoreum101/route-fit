@@ -73,9 +73,28 @@ def invalidate_travel() -> None:
     _travel_matrix.cache_clear()
 
 
+# DB 에 없는 장소(필수 방문지 검색으로 고른 카카오 장소)가 낀 구간의 실측값. travel_times 는 places 를
+# 외래키로 가리켜 저장할 수 없으므로 서버가 켜져 있는 동안만 기억한다. {"출발id|도착id": (분, 수단)}
+_EXTRA_TRAVEL: dict[str, tuple[int, Optional[str]]] = {}
+_EXTRA_LIMIT = 5000
+
+
+def remember_travel(a, b, minutes: int, mode: str) -> None:
+    """DB 에 없는 장소가 낀 구간의 실측값을 양방향으로 기억한다."""
+    if len(_EXTRA_TRAVEL) >= _EXTRA_LIMIT:
+        _EXTRA_TRAVEL.clear()
+    for x, y in ((a, b), (b, a)):
+        _EXTRA_TRAVEL[f"{x.id}|{y.id}"] = (minutes, mode)
+
+
+def _known(a, b) -> Optional[tuple[int, Optional[str]]]:
+    key = f"{a.id}|{b.id}"
+    return _travel_matrix().get(key) or _EXTRA_TRAVEL.get(key)
+
+
 def is_measured(a, b) -> bool:
-    """a -> b 이동시간이 DB 에 있는지(길찾기 API 로 잰 값)."""
-    return f"{a.id}|{b.id}" in _travel_matrix()
+    """a -> b 이동시간을 길찾기 API 로 잰 값이 있는지."""
+    return _known(a, b) is not None
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -105,7 +124,7 @@ def travel_minutes(a, b) -> int:
     travel_times 에 실측값이 있으면 그것을, 없으면 도보·시내버스 어림값을 쓴다."""
     if a.id == b.id:
         return 0
-    known = _travel_matrix().get(f"{a.id}|{b.id}")
+    known = _known(a, b)
     if known is not None:
         return int(known[0])
     km = _road_km(a, b)
@@ -120,7 +139,7 @@ TravelMode = Literal["walk", "transit", "car"]
 def travel_mode(a, b) -> TravelMode:
     """a -> b 를 무엇으로 가는지(travel_minutes 와 같은 기준). 실측값이 있으면 그 수단,
     없거나 수단을 모르면 도로 거리 WALK_KM 이하는 도보, 그보다 멀면 대중교통(시내버스)."""
-    known = _travel_matrix().get(f"{a.id}|{b.id}")
+    known = _known(a, b)
     if known is not None and known[1] in ("walk", "transit", "car"):
         return known[1]
     return "walk" if _road_km(a, b) <= WALK_KM else "transit"

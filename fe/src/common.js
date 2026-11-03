@@ -3,6 +3,7 @@
 export const CATEGORY_KO = {
   sight: "명소·산책", culture: "문화·전시", market: "전통시장", food: "식당",
   cafe: "카페·디저트", shop: "상점가", night: "야간 콘텐츠", venue: "행사장",
+  lodging: "숙소", etc: "기타", // 필수 방문지 검색(카카오)으로 고른 장소에만 쓴다
 };
 
 // 화면에는 쉬운 이름을, 괄호 안에는 발표·보고서에서 쓰는 알고리즘 이름을 둔다.

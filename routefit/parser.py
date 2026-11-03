@@ -35,7 +35,7 @@ def parse_query(query: str, known: list[Place]) -> tuple[ParsedQuery, str]:
 
 
 _HM = re.compile(r"^([01]?\d|2[0-9]):([0-5]\d)$")
-_AVOIDABLE = {k for k in CATEGORY_KO if k != "venue"}
+_AVOIDABLE = {k for k in CATEGORY_KO if k not in ("venue", "lodging", "etc")}
 # 피하는 말. 문장에 하나도 없는데 LLM 이 avoid_categories 를 채우면 가고 싶다는 유형을 거꾸로 넣은 것이다
 # (gpt-5.4-mini 가 "점심 먹고 카페 가고 싶어요" 를 가끔 food·cafe 회피로 읽는다).
 _AVOID_WORDS = ("빼", "말고", "제외", "싫", "피하", "피해", "없이", "별로", "질려", "안 가", "안가", "말아")

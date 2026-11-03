@@ -1,6 +1,8 @@
+import PlaceSearch from "./PlaceSearch.jsx";
 import TimePicker from "./TimePicker.jsx";
 
 // 필수 방문지는 여러 곳을 넣을 수 있다. 한 줄 = 장소 + 시작 시각 + 머무는 시간.
+// 줄의 place 는 고른 장소 자체다(등록된 장소 또는 카카오 검색으로 고른 장소).
 export const MAX_MUSTS = 5;
 export const CONFLICT_STATUS = "필수 방문지 시간이 겹칩니다.";
 
@@ -9,11 +11,11 @@ const hhmm = (t) => `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${Strin
 
 // 시작 시각을 정한 필수 방문지끼리 (시작 ~ 시작 + 머무는 시간) 이 겹치면 뒤쪽 줄에 알린다.
 // 장소 사이 이동시간은 서버가 따져서 한 번 더 막는다.
-export function findConflicts(musts, info) {
+export function findConflicts(musts) {
   const fixed = musts.map((m) => {
-    if (!m.id || !m.start || !info[m.id]) return null;
-    const stay = Number(m.stay) || info[m.id].stay_min;
-    return { key: m.key, name: info[m.id].name, start: minutes(m.start), end: minutes(m.start) + stay };
+    if (!m.place || !m.start) return null;
+    const stay = Number(m.stay) || m.place.stay_min;
+    return { key: m.key, name: m.place.name, start: minutes(m.start), end: minutes(m.start) + stay };
   }).filter(Boolean).sort((a, b) => a.start - b.start);
 
   const messages = new Map(); // 줄 key -> 오류 문구
@@ -29,7 +31,7 @@ export function findConflicts(musts, info) {
 
 // 장소를 고르지 않은 줄은 시작 시각·머무는 시간을 쓸 데가 없으므로 잠근다.
 // 다른 줄에서 이미 고른 장소는 고를 수 없게 하고, 한 줄만 남으면 빼기 버튼을 숨긴다.
-export default function MustVisitList({ musts, groups, info, conflicts, onChange, onRemove, onAdd }) {
+export default function MustVisitList({ musts, known, conflicts, onChange, onRemove, onAdd }) {
   const chosen = musts.map((m) => m.id);
   const any = chosen.some(Boolean);
 
@@ -58,26 +60,16 @@ export default function MustVisitList({ musts, groups, info, conflicts, onChange
                 </button>
               </div>
 
-              <select
+              <PlaceSearch
                 id={`must-${n}`}
-                className="must-place"
-                value={info[id] ? id : ""}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  // 시작 시각 고정은 경기·공연장에만 기본으로 의미가 있다. 다른 장소로 바꾸면 비워 둔다.
-                  const p = info[next];
-                  onChange(m.key, p && p.category !== "venue" ? { id: next, start: "" } : { id: next });
-                }}
-              >
-                <option value="">{i === 0 ? "없음 (문장에서 찾기)" : "장소를 고르세요"}</option>
-                {groups.map(([name, list]) => (
-                  <optgroup key={name} label={name}>
-                    {list.map((p) => (
-                      <option key={p.id} value={p.id} disabled={p.id !== id && chosen.includes(p.id)}>{p.name}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+                place={m.place}
+                known={known}
+                chosenIds={chosen}
+                placeholder="장소 이름으로 검색" // 비워 두면 문장에서 찾는다(아래 안내 문구)
+                // 시작 시각 고정은 경기·공연장에만 기본으로 의미가 있다. 다른 장소로 바꾸면 비워 둔다.
+                onPick={(p) => onChange(m.key, p.category !== "venue" ? { id: p.id, place: p, start: "" } : { id: p.id, place: p })}
+                onClear={() => onChange(m.key, { id: "", place: null })}
+              />
 
               <div className={`row must-detail${id ? "" : " off"}`}>
                 <div>
@@ -104,7 +96,7 @@ export default function MustVisitList({ musts, groups, info, conflicts, onChange
                       step="10"
                       value={m.stay}
                       disabled={!id}
-                      placeholder={info[id] ? `기본 ${info[id].stay_min}` : ""} // 장소마다 기본 체류시간이 다르다
+                      placeholder={m.place ? `기본 ${m.place.stay_min}` : ""} // 장소마다 기본 체류시간이 다르다
                       aria-invalid={invalid ? true : undefined}
                       onChange={(e) => onChange(m.key, { stay: e.target.value })}
                     />

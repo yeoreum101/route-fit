@@ -173,3 +173,38 @@ def test_closed_must_visit_is_warned():
         PlanRequest(query="전시", must_visits=[MustVisitInput(id="acc")], visit_date=date(2026, 10, 19))
     )
     assert any("월요일 휴무" in n for n in course.constraints.notes)
+
+
+def test_kakao_categories():
+    from routefit.place_search import kakao_category
+
+    assert kakao_category("AD5", "여행 > 숙박 > 호텔") == "lodging"
+    assert kakao_category("CE7", "음식점 > 카페") == "cafe"
+    assert kakao_category("FD6", "음식점 > 한식") == "food"
+    assert kakao_category("", "교통,수송 > 기차,철도 > 기차역") == "etc"
+    assert kakao_category("", "가정,생활 > 시장 > 전통시장") == "market"
+
+
+def test_place_search_lists_known_places_first(monkeypatch):
+    from routefit import config
+
+    monkeypatch.setattr(config, "KAKAO_REST_API_KEY", "")  # 키가 없으면 카카오 결과 없이 등록된 장소만
+    out = TestClient(app).get("/api/place-search", params={"q": "챔피언스"}).json()
+    assert [p["id"] for p in out["known"]] == ["champions_field"] and out["kakao"] == []
+
+
+def test_searched_kakao_places_can_be_must_visits(monkeypatch):
+    # 등록되지 않은 숙소·식당도 화면이 보낸 좌표·업종으로 코스에 넣는다. 고른 식당은 그 끼니를 채운다.
+    from routefit import config
+
+    monkeypatch.setattr(config, "TMAP_APP_KEY", "")
+    hotel = {"id": "kakao_1", "name": "테스트호텔", "category": "lodging", "area": "동구 동명로", "lat": 35.1495, "lng": 126.9240, "start": "10:00"}
+    lunch = {"id": "kakao_2", "name": "테스트식당", "category": "food", "area": "동구 동명로", "lat": 35.1500, "lng": 126.9250, "start": "12:00"}
+    res = TestClient(app).post("/api/plan", json={"query": "조용한 산책", "must_visits": [hotel, lunch]})
+    assert res.status_code == 200, res.text
+    stops = res.json()["stops"]
+    by_id = {s["place_id"]: s for s in stops}
+    assert by_id["kakao_1"]["category"] == "lodging" and by_id["kakao_1"]["kind"] == "must"
+    assert by_id["kakao_2"]["start"] == "12:00"
+    lunch_foods = [s for s in stops if s["category"] == "food" and to_min(s["start"]) <= to_min("13:30")]
+    assert [s["place_id"] for s in lunch_foods] == ["kakao_2"]  # 점심은 고른 식당으로 이미 찼다

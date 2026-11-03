@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from . import tags as tag_vocab
 
-Category = Literal["sight", "culture", "market", "food", "cafe", "shop", "night", "venue"]
+# lodging·etc 는 필수 방문지 검색(카카오)으로 고른 장소에만 쓴다. AI 추천 후보와 장소 관리에는 없다.
+Category = Literal["sight", "culture", "market", "food", "cafe", "shop", "night", "venue", "lodging", "etc"]
 
 CATEGORY_KO = {
     "sight": "명소·산책",
@@ -17,6 +18,8 @@ CATEGORY_KO = {
     "shop": "상점가",
     "night": "야간 콘텐츠",
     "venue": "행사장",
+    "lodging": "숙소",
+    "etc": "기타",
 }
 
 
@@ -123,10 +126,15 @@ class ParsedQuery(BaseModel):
 
 
 class MustVisitInput(BaseModel):
-    id: Optional[str] = None  # anchors/places 의 id
+    id: Optional[str] = None  # anchors/places 의 id, 또는 검색으로 고른 카카오 장소 'kakao_<id>'
     name: Optional[str] = None
     start: Optional[str] = None
     stay_min: Optional[int] = None
+    # 카카오 장소만: DB 에 없으니 화면이 검색 결과를 그대로 보낸다(공유 링크로 다시 열 때도 쓴다)
+    category: Optional[Category] = None
+    area: Optional[str] = None
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
 
 
 class PlanRequest(BaseModel):

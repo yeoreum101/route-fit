@@ -453,7 +453,7 @@ export default function AdminPage() {
                 <div className="field">
                   <label htmlFor="f-category">유형</label>
                   <select id="f-category" {...text("category")}>
-                    {Object.entries(CATEGORY_KO).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    {Object.entries(CATEGORY_KO).filter(([value]) => value !== "lodging" && value !== "etc").map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </div>
                 <div className="field">
