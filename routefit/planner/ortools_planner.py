@@ -58,8 +58,12 @@ def plan_ortools(
 
     for n in musts:
         add(n, windows(n))
+    def prize(n: Node) -> float:
+        """빼면 잃는 점수. 식당은 끼니 점수(WEIGHTS.meal)도 함께 잃는다(한 끼에 AI 식당 한 곳이라 끼니마다 한 번)."""
+        return n.value + (WEIGHTS.meal if n.meal else 0)
+
     for n in candidates:
-        if n.value <= 0:
+        if prize(n) <= 0:
             continue
         meal_slots = range(len(LIMITS.meal_windows)) if n.meal else [None]
         group = [add(n, windows(n, slot), slot) for slot in meal_slots if windows(n, slot)]
@@ -136,8 +140,7 @@ def plan_ortools(
                 solver.Add(a_first + b_first + both >= 1)
 
     for group in groups:
-        value = nodes[group[0] - 1].value
-        routing.AddDisjunction([manager.NodeToIndex(k) for k in group], round(SCALE * value), 1)
+        routing.AddDisjunction([manager.NodeToIndex(k) for k in group], round(SCALE * prize(nodes[group[0] - 1])), 1)
 
     params = pywrapcp.DefaultRoutingSearchParameters()
     params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC

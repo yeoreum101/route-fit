@@ -154,9 +154,14 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
     return visits
 
 
+def meals_covered(visits: list[Visit]) -> int:
+    """식당(사용자가 고른 곳 포함)이 들어간 끼니 수. 식사 시간대에 시작한 식당만 센다."""
+    return len({meal_slot(v.start) for v in visits if v.node.place.category == "food"} - {None})
+
+
 def objective(visits: list[Visit], day_end: int, weights: Weights = WEIGHTS) -> float:
-    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 - 이동 부담 - 빈 시간 - 시간 초과 페널티."""
-    value = sum(v.node.value for v in visits if not v.node.mandatory)
+    """추천 점수식: 취향 적합도 + 지역상권 기여도 + 동행 적합도 + 끼니 - 이동 부담 - 빈 시간 - 시간 초과 페널티."""
+    value = sum(v.node.value for v in visits if not v.node.mandatory) + weights.meal * meals_covered(visits)
     travel = sum(v.travel for v in visits)
     wait = sum(v.start - v.arrive for v in visits)
     overtime = max(0, visits[-1].end - day_end) if visits else 0

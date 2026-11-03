@@ -62,8 +62,8 @@ def test_user_chosen_restaurant_ignores_meal_windows():
     assert schedule([must], to_min("15:00"), to_min("22:00"), no_travel)[0].start == to_min("15:00")
 
 
-# 그리디는 한 곳씩 끼워 넣어서, 오후를 먼저 채우면 장소 수 상한에 걸려 저녁을 못 넣을 수 있다
-@pytest.mark.parametrize("planner, n_meals", [(plan_greedy, {1, 2}), (plan_ortools, {2})])
+# 끼니 점수(WEIGHTS.meal) 덕분에 그리디도 오후보다 끼니를 먼저 채워 두 끼 모두 식당이 들어간다
+@pytest.mark.parametrize("planner, n_meals", [(plan_greedy, {2}), (plan_ortools, {2})])
 def test_planners_respect_meals_and_breaks(planner, n_meals):
     foods = [node(place(f"f{i}", break_start="15:00", break_end="17:00")) for i in range(4)]
     # 식당을 더 원하는 취향이라 두 끼 모두 식당이 들어가야 한다
@@ -156,3 +156,21 @@ def test_planners_keep_meal_gap(planner):
     assert visits is not None  # 식사 간격을 어기는 순서면 시간표가 나오지 않는다
     meals = [v for v in visits if v.node.place.category == "food"]
     assert all(b.start - a.end >= GAP for a, b in zip(meals, meals[1:]))
+
+
+@pytest.mark.parametrize("planner", [plan_greedy, plan_ortools])
+def test_lunch_and_dinner_get_a_restaurant_even_if_taste_prefers_sights(planner):
+    # "자연을 즐기고 싶어" 처럼 취향이 명소 쪽이어도, 하루가 점심·저녁에 걸치면 끼니마다 식당을 넣는다
+    foods = [node(place(f"f{i}"), taste=0.0) for i in range(3)]
+    sights = [node(place(f"s{i}", category="sight"), taste=1.0) for i in range(8)]
+    route = planner([], foods + sights, to_min("10:00"), to_min("22:00"), None, no_travel)
+    visits = schedule(route, to_min("10:00"), to_min("22:30"), no_travel)
+    assert sorted(meal_slot(v.start) for v in visits if v.node.place.category == "food") == [0, 1]
+
+
+@pytest.mark.parametrize("planner", [plan_greedy, plan_ortools])
+def test_no_restaurant_when_the_day_misses_meal_times(planner):
+    foods = [node(place(f"f{i}"), taste=0.0) for i in range(3)]
+    sights = [node(place(f"s{i}", category="sight"), taste=1.0) for i in range(3)]
+    route = planner([], foods + sights, to_min("14:00"), to_min("16:30"), None, no_travel)
+    assert all(n.place.category != "food" for n in route)
