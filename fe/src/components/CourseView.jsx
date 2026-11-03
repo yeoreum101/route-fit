@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { CATEGORY_KO, PLANNER_KO } from "../common.js";
+import { CATEGORY_KO, KAKAO_PLACE_NOTE, PLANNER_KO, isKakaoPlace, kakaoPlaceUrl } from "../common.js";
 
 const WEEKDAY_KO = ["월", "화", "수", "목", "금", "토", "일"];
 
@@ -88,6 +88,11 @@ function Timeline({ course, activeOrder, onFocusStop }) {
           </div>
           <div className="muted small">{`${CATEGORY_KO[s.category]} · ${s.area}`}</div>
           {s.kind === "ai" && s.reason ? <p className="reason">{s.reason}</p> : null}
+          {isKakaoPlace(s.place_id) ? (
+            <p className="kakao-note">
+              {KAKAO_PLACE_NOTE} <a href={kakaoPlaceUrl(s.place_id)} target="_blank" rel="noopener">카카오맵에서 영업시간 보기</a>
+            </p>
+          ) : null}
         </li>
       ))}
     </ol>

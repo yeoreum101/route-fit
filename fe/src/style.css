@@ -502,3 +502,7 @@ button.tag-chip[aria-pressed="true"] { color: #fff; background: var(--ai); borde
 .token-dialog label { display: block; margin-bottom: 10px; font-weight: 700; }
 .token-actions { display: flex; gap: 8px; }
 .token-actions button { margin-top: 16px; }
+
+/* 카카오 검색으로 고른 장소 안내 (영업시간을 모름) */
+.kakao-note { margin: 6px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.5; color: var(--sub); background: var(--soft); border-radius: 8px; }
+.kakao-note a { font-weight: 600; white-space: nowrap; }

@@ -1,3 +1,4 @@
+import { KAKAO_PLACE_NOTE, isKakaoPlace, kakaoPlaceUrl } from "../common.js";
 import PlaceSearch from "./PlaceSearch.jsx";
 import TimePicker from "./TimePicker.jsx";
 
@@ -70,6 +71,11 @@ export default function MustVisitList({ musts, known, conflicts, onChange, onRem
                 onPick={(p) => onChange(m.key, p.category !== "venue" ? { id: p.id, place: p, start: "" } : { id: p.id, place: p })}
                 onClear={() => onChange(m.key, { id: "", place: null })}
               />
+              {isKakaoPlace(id) ? (
+                <p className="kakao-note">
+                  {KAKAO_PLACE_NOTE} <a href={kakaoPlaceUrl(id)} target="_blank" rel="noopener">카카오맵에서 영업시간 보기</a>
+                </p>
+              ) : null}
 
               <div className={`row must-detail${id ? "" : " off"}`}>
                 <div>

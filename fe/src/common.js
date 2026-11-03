@@ -89,3 +89,9 @@ export const offScreen = (node) => {
   const box = node.getBoundingClientRect();
   return box.top < 0 || box.bottom > window.innerHeight;
 };
+
+// 필수 방문지 검색에서 카카오로 고른 장소('kakao_<카카오 장소 id>'). 영업시간을 몰라 하루 종일 연 것으로 계산하므로,
+// 카카오맵 장소 페이지(영업시간·휴무일)를 열어 직접 확인하게 한다.
+export const isKakaoPlace = (id) => typeof id === "string" && id.startsWith("kakao_");
+export const kakaoPlaceUrl = (id) => `https://place.map.kakao.com/${id.slice("kakao_".length)}`;
+export const KAKAO_PLACE_NOTE = "카카오맵에서 찾은 장소라 영업시간·휴무일을 모르고, 하루 종일 연 것으로 계산했습니다. 방문 전에 카카오맵에서 확인해 주세요.";
