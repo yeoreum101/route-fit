@@ -90,6 +90,19 @@ def back_to_back_cafes(a: Node, b: Node) -> bool:
     return a.place.category == b.place.category == "cafe" and not (a.mandatory and b.mandatory)
 
 
+_MEAL_CAFE = {("food", "cafe"), ("cafe", "food")}
+
+
+def counts_as_neighbor(middle: Node, side: Node) -> bool:
+    """밥·카페 번갈아 규칙에서 가운데 장소의 이웃으로 셀지. 가운데와 이웃이 둘 다 사용자가 고른 곳이면 세지 않는다."""
+    return (middle.place.category, side.place.category) in _MEAL_CAFE and not (middle.mandatory and side.mandatory)
+
+
+def meal_cafe_zigzag(a: Node, b: Node, c: Node) -> bool:
+    """식당→카페→식당 또는 카페→식당→카페로 바로 이어지는지. 먹고 마시기만 반복하지 않게 막는다."""
+    return counts_as_neighbor(b, a) and counts_as_neighbor(b, c)
+
+
 def meal_gap_applies(a: Node, b: Node) -> bool:
     """두 곳 다 식당이라 사이에 식사 간격(min_meal_gap)을 둬야 하는지. 둘 다 사용자가 고른 곳이면 두지 않는다."""
     return a.place.category == b.place.category == "food" and not (a.mandatory and b.mandatory)
@@ -113,6 +126,8 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
     t = day_start
     for i, node in enumerate(route):
         if i and back_to_back_cafes(route[i - 1], node):
+            return None
+        if i >= 2 and meal_cafe_zigzag(route[i - 2], route[i - 1], node):
             return None
         move = travel(route[i - 1], node) if i else 0
         arrive = t + move

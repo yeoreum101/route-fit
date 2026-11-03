@@ -174,3 +174,33 @@ def test_no_restaurant_when_the_day_misses_meal_times(planner):
     sights = [node(place(f"s{i}", category="sight"), taste=1.0) for i in range(3)]
     route = planner([], foods + sights, to_min("14:00"), to_min("16:30"), None, no_travel)
     assert all(n.place.category != "food" for n in route)
+
+
+def test_meal_cafe_zigzag_is_rejected():
+    lunch, cafe, dinner = node(place("f1")), node(place("c1", category="cafe"), stay=90), node(place("f2"))
+    sight = node(place("s1", category="sight"))
+    day = (to_min("12:00"), to_min("22:00"))
+    assert schedule([lunch, cafe, dinner], *day, no_travel) is None  # 밥 → 카페 → 밥
+    assert schedule([cafe, lunch, node(place("c2", category="cafe"), stay=90)], *day, no_travel) is None  # 카페 → 밥 → 카페
+    assert schedule([lunch, cafe, sight, dinner], *day, no_travel) is not None  # 사이에 다른 곳이 있으면 된다
+
+
+def test_user_chosen_zigzag_is_allowed():
+    def must(n):
+        return Node(place=n.place, windows=start_windows(n.place, n.stay), stay=n.stay, cost=0, mandatory=True)
+
+    lunch, cafe, dinner = node(place("f1")), node(place("c1", category="cafe"), stay=90), node(place("f2"))
+    assert schedule([must(lunch), must(cafe), must(dinner)], to_min("12:00"), to_min("22:00"), no_travel) is not None
+
+
+@pytest.mark.parametrize("planner", [plan_greedy, plan_ortools])
+def test_planners_avoid_meal_cafe_zigzag(planner):
+    foods = [node(place(f"f{i}")) for i in range(3)]
+    cafes = [node(place(f"c{i}", category="cafe"), stay=90, taste=0.9) for i in range(3)]
+    sights = [node(place(f"s{i}", category="sight"), taste=0.3) for i in range(3)]
+    route = planner([], foods + cafes + sights, to_min("10:00"), to_min("22:00"), None, no_travel)
+    visits = schedule(route, to_min("10:00"), to_min("22:30"), no_travel)
+    assert visits is not None
+    kinds = [v.node.place.category for v in visits]
+    for a, b, c in zip(kinds, kinds[1:], kinds[2:]):
+        assert (a, b, c) not in {("food", "cafe", "food"), ("cafe", "food", "cafe")}

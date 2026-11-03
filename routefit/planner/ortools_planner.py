@@ -10,7 +10,7 @@ import logging
 from typing import Optional
 
 from ..config import LIMITS, WEIGHTS
-from .core import Node, PlanError, Travel, Window, back_to_back_cafes, meal_gap_applies, meal_slot
+from .core import Node, PlanError, Travel, Window, back_to_back_cafes, counts_as_neighbor, meal_gap_applies, meal_slot
 from .greedy import plan_greedy
 
 log = logging.getLogger(__name__)
@@ -124,6 +124,15 @@ def plan_ortools(
                 routing.NextVar(manager.NodeToIndex(i)).RemoveValue(manager.NodeToIndex(j))
 
     solver = routing.solver()
+    # 식당→카페→식당, 카페→식당→카페 금지: 식당·카페마다 앞뒤 이웃 중 반대 유형은 한 곳까지만
+    for j, mid in enumerate(nodes, 1):
+        sides = [k for k, side in enumerate(nodes, 1) if counts_as_neighbor(mid, side)]
+        if not sides:
+            continue
+        jj = manager.NodeToIndex(j)
+        before = [solver.IsEqualCstVar(routing.NextVar(manager.NodeToIndex(k)), jj) for k in sides]
+        after = [solver.IsEqualCstVar(routing.NextVar(jj), manager.NodeToIndex(k)) for k in sides]
+        solver.Add(solver.Sum(before + after) <= 1)
     for i, a in enumerate(nodes, 1):  # 두 식당이 다 들어가면 사이에 식사 간격을 둔다
         for j, b in enumerate(nodes, 1):
             if a is b or not meal_gap_applies(a, b):
