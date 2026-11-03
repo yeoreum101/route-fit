@@ -21,6 +21,10 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 �
 - companions: 같이 가는 사람. 혼자, 친구, 연인, 가족, 아이 동반 중 하나만. 아이와 함께면 "아이 동반".
 - avoid_categories: 사용자가 "빼고", "말고", "싫다"처럼 분명히 피하고 싶다고 한 유형만. 값은 sight, culture, market, food, cafe, shop, night 중에서.
   가고 싶다고 한 유형(예: "점심 먹고 카페 가고 싶어" 의 food, cafe)은 절대 넣지 않는다. 피하는 말이 없으면 빈 목록.
+  특정 끼니만 빼는 말은 여기가 아니라 skip_meals 에 넣는다(food 를 넣으면 모든 끼니의 식당이 빠진다).
+- skip_meals: 이 코스에서 먹지 않겠다고 한 끼니만. 값은 "점심", "저녁" 중에서. 말이 없으면 빈 목록.
+  "점심은 먹고 올 거야" -> ["점심"], "저녁은 집에서 먹어" -> ["저녁"], "저녁은 빼고" -> ["저녁"],
+  "점심 말고 저녁만 맛집" -> ["점심"], "밥은 안 먹어도 돼" -> ["점심", "저녁"].
 """
 
 
@@ -38,6 +42,8 @@ _HM = re.compile(r"^([01]?\d|2[0-9]):([0-5]\d)$")
 _AVOIDABLE = {k for k in CATEGORY_KO if k not in ("venue", "lodging", "etc")}
 # 피하는 말. 문장에 하나도 없는데 LLM 이 avoid_categories 를 채우면 가고 싶다는 유형을 거꾸로 넣은 것이다
 # (gpt-5.4-mini 가 "점심 먹고 카페 가고 싶어요" 를 가끔 food·cafe 회피로 읽는다).
+MEALS = ("점심", "저녁")  # config.LIMITS.meal_windows 의 이름과 같다
+_MEAL_WORDS = ("점심", "저녁", "밥", "식사", "끼니", "먹")
 _AVOID_WORDS = ("빼", "말고", "제외", "싫", "피하", "피해", "없이", "별로", "질려", "안 가", "안가", "말아")
 
 
@@ -72,6 +78,12 @@ def sanitize(parsed: ParsedQuery, known: list[Place], query: str | None = None) 
     parsed.avoid_categories = [c for c in dict.fromkeys(parsed.avoid_categories) if c in _AVOIDABLE]
     if query is not None and not any(w in query for w in _AVOID_WORDS):
         parsed.avoid_categories = []
+    parsed.skip_meals = [m for m in MEALS if m in parsed.skip_meals]
+    if query is not None and not any(w in query for w in _MEAL_WORDS):
+        parsed.skip_meals = []  # 끼니 얘기가 없는 문장에서 지어낸 값
+    if parsed.skip_meals:
+        # 끼니를 빼는 말("저녁은 빼고")을 식당 전체 회피로 읽은 경우. 뺄 끼니는 skip_meals 가 맡는다.
+        parsed.avoid_categories = [c for c in parsed.avoid_categories if c != "food"]
     musts = []
     for m in parsed.must_visits:
         place = find_by_name(known, m.name)
@@ -161,4 +173,18 @@ def parse_rule_based(query: str, known: list[Place]) -> ParsedQuery:
         weekday=weekday,
         must_visits=must,
         avoid_categories=[],
+        skip_meals=skip_meals_in(query),
     )
+
+
+# "점심은 먹고 올 거야", "저녁은 빼고", "저녁 생략" -> 그 끼니. "저녁만 맛집", "점심만 먹을래" -> 다른 끼니.
+_SKIP_MEAL = re.compile(r"(점심|저녁)\s*(?:은|는|밥은|밥는)?\s*(?:먹고\s*(?:올|와|옴)|먹었|빼|말고|제외|생략|안\s*먹|따로|집에서)")
+_ONLY_MEAL = re.compile(r"(점심|저녁)\s*(?:만|밥만)")
+
+
+def skip_meals_in(query: str) -> list[str]:
+    """규칙 기반: 문장에서 뺄 끼니."""
+    skip = {m.group(1) for m in _SKIP_MEAL.finditer(query)}
+    for m in _ONLY_MEAL.finditer(query):
+        skip |= {meal for meal in MEALS if meal != m.group(1)}
+    return [m for m in MEALS if m in skip]

@@ -28,6 +28,7 @@ def _parsed(**kw) -> ParsedQuery:
         weekday=None,
         must_visits=[],
         avoid_categories=[],
+        skip_meals=[],
     )
     return ParsedQuery(**{**base, **kw})
 
@@ -75,6 +76,39 @@ def test_avoid_categories_need_avoid_words_in_query():
     assert wrong.avoid_categories == []
     right = parser.sanitize(_parsed(avoid_categories=["market"]), known, "시장은 빼고 카페랑 밥집")
     assert right.avoid_categories == ["market"]
+
+
+def test_skipping_one_meal_does_not_drop_all_restaurants():
+    # "저녁은 빼고" 를 식당 전체 회피(food)로도 읽으면, 뺄 끼니는 skip_meals 만 맡게 한다
+    known = load_anchors() + load_places()
+    out = parser.sanitize(_parsed(avoid_categories=["food"], skip_meals=["저녁"]), known, "저녁은 빼고 조용한 곳 산책하고 싶어")
+    assert (out.avoid_categories, out.skip_meals) == ([], ["저녁"])
+    made_up = parser.sanitize(_parsed(skip_meals=["점심", "야식"]), known, "조용한 곳 산책하고 싶어")
+    assert made_up.skip_meals == []  # 끼니 얘기가 없는 문장에서 지어낸 값은 버린다
+
+
+def test_rule_based_skip_meals():
+    assert parser.skip_meals_in("점심은 먹고 올 거야. 조용한 곳 산책") == ["점심"]
+    assert parser.skip_meals_in("저녁은 빼고 조용한 곳") == ["저녁"]
+    assert parser.skip_meals_in("점심 말고 저녁만 맛집 가고 싶어") == ["점심"]
+    assert parser.skip_meals_in("점심 먹고 카페 가고 싶어") == []  # 먹겠다는 말
+    assert parser.skip_meals_in("점심 먹고 나서 카페") == []
+
+
+def _course_with(monkeypatch, query, **parsed):
+    _fake_llm(monkeypatch, {ParsedQuery: _parsed(taste="조용한 산책", **parsed), Explanation: None})
+    course = make_course(PlanRequest(query=query))
+    foods = [s for s in course.stops if s.category == "food"]
+    return course, {"점심" if s.start < "15:00" else "저녁" for s in foods}
+
+
+def test_skipped_meal_gets_no_restaurant(monkeypatch):
+    course, meals = _course_with(monkeypatch, "점심은 먹고 올 거야. 조용한 곳 산책하고 싶어", skip_meals=["점심"])
+    assert course.constraints.skip_meals == ["점심"] and meals == {"저녁"}
+    _, meals = _course_with(monkeypatch, "점심 말고 저녁만 맛집 가고 싶어", skip_meals=["점심"], avoid_categories=["food"])
+    assert meals == {"저녁"}  # 식당 전체를 피하지 않는다
+    _, meals = _course_with(monkeypatch, "밥은 안 먹어도 돼. 조용한 산책", skip_meals=["점심", "저녁"])
+    assert meals == set()
 
 
 def test_unknown_must_visit_from_llm_does_not_break_course(monkeypatch):

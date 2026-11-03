@@ -13,9 +13,11 @@ class PlanError(Exception):
 Window = tuple[int, int]  # 방문을 시작할 수 있는 (가장 이른, 가장 늦은) 시각
 
 
-def start_windows(place: Place, stay: int, meal: bool = False, limits: Limits = LIMITS) -> list[Window]:
+def start_windows(
+    place: Place, stay: int, meal: bool = False, skip_meals: tuple[str, ...] = (), limits: Limits = LIMITS
+) -> list[Window]:
     """영업시간에서 브레이크 타임을 빼고, 그 안에서 stay 분을 머물 수 있는 시작 시각 구간들.
-    meal 이면 식사 시간대와 겹치는 부분만 남긴다."""
+    meal 이면 식사 시간대와 겹치는 부분만 남긴다. skip_meals("점심"·"저녁")의 시간대는 뺀다."""
     opens = [(to_min(place.open), to_min(place.close))]
     if place.break_start and place.break_end:
         opens = [(opens[0][0], to_min(place.break_start)), (to_min(place.break_end), opens[0][1])]
@@ -24,8 +26,8 @@ def start_windows(place: Place, stay: int, meal: bool = False, limits: Limits = 
         windows = [
             (max(lo, m0), min(hi, m1))
             for lo, hi in windows
-            for _, m0, m1 in limits.meal_windows
-            if max(lo, m0) <= min(hi, m1)
+            for name, m0, m1 in limits.meal_windows
+            if name not in skip_meals and max(lo, m0) <= min(hi, m1)
         ]
     return sorted(windows)
 

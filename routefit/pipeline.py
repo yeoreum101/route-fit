@@ -127,7 +127,8 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str]) 
     nodes = [
         Node(
             place=p,
-            windows=start_windows(p, _stay(p), meal=p.category == "food"),
+            # 뺀 끼니(c.skip_meals)에는 식당이 들어갈 시간대가 없어서 그 끼니 점수도 생기지 않는다
+            windows=start_windows(p, _stay(p), meal=p.category == "food", skip_meals=tuple(c.skip_meals)),
             stay=_stay(p),
             cost=p.cost,
             meal=p.category == "food",
@@ -258,6 +259,7 @@ def make_course(req: PlanRequest) -> Course:
         companions=parsed.companions,
         weekday=weekday,
         avoid_categories=parsed.avoid_categories,
+        skip_meals=parsed.skip_meals,
         visit_date=req.visit_date,
         must_visits=[m.place.name for m in musts],
         sources=sources,

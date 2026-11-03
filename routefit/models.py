@@ -120,6 +120,7 @@ class ParsedQuery(BaseModel):
     weekday: Optional[int]  # 0=월 ... 6=일
     must_visits: list[ParsedMustVisit]
     avoid_categories: list[str]
+    skip_meals: list[str]  # 이 코스에서 먹지 않을 끼니: "점심" | "저녁" (예: "점심은 먹고 올 거야")
 
 
 # ---------- API ----------
@@ -160,6 +161,7 @@ class Constraints(BaseModel):
     companions: Optional[str]
     weekday: Optional[int]  # 0=월 ... 6=일. 모르면 None 이고 휴무일을 거르지 않는다
     avoid_categories: list[str]
+    skip_meals: list[str] = []  # 식당을 넣지 않을 끼니("점심"·"저녁"). 예전에 저장된 코스에는 없다
     visit_date: Optional[date] = None
     must_visits: list[str] = []  # 필수 방문지 이름
     # 각 조건을 어디서 가져왔는지 (day_start, day_end, budget, weekday, must_visits). 화면에 "인식된 조건"으로 보여 준다
