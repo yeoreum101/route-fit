@@ -12,7 +12,8 @@ const PLANNER_HELP = {
   ortools: "여러 조합을 한꺼번에 비교해 더 나은 코스를 찾습니다. 예상 시간: 약 12초",
 };
 
-const DEFAULT_QUERY = "연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어.";
+// 입력칸은 비워 두고, 무엇을 적으면 되는지 예시로만 보여 준다(입력하면 사라진다).
+const QUERY_EXAMPLE = "예) 연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어.";
 
 // 날짜 옆에 요일을 보여 준다. 'YYYY-MM-DD' 를 그대로 Date 로 읽으면 UTC 로 해석되므로 나눠서 만든다.
 function weekdayOf(value) {
@@ -22,7 +23,7 @@ function weekdayOf(value) {
 }
 
 export default function PlanPage() {
-  const [query, setQuery] = useState(DEFAULT_QUERY);
+  const [query, setQuery] = useState("");
   const [visitDate, setVisitDate] = useState("");
   const [dayStart, setDayStart] = useState("");
   const [dayEnd, setDayEnd] = useState("");
@@ -217,7 +218,7 @@ export default function PlanPage() {
           />
 
           <label htmlFor="query">어떤 하루를 원하세요? <span className="tag ai">AI 추천</span></label>
-          <textarea id="query" rows={4} required aria-describedby="query-help" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <textarea id="query" rows={4} required aria-describedby="query-help" placeholder={QUERY_EXAMPLE} value={query} onChange={(e) => setQuery(e.target.value)} />
           <p id="query-help" className="muted small help">하고 싶은 것을 적어 주세요. 요일·시간·동행도 알아서 읽습니다.</p>
 
           <fieldset className="optional-box">
