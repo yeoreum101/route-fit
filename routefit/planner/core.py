@@ -1,4 +1,5 @@
 """③ 코스 생성기 공통부: 노드, 시간표 계산(실행 가능성 검사), 추천 점수식."""
+import itertools
 from dataclasses import dataclass
 from typing import Callable, Optional
 
@@ -209,3 +210,40 @@ def within_caps(route: list[Node], budget: Optional[int], limits: Limits = LIMIT
     if len(ai) > limits.max_ai_stops:
         return False
     return all(sum(n.place.category == cat for n in ai) <= cap for cat, cap in limits.category_caps)
+
+
+EXHAUSTIVE_MAX = 7  # 이 개수까지는 모든 순서를 본다(7! = 5040, 약 0.2초)
+
+
+def improve_order(route: list[Node], day_start: int, day_end: int, travel: Travel) -> list[Node]:
+    """고른 장소는 그대로 두고 방문 순서만 바꿔 점수(objective)가 가장 좋은 순서로.
+    그리디는 한 곳씩 끼워 넣기만 해서, 장소는 괜찮아도 순서 때문에 오가는 이동이 생길 수 있다.
+    영업시간·식사·고정 시각 등은 schedule() 이 그대로 따지므로, 지킬 수 없는 순서는 고르지 않는다."""
+    hard_end = day_end + LIMITS.overtime_grace_min
+
+    def score(order) -> Optional[float]:
+        visits = schedule(list(order), day_start, hard_end, travel)
+        return None if visits is None else objective(visits, day_end)
+
+    best, best_score = list(route), score(route)
+    if best_score is None or len(route) < 3:
+        return best
+    if len(route) <= EXHAUSTIVE_MAX:
+        for order in itertools.permutations(route):
+            s = score(order)
+            if s is not None and s > best_score + 1e-9:
+                best, best_score = list(order), s
+        return best
+    improved = True
+    while improved:  # 장소가 많으면 한 곳을 다른 자리로 옮겨 보며 나아지는 동안 반복
+        improved = False
+        for i in range(len(best)):
+            for j in range(len(best)):
+                if i == j:
+                    continue
+                order = best[:i] + best[i + 1 :]
+                order.insert(j, best[i])
+                s = score(order)
+                if s is not None and s > best_score + 1e-9:
+                    best, best_score, improved = order, s, True
+    return best

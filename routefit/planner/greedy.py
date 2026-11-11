@@ -22,7 +22,7 @@ def plan_greedy(
     route = sorted(musts, key=lambda n: (n.fixed_start is not None, n.fixed_start or 0))
     visits = schedule(route, day_start, hard_end, travel)
     if visits is None:
-        raise PlanError("필수 방문지를 모두 지키는 시간표를 만들 수 없습니다. 시간 조건을 확인해 주세요.")
+        raise PlanError("꼭 갈 곳을 모두 지키는 시간표를 만들 수 없습니다. 시간 조건을 확인해 주세요.")
     best_score = objective(visits, day_end)
 
     remaining = list(candidates)

@@ -204,3 +204,26 @@ def test_planners_avoid_meal_cafe_zigzag(planner):
     kinds = [v.node.place.category for v in visits]
     for a, b, c in zip(kinds, kinds[1:], kinds[2:]):
         assert (a, b, c) not in {("food", "cafe", "food"), ("cafe", "food", "cafe")}
+
+
+def test_improve_order_removes_back_and_forth():
+    from routefit.planner.core import improve_order
+
+    # 한 줄로 놓인 a(0) b(1) c(2) d(3) 를 a → c → b → d 로 오가면 이동이 늘어난다
+    pos = {"a": 0, "b": 1, "c": 2, "d": 3}
+    nodes = {k: node(place(k, category="sight")) for k in pos}
+    line = lambda x, y: 20 * abs(pos[x.id] - pos[y.id])  # noqa: E731
+    route = [nodes[k] for k in "acbd"]
+    better = improve_order(route, to_min("10:00"), to_min("22:00"), line)
+    assert [n.id for n in better] in (list("abcd"), list("dcba"))
+
+
+def test_improve_order_keeps_fixed_times():
+    from routefit.planner.core import improve_order
+
+    show = Node(place=place("show", category="culture"), windows=[(0, 24 * 60)], stay=120, cost=0, mandatory=True,
+                fixed_start=to_min("18:00"))
+    sights = [node(place(f"s{i}", category="sight")) for i in range(3)]
+    better = improve_order([sights[0], sights[1], show, sights[2]], to_min("10:00"), to_min("22:00"), lambda a, b: 10)
+    visits = schedule(better, to_min("10:00"), to_min("22:30"), lambda a, b: 10)
+    assert next(v for v in visits if v.node.id == "show").start == to_min("18:00")

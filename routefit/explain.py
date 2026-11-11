@@ -19,8 +19,12 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
 - 입력 JSON 에 있는 사실(장소 설명, 유사도, 이동시간, 라벨 점수, 시간, 동행 적합 여부)만 근거로 쓴다. 메뉴·가격·행사 등 없는 정보를 지어내지 않는다.
 - 장소를 추가·삭제하거나 순서를 바꾸자고 제안하지 않는다.
 - reasons: kind 가 "ai" 인 장소마다 1~2문장. 사용자의 취향 문장과 어떻게 맞는지, 동선상 왜 이 자리인지를 구체적으로 쓴다.
-- summary: 코스 전체를 2~3문장으로. 필수 방문지를 중심으로 하루가 어떻게 이어지는지 설명한다.
+- summary: 코스 전체를 2~3문장으로 하루가 어떻게 이어지는지 설명한다.
 - 점수 숫자를 그대로 나열하지 말고 자연스러운 말로 풀어 쓴다.
+"""
+# 사용자가 직접 고른 곳(kind 가 must)이 있을 때만 붙인다. 없을 때도 이 말을 주면 "직접 고른 곳은 없지만" 처럼 쓴다.
+MUST_RULE = """- kind 가 "must" 인 곳은 사용자가 직접 고른 곳이다. summary 는 그곳을 중심으로 쓰고 "직접 고른" 처럼 부른다.
+  "필수" 라는 말은 쓰지 않는다. kind 가 "ai" 인 곳은 사용자가 고른 곳처럼 쓰지 않는다.
 """
 
 
@@ -70,7 +74,8 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
 def explain(visits: list[Visit], c: Constraints) -> tuple[str, dict[str, str], str]:
     """(코스 요약, {place_id: 추천 이유}, 사용된 설명기 이름)."""
     facts = _facts(visits, c)
-    result = llm.structured(SYSTEM, json.dumps(facts, ensure_ascii=False, indent=1), Explanation)
+    system = SYSTEM + (MUST_RULE if any(v.node.mandatory for v in visits) else "")
+    result = llm.structured(system, json.dumps(facts, ensure_ascii=False, indent=1), Explanation)
     if result is None:
         return _template(visits)
     # 모델 출력은 그대로 믿지 않는다: 근거 없는 금액·시간이 섞였거나 빠진 문장은 템플릿으로 바꾼다.

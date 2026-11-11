@@ -14,7 +14,7 @@ function Conditions({ course }) {
   const chips = [];
   const add = (label, value, source) => chips.push([label, value, source]);
 
-  if (c.must_visits && c.must_visits.length) add("필수 방문지", c.must_visits.join(", "), src.must_visits);
+  if (c.must_visits && c.must_visits.length) add("꼭 갈 곳", c.must_visits.join(", "), src.must_visits);
   const timeSource = src.day_start === src.day_end ? src.day_start : [src.day_start && `시작 ${src.day_start}`, src.day_end && `종료 ${src.day_end}`].filter(Boolean).join(", ");
   add("시간", `${c.day_start}–${c.day_end}`, timeSource);
   add("예산", c.budget == null ? "제한 없음" : `${c.budget.toLocaleString()}원`, c.budget == null ? null : src.budget);
@@ -85,7 +85,7 @@ function Timeline({ course, activeOrder, onFocusStop }) {
           </div>
           <div className="name">
             <button type="button" className="stop-link" title="지도에서 보기" onClick={() => onFocusStop(s.order)}>{s.name}</button>{" "}
-            {s.kind === "must" ? <span className="tag must">필수</span> : null}
+            {s.kind === "must" ? <span className="tag must">꼭 갈 곳</span> : null}
             {s.is_local_commerce ? <>{" "}<span className="tag local">지역상권</span></> : null}
             <MapLinks stop={s} />
           </div>

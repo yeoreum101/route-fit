@@ -5,7 +5,7 @@ import TimePicker from "./TimePicker.jsx";
 // 필수 방문지는 여러 곳을 넣을 수 있다. 한 줄 = 장소 + 시작 시각 + 머무는 시간.
 // 줄의 place 는 고른 장소 자체다(등록된 장소 또는 카카오 검색으로 고른 장소).
 export const MAX_MUSTS = 5;
-export const CONFLICT_STATUS = "필수 방문지 시간이 겹칩니다.";
+export const CONFLICT_STATUS = "꼭 갈 곳의 시간이 겹칩니다.";
 
 const minutes = (hm) => { const [h, m] = hm.split(":").map(Number); return h * 60 + m; };
 const hhmm = (t) => `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
@@ -38,7 +38,8 @@ export default function MustVisitList({ musts, known, conflicts, onChange, onRem
 
   return (
     <fieldset className="must-box">
-      <legend>필수 방문지 <span className="tag must">필수</span></legend>
+      {/* 코드에서는 must(필수)지만, 화면에서 '필수'라고 하면 꼭 채워야 하는 칸으로 오해해서 '꼭 갈 곳 (선택)'으로 보여 준다 */}
+      <legend>꼭 갈 곳 <span className="muted small">(선택)</span></legend>
       <div id="must-list">
         {musts.map((m, i) => {
           const n = m.key;
@@ -53,7 +54,7 @@ export default function MustVisitList({ musts, known, conflicts, onChange, onRem
                 <button
                   type="button"
                   className="remove-must"
-                  aria-label="이 필수 방문지 삭제"
+                  aria-label="이 장소 삭제"
                   hidden={musts.length === 1}
                   onClick={() => onRemove(m.key)}
                 >
@@ -116,8 +117,8 @@ export default function MustVisitList({ musts, known, conflicts, onChange, onRem
           );
         })}
       </div>
-      <p className="muted small" id="must-help-off" hidden={musts.length === 0 || any}>문장에서 찾습니다. 예: “챔필에서 야구 보기 전에…”</p>
-      <button type="button" id="add-must" className="add-must" hidden={musts.length >= MAX_MUSTS} onClick={onAdd}>+ 필수 방문지 추가</button>
+      <p className="muted small" id="must-help-off" hidden={musts.length === 0 || any}>비워 두면 AI가 모두 골라 줍니다. 문장에 적은 곳도 찾아요. 예: “챔필에서 야구 보기 전에…”</p>
+      <button type="button" id="add-must" className="add-must" hidden={musts.length >= MAX_MUSTS} onClick={onAdd}>+ 꼭 갈 곳 추가</button>
     </fieldset>
   );
 }

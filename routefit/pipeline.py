@@ -24,6 +24,7 @@ from .models import (
 from .parser import find_by_name, parse_query
 from .place_search import default_stay, is_kakao_id
 from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule, start_windows
+from .planner.core import improve_order
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> li
     for m in inputs:
         place = _find(known, m)
         if place is None:
-            raise PlanError(f"필수 방문지 '{m.name or m.id}' 을(를) 찾을 수 없습니다. 검색 결과에서 골라 주세요.")
+            raise PlanError(f"꼭 갈 곳 '{m.name or m.id}' 을(를) 찾을 수 없습니다. 검색 결과에서 골라 주세요.")
         if place.id in seen:
             continue
         seen.add(place.id)
@@ -110,7 +111,7 @@ def _check_fixed_conflicts(musts: list[Node]) -> None:
         if end + move > b.fixed_start:
             gap = f" + 이동 {move}분" if move and end <= b.fixed_start else ""
             raise PlanError(
-                f"필수 방문지 시간이 겹칩니다: '{a.place.name}'({to_hm(a.fixed_start)}~{to_hm(end)}{gap}) 과 "
+                f"꼭 갈 곳의 시간이 겹칩니다: '{a.place.name}'({to_hm(a.fixed_start)}~{to_hm(end)}{gap}) 과 "
                 f"'{b.place.name}'({to_hm(b.fixed_start)} 시작). 방문 예정 시각이나 머무는 시간을 조정해 주세요."
             )
 
@@ -129,7 +130,7 @@ def _excluded(places: list[Place], c: Constraints, query: str, musts: list[Node]
         same = [p for p in places if filters.kind_of(p) == kind and p.id not in out]
         if same:
             out |= {p.id for p in same}
-            c.notes.append(f"필수 방문지와 같은 {kind}({', '.join(p.name for p in same)})은 추천에서 뺐습니다.")
+            c.notes.append(f"꼭 갈 곳과 같은 {kind}({', '.join(p.name for p in same)})은 추천에서 뺐습니다.")
     return out
 
 
@@ -184,7 +185,7 @@ def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> C
             similarity=None if v.node.mandatory else round(v.node.similarity, 3),
             local_score=None if v.node.mandatory else round(v.node.place.local_score, 3),
             is_local_commerce=v.node.place.is_local_commerce,
-            reason="사용자가 지정한 필수 방문지" if v.node.mandatory else reasons.get(v.node.id, ""),
+            reason="직접 고른 꼭 갈 곳" if v.node.mandatory else reasons.get(v.node.id, ""),
         )
         for i, v in enumerate(visits, 1)
     ]
@@ -231,7 +232,7 @@ def make_course(req: PlanRequest) -> Course:
         chosen = {m.place.name for m in musts}
         found = [m.name for m in parsed.must_visits if m.name not in chosen]
         if found:
-            notes.append(f"문장에서 '{', '.join(found)}' 을(를) 찾았지만, 화면에서 고른 필수 방문지를 썼습니다.")
+            notes.append(f"문장에서 '{', '.join(found)}' 을(를) 찾았지만, 화면에서 고른 꼭 갈 곳을 썼습니다.")
 
     start_hm, sources["day_start"] = _pick(req.day_start, parsed.day_start, config.DEFAULT_DAY_START)
     end_hm, sources["day_end"] = _pick(req.day_end, parsed.day_end, config.DEFAULT_DAY_END)
@@ -301,6 +302,7 @@ def make_course(req: PlanRequest) -> Course:
     # 실측으로 시간이 맞지 않으면 실측값이 반영된 상태로 다시 고른다.
     for _ in range(MEASURE_ROUNDS):
         route = planner(musts, candidates, day_start, day_end, c.budget, travel_minutes)
+        route = improve_order(route, day_start, day_end, travel_minutes)  # 같은 장소를 덜 오가는 순서로
         new_legs = travel.measure_route(route)
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
         if visits is not None or not new_legs:
