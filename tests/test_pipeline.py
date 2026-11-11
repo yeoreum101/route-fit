@@ -246,6 +246,14 @@ def test_searched_cinema_gets_long_stay_and_no_second_cinema():
 
 
 @pytest.mark.parametrize("planner", ["greedy", "ortools"])
-def test_times_are_in_10_minute_steps(planner):
+def test_leave_times_are_in_10_minute_steps(planner):
+    # 도착(시작)은 실제 시각, 나가는 시각만 10분 단위. 다음 장소는 나간 시각 + 이동시간에 시작한다
     c = _plan("연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어", planner=planner)
-    assert c.stops and all(to_min(s.start) % 10 == 0 and to_min(s.end) % 10 == 0 for s in c.stops)
+    assert c.stops and all(to_min(s.end) % 10 == 0 for s in c.stops)
+    for prev, s in zip(c.stops, c.stops[1:]):
+        assert to_min(s.arrive) == to_min(prev.end) + s.travel_min
+        assert to_min(s.end) - to_min(s.start) - s.stay_min in range(10)
+        # 몇 분 일찍 왔다고 기다리게 하지 않는다. 식사 시간대 시작(17:00)이나 영업 시작을 기다리는 것만 된다
+        if 0 < to_min(s.start) - to_min(s.arrive) < 10:
+            opens = {p.id: p.open for p in load_places()}
+            assert s.start in ("11:00", "17:00") or s.start == opens.get(s.place_id)

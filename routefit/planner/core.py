@@ -119,6 +119,18 @@ def floor_step(t: int, step: int = LIMITS.time_step) -> int:
     return t // step * step
 
 
+def _finish(node: Node, start: int) -> int:
+    """나가는 시각. 도착(시작)은 실제 시각 그대로 두고, 나가는 시각만 10분 단위(LIMITS.time_step)로 올려
+    따르기 쉽게 한다(남는 몇 분은 그 장소에 조금 더 머문다). 시각을 정한 일정은 정한 대로, 올리면 영업 종료·
+    브레이크 타임을 넘는 경우도 그대로 둔다."""
+    end = start + node.stay
+    if node.fixed_start is not None:
+        return end
+    limit = next((hi + node.stay for lo, hi in node.windows if lo <= start <= hi), end)
+    rounded = ceil_step(end)
+    return rounded if rounded <= limit else end
+
+
 def _earliest_start(node: Node, arrive: int, meals_taken: set[int]) -> Optional[int]:
     for lo, hi in node.windows:
         if arrive > hi:
@@ -151,15 +163,12 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
                 return None
             start = node.fixed_start
         else:
-            # 시작은 10분 단위(LIMITS.time_step). 영업 시작이 단위에 맞지 않으면(10:45) 다음 단위로
-            start = _earliest_start(node, ceil_step(max(arrive, not_before)), meals_taken)
-            if start is not None and start % LIMITS.time_step:
-                start = _earliest_start(node, ceil_step(start), meals_taken)
+            start = _earliest_start(node, max(arrive, not_before), meals_taken)
             if start is None:
                 return None
             if node.meal:
                 meals_taken.add(meal_slot(start))
-        end = start + node.stay
+        end = _finish(node, start)
         if end > hard_end:
             return None
         visits.append(Visit(node, arrive, start, end, move))
@@ -172,14 +181,24 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
             continue
         # 지금 시작 시각이 든 구간 안에서만 당긴다 (브레이크 타임을 넘거나 끼니가 바뀌지 않게)
         window_end = next(hi for lo, hi in v.node.windows if lo <= v.start <= hi)
-        latest = floor_step(min(nxt.start - nxt.travel - v.node.stay, window_end))
-        for later in visits[i + 1 :]:  # 당겨도 다음 식당과의 식사 간격은 지킨다
+        # 나가는 시각(10분 단위)이 다음 일정에 늦지 않고, 다음 식당과의 식사 간격도 지키는 범위에서
+        latest_end = nxt.start - nxt.travel
+        for later in visits[i + 1 :]:
             if meal_gap_applies(v.node, later.node):
-                latest = min(latest, later.start - LIMITS.min_meal_gap - v.node.stay)
+                latest_end = min(latest_end, later.start - LIMITS.min_meal_gap)
+        latest = min(floor_step(latest_end) - v.node.stay, window_end)
         if latest > v.start:
-            v.start, v.end = latest, latest + v.node.stay
+            v.start, v.end = latest, _finish(v.node, latest)
     for i, v in enumerate(visits):
         v.arrive = visits[i - 1].end + v.travel if i else v.start
+        # 앞 일정이 10분 단위로 끝나서 몇 분(time_step 미만) 일찍 도착하면, 기다리지 않고 도착한 시각에 시작한다
+        # (머무는 시간이 그만큼 늘 뿐 나가는 시각은 그대로). 영업시간·끼니가 같은 구간 안일 때만.
+        early = v.start - v.arrive
+        if v.node.fixed_start is None and 0 < early < LIMITS.time_step:
+            window = next(((lo, hi) for lo, hi in v.node.windows if lo <= v.start <= hi), None)
+            same_meal = not v.node.meal or meal_slot(v.arrive) == meal_slot(v.start)
+            if window and window[0] <= v.arrive and same_meal:
+                v.start = v.arrive
     return visits
 
 

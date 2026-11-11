@@ -16,7 +16,6 @@ from .core import (
     Travel,
     Window,
     back_to_back_cafes,
-    ceil_step,
     counts_as_neighbor,
     meal_gap_applies,
     meal_slot,
@@ -97,9 +96,9 @@ def plan_ortools(
     routing.SetArcCostEvaluatorOfAllVehicles(routing.RegisterTransitCallback(arc_cost))
 
     def elapsed(i, j):
-        # schedule() 처럼 다음 시작을 10분 단위로 올려 잡는다(머무는 시간이 단위에 맞으면 결과가 같다)
+        # schedule() 은 나가는 시각을 10분 단위로 올리므로, 머무는 시간에 그만큼(최대 time_step - 1분) 여유를 둔다
         a, b = manager.IndexToNode(i), manager.IndexToNode(j)
-        return stay[a] + ceil_step(minutes[a][b])
+        return stay[a] + (LIMITS.time_step - 1 if a else 0) + minutes[a][b]
 
     routing.AddDimension(routing.RegisterTransitCallback(elapsed), 24 * 60, hard_end, False, "Time")
     time = routing.GetDimensionOrDie("Time")
