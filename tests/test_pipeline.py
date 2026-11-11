@@ -208,3 +208,44 @@ def test_searched_kakao_places_can_be_must_visits(monkeypatch):
     assert by_id["kakao_2"]["start"] == "12:00"
     lunch_foods = [s for s in stops if s["category"] == "food" and to_min(s["start"]) <= to_min("13:30")]
     assert [s["place_id"] for s in lunch_foods] == ["kakao_2"]  # 점심은 고른 식당으로 이미 찼다
+
+
+def _plan(query, **kw):
+    return make_course(PlanRequest(query=query, **kw))
+
+
+def test_disliked_word_and_excluded_places_are_not_recommended():
+    # "오리탕 싫어" -> 오리탕 거리를 빼고, 화면에서 뺀 장소도 빼고, 인식된 조건에 남긴다
+    c = _plan("오리탕 싫어. 맛집이랑 시장 구경", exclude_ids=["daein_market"])
+    ids = [s.place_id for s in c.stops]
+    assert "oritang_street" not in ids and "daein_market" not in ids
+    assert c.constraints.avoid_keywords == ["오리탕"] and c.constraints.excluded_places == ["대인예술시장"]
+
+
+def test_date_course_skips_memorials_unless_history_is_wanted():
+    from routefit.data import load_places
+    from routefit.filters import is_memorial
+
+    memorial = {p.id for p in load_places() if is_memorial(p)}
+    assert {"plaza_518", "jeonil245"} <= memorial
+    c = _plan("연인이랑 조용한 데이트, 광장이나 산책하기 좋은 곳")
+    assert not memorial & {s.place_id for s in c.stops}
+    assert any("추모 공간" in n for n in c.constraints.notes)
+    wanted = _plan("연인이랑 5·18 역사 탐방 데이트")
+    assert not any("추모 공간" in n for n in wanted.constraints.notes)
+
+
+def test_searched_cinema_gets_long_stay_and_no_second_cinema():
+    cinema = {"id": "kakao_9", "name": "롯데시네마 광주", "category": "culture", "area": "동구", "lat": 35.1478, "lng": 126.9190,
+              "description": "문화,예술 > 영화,영상 > 영화관"}
+    c = _plan("영화 보고 산책하고 싶어", must_visits=[cinema])
+    stops = {s.place_id: s for s in c.stops}
+    assert stops["kakao_9"].stay_min == 150  # 영화관을 1시간으로 잡지 않는다
+    assert "gwangju_theater" not in stops  # 영화를 두 번 보는 코스가 되지 않게
+    assert any("영화관" in n for n in c.constraints.notes)
+
+
+@pytest.mark.parametrize("planner", ["greedy", "ortools"])
+def test_times_are_in_10_minute_steps(planner):
+    c = _plan("연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어", planner=planner)
+    assert c.stops and all(to_min(s.start) % 10 == 0 and to_min(s.end) % 10 == 0 for s in c.stops)

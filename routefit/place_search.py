@@ -37,6 +37,12 @@ _NAME_HINTS = [
     ("쇼핑", "shop"),
 ]
 DEFAULT_STAY = {"food": 60, "cafe": 60, "lodging": 30, "etc": 30}
+# 업종 이름·장소 이름에 이 낱말이 있으면 기본 머무는 시간을 이만큼 잡는다(영화관을 1시간으로 잡지 않게). 앞에 있는 것이 먼저.
+STAY_BY_WORD = [
+    ("야구장", 210), ("경기장", 180), ("놀이공원", 240), ("테마파크", 240), ("영화관", 150), ("시네마", 150),
+    ("극장", 150), ("공연장", 150), ("찜질방", 150), ("수족관", 90), ("아쿠아리움", 90), ("미술관", 90),
+    ("박물관", 90), ("방탈출", 70), ("볼링", 70), ("노래방", 60), ("서점", 40),
+]
 
 
 def kakao_category(group_code: str, category_name: str) -> Category:
@@ -62,8 +68,13 @@ def kakao_place(doc: dict) -> Place:
         lat=float(doc["y"]),
         lng=float(doc["x"]),
         description=doc.get("category_name") or "",
-        stay_min=DEFAULT_STAY.get(category, 60),
+        stay_min=default_stay(category, f"{doc.get('category_name') or ''} {doc['place_name']}"),
     )
+
+
+def default_stay(category: str, text: str) -> int:
+    """카카오 장소의 기본 머무는 시간(분). 화면에 '기본 N' 으로 보이고, 사용자가 비워 두면 이 값을 보낸다."""
+    return next((m for word, m in STAY_BY_WORD if word in text), DEFAULT_STAY.get(category, 60))
 
 
 def search_kakao(query: str, size: int = 5) -> list[Place]:

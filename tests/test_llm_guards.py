@@ -29,6 +29,7 @@ def _parsed(**kw) -> ParsedQuery:
         must_visits=[],
         avoid_categories=[],
         skip_meals=[],
+        avoid_keywords=[],
     )
     return ParsedQuery(**{**base, **kw})
 

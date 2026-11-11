@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Optional
 
-from . import config, travel
+from . import config, filters, travel
 from .courses import save_course
 from .data import is_measured, load_anchors, load_places, travel_minutes, travel_mode
 from .embedding import PlaceIndex, get_embedder
@@ -22,7 +22,7 @@ from .models import (
     to_min,
 )
 from .parser import find_by_name, parse_query
-from .place_search import DEFAULT_STAY, is_kakao_id
+from .place_search import default_stay, is_kakao_id
 from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule, start_windows
 
 log = logging.getLogger(__name__)
@@ -56,8 +56,11 @@ def _find(known: list[Place], m: MustVisitInput) -> Optional[Place]:
     if is_kakao_id(m.id):  # 검색으로 고른 카카오 장소: 화면이 보낸 정보로 만든다
         if m.name is None or m.lat is None or m.lng is None:
             return None
-        place = Place(id=m.id, name=m.name, category=m.category or "etc", area=m.area or "광주", lat=m.lat, lng=m.lng)
-        return place.model_copy(update={"stay_min": DEFAULT_STAY.get(place.category, 60)})
+        category = m.category or "etc"
+        return Place(
+            id=m.id, name=m.name, category=category, area=m.area or "광주", lat=m.lat, lng=m.lng,
+            description=m.description or "", stay_min=default_stay(category, f"{m.description or ''} {m.name}"),
+        )
     if m.id:
         return next((p for p in known if p.id == m.id), None)
     return find_by_name(known, m.name)
@@ -110,6 +113,24 @@ def _check_fixed_conflicts(musts: list[Node]) -> None:
                 f"필수 방문지 시간이 겹칩니다: '{a.place.name}'({to_hm(a.fixed_start)}~{to_hm(end)}{gap}) 과 "
                 f"'{b.place.name}'({to_hm(b.fixed_start)} 시작). 방문 예정 시각이나 머무는 시간을 조정해 주세요."
             )
+
+
+def _excluded(places: list[Place], c: Constraints, query: str, musts: list[Node], exclude_ids: set[str]) -> set[str]:
+    """AI 추천에서 뺄 장소 id. 무엇을 왜 뺐는지는 c.notes 에 남긴다."""
+    out: set[str] = set(exclude_ids)
+    by_keyword = [p for p in places if filters.has_keyword(p, c.avoid_keywords)]
+    out |= {p.id for p in by_keyword}
+    if filters.is_date(query, c.companions) and not filters.wants_history(query):
+        memorial = [p for p in places if filters.is_memorial(p) and p.id not in out]
+        if memorial:
+            out |= {p.id for p in memorial}
+            c.notes.append(f"데이트 코스라 추모 공간({', '.join(p.name for p in memorial)})은 추천에서 뺐습니다.")
+    for kind in dict.fromkeys(k for k in (filters.kind_of(m.place) for m in musts) if k):
+        same = [p for p in places if filters.kind_of(p) == kind and p.id not in out]
+        if same:
+            out |= {p.id for p in same}
+            c.notes.append(f"필수 방문지와 같은 {kind}({', '.join(p.name for p in same)})은 추천에서 뺐습니다.")
+    return out
 
 
 def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str]) -> list[Node]:
@@ -260,6 +281,8 @@ def make_course(req: PlanRequest) -> Course:
         weekday=weekday,
         avoid_categories=parsed.avoid_categories,
         skip_meals=parsed.skip_meals,
+        avoid_keywords=parsed.avoid_keywords,
+        excluded_places=[p.name for p in load_places() if p.id in set(req.exclude_ids)],
         visit_date=req.visit_date,
         must_visits=[m.place.name for m in musts],
         sources=sources,
@@ -268,7 +291,8 @@ def make_course(req: PlanRequest) -> Course:
 
     # ② 임베딩 취향 매칭
     index = _index()
-    candidates = _candidate_nodes(c, index.similarities(c.taste), {m.id for m in musts})
+    excluded = _excluded(load_places(), c, req.query, musts, set(req.exclude_ids))
+    candidates = _candidate_nodes(c, index.similarities(c.taste), {m.id for m in musts} | excluded)
 
     # ③ 제약 최적화
     planner_name = req.planner or config.DEFAULT_PLANNER
@@ -281,6 +305,11 @@ def make_course(req: PlanRequest) -> Course:
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
         if visits is not None or not new_legs:
             break
+    if visits is None and planner is plan_ortools:
+        # OR-Tools 의 시간 모델과 schedule() 이 어긋나 시간표가 안 나오면 그리디로 한 번 더
+        route = plan_greedy(musts, candidates, day_start, day_end, c.budget, travel_minutes)
+        travel.measure_route(route)
+        visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
     if visits is None:
         raise PlanError("실행 가능한 코스를 만들지 못했습니다. 시간·예산 조건을 완화해 주세요.")
 

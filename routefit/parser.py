@@ -25,6 +25,9 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 �
 - skip_meals: 이 코스에서 먹지 않겠다고 한 끼니만. 값은 "점심", "저녁" 중에서. 말이 없으면 빈 목록.
   "점심은 먹고 올 거야" -> ["점심"], "저녁은 집에서 먹어" -> ["저녁"], "저녁은 빼고" -> ["저녁"],
   "점심 말고 저녁만 맛집" -> ["점심"], "밥은 안 먹어도 돼" -> ["점심", "저녁"].
+- avoid_keywords: 싫다·빼 달라고 한 구체적인 음식이나 장소의 낱말만, 문장에 쓰인 그대로. 말이 없으면 빈 목록.
+  "훠궈 싫어" -> ["훠궈"], "술집은 빼고" -> ["술집"], "5·18민주광장 말고" -> ["5·18민주광장"].
+  유형 전체(시장·카페·식당)는 avoid_categories, 끼니는 skip_meals 로 넣고 여기에는 넣지 않는다.
 """
 
 
@@ -84,6 +87,7 @@ def sanitize(parsed: ParsedQuery, known: list[Place], query: str | None = None) 
     if parsed.skip_meals:
         # 끼니를 빼는 말("저녁은 빼고")을 식당 전체 회피로 읽은 경우. 뺄 끼니는 skip_meals 가 맡는다.
         parsed.avoid_categories = [c for c in parsed.avoid_categories if c != "food"]
+    parsed.avoid_keywords = clean_keywords(parsed.avoid_keywords, query)
     musts = []
     for m in parsed.must_visits:
         place = find_by_name(known, m.name)
@@ -174,6 +178,7 @@ def parse_rule_based(query: str, known: list[Place]) -> ParsedQuery:
         must_visits=must,
         avoid_categories=[],
         skip_meals=skip_meals_in(query),
+        avoid_keywords=clean_keywords(avoid_keywords_in(query), query),
     )
 
 
@@ -188,3 +193,33 @@ def skip_meals_in(query: str) -> list[str]:
     for m in _ONLY_MEAL.finditer(query):
         skip |= {meal for meal in MEALS if meal != m.group(1)}
     return [m for m in MEALS if m in skip]
+
+
+# 싫다고 한 낱말. 유형·끼니 낱말은 avoid_categories·skip_meals 가 맡으므로 여기서는 버린다.
+_NOT_KEYWORDS = {"점심", "저녁", "밥", "식사", "끼니", "시장", "전통시장", "카페", "식당", "밥집", "맛집", "명소", "전시", "쇼핑", "상점"}
+_AVOID_KEYWORD = re.compile(r"([^\s,.!?]+?)(?:은|는|이|가|도|을|를)?\s*(?:싫|빼|말고|제외|별로|못\s*먹|안\s*먹)")
+
+
+def avoid_keywords_in(query: str) -> list[str]:
+    """규칙 기반: "훠궈 싫어", "술집은 빼고" -> 그 앞 낱말."""
+    return [m.group(1) for m in _AVOID_KEYWORD.finditer(query)]
+
+
+def clean_keywords(keywords: list[str], query: str | None) -> list[str]:
+    """문장에 실제로 쓰였고(지어낸 값 제외) 유형·끼니가 아닌 낱말만, 중복 없이.
+    피하는 말이 없는 문장("훠궈 먹고 싶어")이면 가고 싶다는 낱말을 거꾸로 읽은 것이라 모두 버린다."""
+    from .filters import compact
+
+    if query is not None and not any(w in query for w in (*_AVOID_WORDS, "못 먹", "못먹", "안 먹", "안먹")):
+        return []
+    text = compact(query) if query is not None else None
+    out = []
+    for k in keywords:
+        k = (k or "").strip()
+        if not k or k in _NOT_KEYWORDS or len(compact(k)) < 2:
+            continue
+        if text is not None and compact(k) not in text:
+            continue
+        if k not in out:
+            out.append(k)
+    return out

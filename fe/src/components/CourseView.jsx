@@ -27,6 +27,8 @@ function Conditions({ course }) {
   if (c.companions) add("동행", c.companions, "텍스트");
   if (c.avoid_categories && c.avoid_categories.length) add("제외", c.avoid_categories.map((k) => CATEGORY_KO[k] || k).join(", "), "텍스트");
   if (c.skip_meals && c.skip_meals.length) add("끼니 제외", c.skip_meals.join(", "), "텍스트"); // 이 끼니에는 식당을 넣지 않는다
+  if (c.avoid_keywords && c.avoid_keywords.length) add("싫은 것", c.avoid_keywords.join(", "), "텍스트"); // 이 낱말이 든 장소는 뺐다
+  if (c.excluded_places && c.excluded_places.length) add("뺀 장소", c.excluded_places.join(", "), "화면");
 
   return (
     <div id="conditions">

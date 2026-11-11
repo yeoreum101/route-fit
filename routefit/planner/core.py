@@ -110,6 +110,14 @@ def meal_gap_applies(a: Node, b: Node) -> bool:
     return a.place.category == b.place.category == "food" and not (a.mandatory and b.mandatory)
 
 
+def ceil_step(t: int, step: int = LIMITS.time_step) -> int:
+    return -(-t // step) * step
+
+
+def floor_step(t: int, step: int = LIMITS.time_step) -> int:
+    return t // step * step
+
+
 def _earliest_start(node: Node, arrive: int, meals_taken: set[int]) -> Optional[int]:
     for lo, hi in node.windows:
         if arrive > hi:
@@ -142,7 +150,10 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
                 return None
             start = node.fixed_start
         else:
-            start = _earliest_start(node, max(arrive, not_before), meals_taken)
+            # 시작은 10분 단위(LIMITS.time_step). 영업 시작이 단위에 맞지 않으면(10:45) 다음 단위로
+            start = _earliest_start(node, ceil_step(max(arrive, not_before)), meals_taken)
+            if start is not None and start % LIMITS.time_step:
+                start = _earliest_start(node, ceil_step(start), meals_taken)
             if start is None:
                 return None
             if node.meal:
@@ -160,7 +171,7 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
             continue
         # 지금 시작 시각이 든 구간 안에서만 당긴다 (브레이크 타임을 넘거나 끼니가 바뀌지 않게)
         window_end = next(hi for lo, hi in v.node.windows if lo <= v.start <= hi)
-        latest = min(nxt.start - nxt.travel - v.node.stay, window_end)
+        latest = floor_step(min(nxt.start - nxt.travel - v.node.stay, window_end))
         for later in visits[i + 1 :]:  # 당겨도 다음 식당과의 식사 간격은 지킨다
             if meal_gap_applies(v.node, later.node):
                 latest = min(latest, later.start - LIMITS.min_meal_gap - v.node.stay)

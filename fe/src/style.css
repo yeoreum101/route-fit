@@ -506,3 +506,12 @@ button.tag-chip[aria-pressed="true"] { color: #fff; background: var(--ai); borde
 /* 카카오 검색으로 고른 장소 안내 (영업시간을 모름) */
 .kakao-note { margin: 6px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.5; color: var(--sub); background: var(--soft); border-radius: 8px; }
 .kakao-note a { font-weight: 600; white-space: nowrap; }
+
+/* 빼고 싶은 장소 (조건 입력) */
+.exclude-chips { margin: 8px 0 0; }
+.exclude-chips li { display: inline-flex; align-items: center; gap: 4px; }
+button.chip-remove {
+  width: 22px; height: 22px; margin: 0; padding: 0; font-size: 15px; font-weight: 400; line-height: 1;
+  color: var(--muted); background: transparent; border-radius: 6px;
+}
+button.chip-remove:hover:not(:disabled) { color: var(--text); background: var(--line); }

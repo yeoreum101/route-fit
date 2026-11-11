@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "../components/Header.jsx";
 import TimePicker from "../components/TimePicker.jsx";
 import MustVisitList, { CONFLICT_STATUS, findConflicts } from "../components/MustVisitList.jsx";
+import PlaceSearch from "../components/PlaceSearch.jsx";
 import CourseView from "../components/CourseView.jsx";
 import CourseMap from "../components/CourseMap.jsx";
 import { offScreen } from "../common.js";
@@ -29,6 +30,7 @@ export default function PlanPage() {
   const [dayEnd, setDayEnd] = useState("");
   const [budget, setBudget] = useState("");
   const [planner, setPlanner] = useState("greedy");
+  const [excludes, setExcludes] = useState([]); // 추천에서 뺄 등록된 장소들
 
   const [mustData, setMustData] = useState({ known: [], info: {} });
   const [musts, setMusts] = useState([]); // [{ key, id, place, start, stay }]
@@ -119,6 +121,7 @@ export default function PlanPage() {
     setBudget(req.budget ?? "");
     setVisitDate(req.visit_date || "");
     setPlanner(req.planner || "greedy");
+    setExcludes((req.exclude_ids || []).map((id) => info[id]).filter(Boolean));
   }
 
   // 공유 링크(?course=<id>)로 들어오면 저장된 코스를 보여 준다.
@@ -169,13 +172,17 @@ export default function PlanPage() {
           stay_min: Number(m.stay) || null,
           // 카카오 검색으로 고른 곳은 서버에 없으니 이름·업종·좌표를 함께 보낸다
           ...(m.id.startsWith("kakao_")
-            ? { name: m.place.name, category: m.place.category, area: m.place.area, lat: m.place.lat, lng: m.place.lng }
+            ? {
+              name: m.place.name, category: m.place.category, area: m.place.area, lat: m.place.lat, lng: m.place.lng,
+              description: m.place.description, // 업종 이름: 영화관이면 머무는 시간을 길게 잡고 다른 영화관을 빼는 데 쓴다
+            }
             : {}),
         })),
       day_start: dayStart || null,
       day_end: dayEnd || null,
       budget: budget === "" ? null : Number(budget),
       visit_date: visitDate || null,
+      exclude_ids: excludes.map((p) => p.id),
       planner,
     };
 
@@ -243,11 +250,34 @@ export default function PlanPage() {
               <input id="budget" type="number" min="0" step="10000" placeholder="문장에서 찾기" value={budget} onChange={(e) => setBudget(e.target.value)} />
               <span>원</span>
             </div>
+            <label htmlFor="exclude-search">빼고 싶은 장소</label>
+            <PlaceSearch
+              id="exclude-search"
+              place={null}
+              known={mustData.known}
+              chosenIds={excludes.map((p) => p.id)}
+              placeholder="장소 이름으로 검색"
+              describedBy="exclude-help"
+              forExclude
+              onPick={(p) => setExcludes((list) => [...list, p])}
+              onClear={() => {}}
+            />
+            {excludes.length ? (
+              <ul className="chips exclude-chips">
+                {excludes.map((p) => (
+                  <li key={p.id}>
+                    <b>{p.name}</b>
+                    <button type="button" className="chip-remove" aria-label={`${p.name} 빼기 취소`} onClick={() => setExcludes((list) => list.filter((x) => x.id !== p.id))}>×</button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <p id="exclude-help" className="muted small help">음식이나 낱말은 문장에 적어도 됩니다. 예) 훠궈는 싫어요</p>
             <button
               type="button"
               id="clear-optional"
               className="link"
-              onClick={() => { setVisitDate(""); setDayStart(""); setDayEnd(""); setBudget(""); }}
+              onClick={() => { setVisitDate(""); setDayStart(""); setDayEnd(""); setBudget(""); setExcludes([]); }}
             >
               모두 비우기
             </button>

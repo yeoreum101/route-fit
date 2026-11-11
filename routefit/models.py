@@ -121,6 +121,7 @@ class ParsedQuery(BaseModel):
     must_visits: list[ParsedMustVisit]
     avoid_categories: list[str]
     skip_meals: list[str]  # 이 코스에서 먹지 않을 끼니: "점심" | "저녁" (예: "점심은 먹고 올 거야")
+    avoid_keywords: list[str]  # 싫다고 한 음식·장소 낱말 (예: "훠궈 싫어" -> ["훠궈"])
 
 
 # ---------- API ----------
@@ -136,6 +137,7 @@ class MustVisitInput(BaseModel):
     area: Optional[str] = None
     lat: Optional[float] = Field(default=None, ge=-90, le=90)
     lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    description: Optional[str] = None  # 카카오 업종 이름("문화,예술 > 영화,영상 > 영화관"). 같은 종류 추천을 거를 때 쓴다
 
 
 class PlanRequest(BaseModel):
@@ -143,6 +145,7 @@ class PlanRequest(BaseModel):
 
     query: str = Field(min_length=1, description="취향·조건 자유 문장")
     must_visits: list[MustVisitInput] = []
+    exclude_ids: list[str] = []  # 추천에서 뺄 장소(등록된 장소의 id)
     day_start: Optional[str] = Field(default=None, pattern=HM_PATTERN)
     day_end: Optional[str] = Field(default=None, pattern=HM_PATTERN)
     budget: Optional[int] = Field(default=None, ge=0)
@@ -162,6 +165,8 @@ class Constraints(BaseModel):
     weekday: Optional[int]  # 0=월 ... 6=일. 모르면 None 이고 휴무일을 거르지 않는다
     avoid_categories: list[str]
     skip_meals: list[str] = []  # 식당을 넣지 않을 끼니("점심"·"저녁"). 예전에 저장된 코스에는 없다
+    avoid_keywords: list[str] = []  # 싫다고 한 낱말. 이 낱말이 들어간 장소는 추천하지 않는다
+    excluded_places: list[str] = []  # 화면에서 뺀 장소 이름
     visit_date: Optional[date] = None
     must_visits: list[str] = []  # 필수 방문지 이름
     # 각 조건을 어디서 가져왔는지 (day_start, day_end, budget, weekday, must_visits). 화면에 "인식된 조건"으로 보여 준다
