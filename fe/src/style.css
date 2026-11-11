@@ -515,3 +515,9 @@ button.chip-remove {
   color: var(--muted); background: transparent; border-radius: 6px;
 }
 button.chip-remove:hover:not(:disabled) { color: var(--text); background: var(--line); }
+
+/* 출발 위치 (코스 맨 앞, 머무는 시간 0) */
+:root { --start: #475569; }
+.tag.start { color: var(--start); background: #eef1f5; }
+#timeline .start .dot, #timeline .start .dot:hover { background: var(--start); font-size: 10px; }
+.pin.start { background: var(--start); font-size: 10px; }

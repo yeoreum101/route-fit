@@ -101,6 +101,25 @@ def _must_nodes(req: PlanRequest, parsed: ParsedQuery, known: list[Place]) -> li
     return nodes
 
 
+def _origin_node(req: PlanRequest, known: list[Place], day_start: int) -> Optional[Node]:
+    """출발 위치. 머무는 시간 0 으로 하루 시작 시각에 고정해 코스 맨 앞에 둔다. 유형은 '기타' 로 바꿔
+    식사·카페 규칙에 걸리지 않게 한다(출발지가 식당이어도 그 끼니를 먹은 것으로 치지 않는다)."""
+    if req.start is None or not (req.start.id or req.start.name):
+        return None
+    place = _find(known, req.start)
+    if place is None:
+        raise PlanError(f"출발 위치 '{req.start.name or req.start.id}' 을(를) 찾을 수 없습니다. 검색 결과에서 골라 주세요.")
+    return Node(
+        place=place.model_copy(update={"category": "etc", "cost": 0}),
+        windows=[(0, 48 * 60)],
+        stay=0,
+        cost=0,
+        mandatory=True,
+        fixed_start=day_start,
+        origin=True,
+    )
+
+
 def _check_fixed_conflicts(musts: list[Node]) -> None:
     """시작 시각이 고정된 필수 방문지끼리 (머무는 시간 + 이동시간) 겹치면 어느 두 곳인지 알려 준다."""
     fixed = sorted((m for m in musts if m.fixed_start is not None), key=lambda m: m.fixed_start)
@@ -170,7 +189,7 @@ def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> C
             order=i,
             place_id=v.node.id,
             name=v.node.place.name,
-            kind="must" if v.node.mandatory else "ai",
+            kind="start" if v.node.origin else "must" if v.node.mandatory else "ai",
             category=v.node.place.category,
             area=v.node.place.area,
             lat=v.node.lat,
@@ -185,16 +204,17 @@ def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> C
             similarity=None if v.node.mandatory else round(v.node.similarity, 3),
             local_score=None if v.node.mandatory else round(v.node.place.local_score, 3),
             is_local_commerce=v.node.place.is_local_commerce,
-            reason="직접 고른 꼭 갈 곳" if v.node.mandatory else reasons.get(v.node.id, ""),
+            reason="출발 위치" if v.node.origin else "직접 고른 꼭 갈 곳" if v.node.mandatory else reasons.get(v.node.id, ""),
         )
         for i, v in enumerate(visits, 1)
     ]
     ai = [s for s in stops if s.kind == "ai"]
+    places = [s for s in stops if s.kind != "start"]  # 출발 위치는 방문 장소로 세지 않는다
     local = sum(s.is_local_commerce for s in ai)
     metrics = Metrics(
-        n_places=len(stops),
+        n_places=len(places),
         n_ai_places=len(ai),
-        stay_min=sum(s.stay_min for s in stops),
+        stay_min=sum(s.stay_min for s in places),
         travel_min=sum(s.travel_min for s in stops),
         total_cost=sum(s.cost for s in stops),
         local_commerce_count=local,
@@ -250,6 +270,9 @@ def make_course(req: PlanRequest) -> Course:
                 day_end = m.fixed_start + m.stay
                 sources["day_end"] = "고정 일정"
                 notes.append(f"'{m.place.name}' 일정({to_hm(m.fixed_start)}~{to_hm(day_end)})에 맞춰 하루 종료를 늘렸습니다.")
+    origin = _origin_node(req, known, day_start)
+    if origin is not None:
+        _check_fixed_conflicts([origin, *musts])  # 출발 위치에서 시각을 정한 첫 일정까지 갈 수 있는지
     if day_end <= day_start:
         raise PlanError(f"하루 종료({to_hm(day_end)})가 시작({to_hm(day_start)})보다 빠릅니다.")
 
@@ -286,6 +309,7 @@ def make_course(req: PlanRequest) -> Course:
         excluded_places=[p.name for p in load_places() if p.id in set(req.exclude_ids)],
         visit_date=req.visit_date,
         must_visits=[m.place.name for m in musts],
+        start_place=origin.place.name if origin else None,
         sources=sources,
         notes=notes,
     )
@@ -293,7 +317,8 @@ def make_course(req: PlanRequest) -> Course:
     # ② 임베딩 취향 매칭
     index = _index()
     excluded = _excluded(load_places(), c, req.query, musts, set(req.exclude_ids))
-    candidates = _candidate_nodes(c, index.similarities(c.taste), {m.id for m in musts} | excluded)
+    fixed_nodes = ([origin] if origin else []) + musts  # 출발 위치 + 꼭 갈 곳: 코스에서 빼지 않는다
+    candidates = _candidate_nodes(c, index.similarities(c.taste), {m.id for m in fixed_nodes} | excluded)
 
     # ③ 제약 최적화
     planner_name = req.planner or config.DEFAULT_PLANNER
@@ -301,7 +326,7 @@ def make_course(req: PlanRequest) -> Course:
     # 후보 비교는 어림값으로 하고, 고른 코스의 구간만 TMAP 으로 재서 시간표를 다시 짠다.
     # 실측으로 시간이 맞지 않으면 실측값이 반영된 상태로 다시 고른다.
     for _ in range(MEASURE_ROUNDS):
-        route = planner(musts, candidates, day_start, day_end, c.budget, travel_minutes)
+        route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, travel_minutes)
         route = improve_order(route, day_start, day_end, travel_minutes)  # 같은 장소를 덜 오가는 순서로
         new_legs = travel.measure_route(route)
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
@@ -309,7 +334,7 @@ def make_course(req: PlanRequest) -> Course:
             break
     if visits is None and planner is plan_ortools:
         # OR-Tools 의 시간 모델과 schedule() 이 어긋나 시간표가 안 나오면 그리디로 한 번 더
-        route = plan_greedy(musts, candidates, day_start, day_end, c.budget, travel_minutes)
+        route = plan_greedy(fixed_nodes, candidates, day_start, day_end, c.budget, travel_minutes)
         travel.measure_route(route)
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
     if visits is None:

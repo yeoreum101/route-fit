@@ -20,6 +20,7 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
 - 장소를 추가·삭제하거나 순서를 바꾸자고 제안하지 않는다.
 - reasons: kind 가 "ai" 인 장소마다 1~2문장. 사용자의 취향 문장과 어떻게 맞는지, 동선상 왜 이 자리인지를 구체적으로 쓴다.
 - summary: 코스 전체를 2~3문장으로 하루가 어떻게 이어지는지 설명한다.
+- kind 가 "start" 인 곳은 사용자가 출발하는 위치다(머무는 곳이 아니다). 있으면 "○○에서 출발해" 처럼만 쓴다.
 - 점수 숫자를 그대로 나열하지 말고 자연스러운 말로 풀어 쓴다.
 """
 # 사용자가 직접 고른 곳(kind 가 must)이 있을 때만 붙인다. 없을 때도 이 말을 주면 "직접 고른 곳은 없지만" 처럼 쓴다.
@@ -50,7 +51,7 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
             {
                 "place_id": v.node.id,
                 "name": v.node.place.name,
-                "kind": "must" if v.node.mandatory else "ai",
+                "kind": "start" if v.node.origin else "must" if v.node.mandatory else "ai",
                 "category": CATEGORY_KO[v.node.place.category],
                 "area": v.node.place.area,
                 "description": v.node.place.description,
@@ -74,7 +75,7 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
 def explain(visits: list[Visit], c: Constraints) -> tuple[str, dict[str, str], str]:
     """(코스 요약, {place_id: 추천 이유}, 사용된 설명기 이름)."""
     facts = _facts(visits, c)
-    system = SYSTEM + (MUST_RULE if any(v.node.mandatory for v in visits) else "")
+    system = SYSTEM + (MUST_RULE if any(v.node.mandatory and not v.node.origin for v in visits) else "")
     result = llm.structured(system, json.dumps(facts, ensure_ascii=False, indent=1), Explanation)
     if result is None:
         return _template(visits)
@@ -133,6 +134,6 @@ def _reason(v: Visit) -> str:
 
 def _template(visits: list[Visit]) -> tuple[str, dict[str, str], str]:
     reasons = {v.node.id: _reason(v) for v in visits if not v.node.mandatory}
-    musts = " · ".join(v.node.place.name for v in visits if v.node.mandatory) or "자유 일정"
+    musts = " · ".join(v.node.place.name for v in visits if v.node.mandatory and not v.node.origin) or "자유 일정"
     summary = f"{musts}을(를) 고정하고, 앞뒤 시간을 취향과 동선에 맞는 원도심 {len(reasons)}곳으로 채웠습니다."
     return summary, reasons, "template"

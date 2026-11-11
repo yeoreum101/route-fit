@@ -145,6 +145,7 @@ class PlanRequest(BaseModel):
 
     query: str = Field(min_length=1, description="취향·조건 자유 문장")
     must_visits: list[MustVisitInput] = []
+    start: Optional[MustVisitInput] = None  # 출발 위치(선택). 등록된 장소의 id, 또는 카카오로 고른 장소 정보
     exclude_ids: list[str] = []  # 추천에서 뺄 장소(등록된 장소의 id)
     day_start: Optional[str] = Field(default=None, pattern=HM_PATTERN)
     day_end: Optional[str] = Field(default=None, pattern=HM_PATTERN)
@@ -167,6 +168,7 @@ class Constraints(BaseModel):
     skip_meals: list[str] = []  # 식당을 넣지 않을 끼니("점심"·"저녁"). 예전에 저장된 코스에는 없다
     avoid_keywords: list[str] = []  # 싫다고 한 낱말. 이 낱말이 들어간 장소는 추천하지 않는다
     excluded_places: list[str] = []  # 화면에서 뺀 장소 이름
+    start_place: Optional[str] = None  # 출발 위치 이름
     visit_date: Optional[date] = None
     must_visits: list[str] = []  # 필수 방문지 이름
     # 각 조건을 어디서 가져왔는지 (day_start, day_end, budget, weekday, must_visits). 화면에 "인식된 조건"으로 보여 준다
@@ -178,7 +180,7 @@ class Stop(BaseModel):
     order: int
     place_id: str
     name: str
-    kind: Literal["must", "ai"]
+    kind: Literal["start", "must", "ai"]  # start: 출발 위치(머무는 시간 0, 하루 시작 시각)
     category: Category
     area: str
     lat: float

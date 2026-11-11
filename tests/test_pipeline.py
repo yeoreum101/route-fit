@@ -257,3 +257,30 @@ def test_leave_times_are_in_10_minute_steps(planner):
         if 0 < to_min(s.start) - to_min(s.arrive) < 10:
             opens = {p.id: p.open for p in load_places()}
             assert s.start in ("11:00", "17:00") or s.start == opens.get(s.place_id)
+
+
+STATION = {"id": "kakao_7", "name": "광주역", "category": "etc", "area": "북구 무등로", "lat": 35.1653, "lng": 126.9093,
+           "description": "교통,수송 > 기차,철도 > 기차역"}
+
+
+@pytest.mark.parametrize("planner", ["greedy", "ortools"])
+def test_course_starts_from_the_start_place(planner):
+    c = _plan("연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어", start=STATION, planner=planner)
+    first, second = c.stops[0], c.stops[1]
+    assert (first.kind, first.place_id, first.start, first.end) == ("start", "kakao_7", first.end, first.end)
+    assert all(s.kind != "start" for s in c.stops[1:])
+    assert second.travel_min > 0 and to_min(second.arrive) == to_min(first.end) + second.travel_min
+    assert to_min(first.end) % 10 == 0  # 나서는 시각도 10분 단위
+    assert c.metrics.n_places == len(c.stops) - 1  # 출발 위치는 방문 장소로 세지 않는다
+    assert c.constraints.start_place == "광주역"
+
+
+def test_registered_start_place_is_not_recommended_again():
+    c = _plan("야구 보기 전에 사진 찍기 좋은 곳", start={"id": "acc"})
+    assert [s.place_id for s in c.stops].count("acc") == 1 and c.stops[0].kind == "start"
+
+
+def test_unreachable_fixed_time_from_start_place_is_reported():
+    far = {**STATION, "id": "kakao_8", "lat": 35.30, "lng": 126.70}  # 광주 밖으로 한참
+    with pytest.raises(PlanError, match="겹칩니다"):
+        _plan("산책", start=far, day_start="10:00", must_visits=[{"id": "acc", "start": "10:10"}])

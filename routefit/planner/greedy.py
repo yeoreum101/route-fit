@@ -19,7 +19,7 @@ def plan_greedy(
 ) -> list[Node]:
     hard_end = day_end + LIMITS.overtime_grace_min
     # 시작 시각이 고정된 일정을 시간순으로, 나머지 Must Visit 은 그 앞에 둔다.
-    route = sorted(musts, key=lambda n: (n.fixed_start is not None, n.fixed_start or 0))
+    route = sorted(musts, key=lambda n: (not n.origin, n.fixed_start is not None, n.fixed_start or 0))  # 출발 위치가 맨 앞
     visits = schedule(route, day_start, hard_end, travel)
     if visits is None:
         raise PlanError("꼭 갈 곳을 모두 지키는 시간표를 만들 수 없습니다. 시간 조건을 확인해 주세요.")

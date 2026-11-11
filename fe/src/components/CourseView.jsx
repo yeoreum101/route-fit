@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { CATEGORY_KO, KAKAO_PLACE_NOTE, PLANNER_KO, isKakaoPlace, kakaoPlaceUrl } from "../common.js";
+import { CATEGORY_KO, KAKAO_PLACE_NOTE, PLANNER_KO, isKakaoPlace, kakaoPlaceUrl, stopLabel } from "../common.js";
 
 const WEEKDAY_KO = ["월", "화", "수", "목", "금", "토", "일"];
 
@@ -14,6 +14,7 @@ function Conditions({ course }) {
   const chips = [];
   const add = (label, value, source) => chips.push([label, value, source]);
 
+  if (c.start_place) add("출발", c.start_place, "화면");
   if (c.must_visits && c.must_visits.length) add("꼭 갈 곳", c.must_visits.join(", "), src.must_visits);
   const timeSource = src.day_start === src.day_end ? src.day_start : [src.day_start && `시작 ${src.day_start}`, src.day_end && `종료 ${src.day_end}`].filter(Boolean).join(", ");
   add("시간", `${c.day_start}–${c.day_end}`, timeSource);
@@ -77,21 +78,26 @@ function Timeline({ course, activeOrder, onFocusStop }) {
     <ol id="timeline">
       {course.stops.map((s) => (
         <li key={s.order} className={`${s.kind}${activeOrder === s.order ? " active" : ""}`} data-order={s.order}>
-          <button type="button" className="dot" aria-label={`${s.order}번 ${s.name} 지도에서 보기`} onClick={() => onFocusStop(s.order)}>{s.order}</button>
+          <button type="button" className="dot" aria-label={`${s.kind === "start" ? "출발 위치" : `${stopLabel(s, course.stops)}번`} ${s.name} 지도에서 보기`} onClick={() => onFocusStop(s.order)}>{stopLabel(s, course.stops)}</button>
           {s.travel_min ? <div className="move">{TRAVEL_MODE_KO[s.travel_mode] || "이동"} {s.travel_min}분</div> : null}
-          <div className="time">
-            {`${s.start} – ${s.end}`}
-            <span className="cost">{s.cost ? `1인 약 ${s.cost.toLocaleString()}원` : "무료"}</span>
-          </div>
+          {s.kind === "start" ? (
+            <div className="time">{`${s.end} 출발`}</div>
+          ) : (
+            <div className="time">
+              {`${s.start} – ${s.end}`}
+              <span className="cost">{s.cost ? `1인 약 ${s.cost.toLocaleString()}원` : "무료"}</span>
+            </div>
+          )}
           <div className="name">
             <button type="button" className="stop-link" title="지도에서 보기" onClick={() => onFocusStop(s.order)}>{s.name}</button>{" "}
             {s.kind === "must" ? <span className="tag must">꼭 갈 곳</span> : null}
+            {s.kind === "start" ? <span className="tag start">출발 위치</span> : null}
             {s.is_local_commerce ? <>{" "}<span className="tag local">지역상권</span></> : null}
             <MapLinks stop={s} />
           </div>
-          <div className="muted small">{`${CATEGORY_KO[s.category]} · ${s.area}`}</div>
+          <div className="muted small">{s.kind === "start" ? s.area : `${CATEGORY_KO[s.category]} · ${s.area}`}</div>
           {s.kind === "ai" && s.reason ? <p className="reason">{s.reason}</p> : null}
-          {isKakaoPlace(s.place_id) ? (
+          {isKakaoPlace(s.place_id) && s.kind !== "start" ? (
             <p className="kakao-note">
               {KAKAO_PLACE_NOTE} <a href={kakaoPlaceUrl(s.place_id)} target="_blank" rel="noopener">카카오맵에서 영업시간 보기</a>
             </p>

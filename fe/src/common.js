@@ -95,3 +95,9 @@ export const offScreen = (node) => {
 export const isKakaoPlace = (id) => typeof id === "string" && id.startsWith("kakao_");
 export const kakaoPlaceUrl = (id) => `https://place.map.kakao.com/${id.slice("kakao_".length)}`;
 export const KAKAO_PLACE_NOTE = "카카오맵에서 찾은 장소라 영업시간·휴무일을 모르고, 하루 종일 연 것으로 계산했습니다. 방문 전에 카카오맵에서 확인해 주세요.";
+
+// 타임라인 점·지도 핀에 쓰는 이름. 출발 위치는 '출발', 방문 장소는 출발 위치를 빼고 1번부터 센다.
+export function stopLabel(stop, stops) {
+  if (stop.kind === "start") return "출발";
+  return stops[0]?.kind === "start" ? stop.order - 1 : stop.order;
+}

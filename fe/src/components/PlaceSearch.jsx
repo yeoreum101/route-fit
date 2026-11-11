@@ -9,14 +9,15 @@ const MAX_KNOWN = 8;
 
 const compact = (s) => s.replace(/\s/g, "");
 
-function matchKnown(known, text, forExclude) {
+function matchKnown(known, text, suggestVenues) {
   const key = compact(text);
-  if (!key) return forExclude ? [] : known.filter((p) => p.category === "venue"); // 비어 있으면 자주 쓰는 목적지(행사장)
+  if (!key) return suggestVenues ? known.filter((p) => p.category === "venue") : []; // 비어 있으면 자주 쓰는 목적지(행사장)
   return known.filter((p) => [p.name, ...(p.aliases || [])].some((n) => compact(n).includes(key))).slice(0, MAX_KNOWN);
 }
 
 export default function PlaceSearch({
   id, place, known, chosenIds, placeholder, invalid, describedBy, onPick, onClear, forExclude = false,
+  suggestVenues = !forExclude, // 비어 있을 때 목적지(행사장)를 보여 줄지. 출발 위치에는 보여 주지 않는다
 }) {
   const [text, setText] = useState(place ? place.name : "");
   const [open, setOpen] = useState(false);
@@ -27,7 +28,7 @@ export default function PlaceSearch({
   // 바깥에서 장소가 정해지면(공유 링크로 채우기) 입력칸도 맞춘다. 선택이 풀릴 때는 입력 중인 글자를 그대로 둔다.
   useEffect(() => { if (place) setText(place.name); }, [place]);
 
-  const knownHits = useMemo(() => matchKnown(known, text, forExclude), [known, text, forExclude]);
+  const knownHits = useMemo(() => matchKnown(known, text, suggestVenues), [known, text, suggestVenues]);
 
   // 카카오 검색은 입력이 멈추고 0.3초 뒤에, 두 글자부터. 선택한 상태에서는 부르지 않는다.
   useEffect(() => {

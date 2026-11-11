@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { createMapView } from "../map/mapView.js";
-import { offScreen } from "../common.js";
+import { offScreen, stopLabel } from "../common.js";
 
 // 코스 지도. 지도 엔진(카카오맵 / Leaflet)은 React 밖의 mapView.js 가 다루고, 여기서는 코스가 바뀔 때 다시 그린다.
 // 코스의 번호·이름을 누르면(focusStop) 그 장소를 가운데로 옮기고, 핀을 누르면 onPinClick 으로 코스에 알린다.
@@ -65,9 +65,9 @@ const CourseMap = forwardRef(function CourseMap({ course, activeOrder, onPinClic
       view.drawRoute(points);
       for (const s of course.stops) {
         st.markers[s.order] = view.addPin(s, {
-          label: s.order,
-          title: `${s.order}번 ${s.name} 코스에서 보기`,
-          tooltip: `${s.start} ${s.name}`,
+          label: stopLabel(s, course.stops),
+          title: s.kind === "start" ? `출발 위치 ${s.name} 코스에서 보기` : `${stopLabel(s, course.stops)}번 ${s.name} 코스에서 보기`,
+          tooltip: s.kind === "start" ? `${s.end} ${s.name}에서 출발` : `${s.start} ${s.name}`,
           onClick: () => handlers.current.onPinClick(s.order),
         });
       }

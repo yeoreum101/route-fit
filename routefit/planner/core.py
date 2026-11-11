@@ -49,6 +49,7 @@ class Node:
     meal: bool = False  # 식사 시간대 식당: 한 끼(meal_slot)에 한 곳
     mandatory: bool = False  # Must Visit: 절대 제외하지 않는다
     fixed_start: Optional[int] = None  # 경기·공연처럼 시작 시각이 고정된 경우
+    origin: bool = False  # 출발 위치: 하루 시작 시각에 머무는 시간 0 으로 맨 앞에 둔다
     taste: float = 0.0  # 후보 내 0~1 로 정규화한 취향 적합도
     companion_fit: bool = False  # 문장의 동행이 이 장소의 '어울리는 동행' 태그에 있다
     similarity: float = 0.0  # 코사인 유사도 원값
@@ -189,6 +190,11 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
         latest = min(floor_step(latest_end) - v.node.stay, window_end)
         if latest > v.start:
             v.start, v.end = latest, _finish(v.node, latest)
+    # 출발 위치에서는 첫 장소에 늦지 않을 만큼 늦게(10분 단위) 나선다. 하루 시작에 나가서 문 열기를 기다리지 않게.
+    if len(visits) > 1 and visits[0].node.origin:
+        first = visits[1]
+        leave = max(visits[0].start, floor_step(first.start - first.travel))
+        visits[0].start = visits[0].end = leave
     for i, v in enumerate(visits):
         v.arrive = visits[i - 1].end + v.travel if i else v.start
         # 앞 일정이 10분 단위로 끝나서 몇 분(time_step 미만) 일찍 도착하면, 기다리지 않고 도착한 시각에 시작한다

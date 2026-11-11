@@ -16,6 +16,13 @@ const PLANNER_HELP = {
 // 입력칸은 비워 두고, 무엇을 적으면 되는지 예시로만 보여 준다(입력하면 사라진다).
 const QUERY_EXAMPLE = "예) 연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어.";
 
+// 서버에 보낼 장소. 카카오 검색으로 고른 곳은 서버에 없으니 이름·업종·좌표를 함께 보낸다.
+// 업종 이름(description)은 영화관이면 머무는 시간을 길게 잡고 다른 영화관을 빼는 데 쓴다.
+function placeInput(p) {
+  if (!p.id.startsWith("kakao_")) return { id: p.id };
+  return { id: p.id, name: p.name, category: p.category, area: p.area, lat: p.lat, lng: p.lng, description: p.description };
+}
+
 // 날짜 옆에 요일을 보여 준다. 'YYYY-MM-DD' 를 그대로 Date 로 읽으면 UTC 로 해석되므로 나눠서 만든다.
 function weekdayOf(value) {
   if (!value) return "";
@@ -31,6 +38,7 @@ export default function PlanPage() {
   const [budget, setBudget] = useState("");
   const [planner, setPlanner] = useState("greedy");
   const [excludes, setExcludes] = useState([]); // 추천에서 뺄 등록된 장소들
+  const [startPlace, setStartPlace] = useState(null); // 출발 위치(선택)
 
   const [mustData, setMustData] = useState({ known: [], info: {} });
   const [musts, setMusts] = useState([]); // [{ key, id, place, start, stay }]
@@ -55,7 +63,10 @@ export default function PlanPage() {
   function placeOf(m, info) {
     if (info[m.id]) return info[m.id];
     if (m.id && m.id.startsWith("kakao_") && m.name && m.lat != null && m.lng != null) {
-      return { id: m.id, name: m.name, category: m.category || "etc", area: m.area || "광주", lat: m.lat, lng: m.lng, stay_min: 60 };
+      return {
+        id: m.id, name: m.name, category: m.category || "etc", area: m.area || "광주", lat: m.lat, lng: m.lng,
+        description: m.description || "", stay_min: m.stay_min || 60,
+      };
     }
     return null;
   }
@@ -122,6 +133,7 @@ export default function PlanPage() {
     setVisitDate(req.visit_date || "");
     setPlanner(req.planner || "greedy");
     setExcludes((req.exclude_ids || []).map((id) => info[id]).filter(Boolean));
+    setStartPlace(req.start ? placeOf(req.start, info) : null);
   }
 
   // 공유 링크(?course=<id>)로 들어오면 저장된 코스를 보여 준다.
@@ -166,18 +178,8 @@ export default function PlanPage() {
       query,
       must_visits: musts
         .filter((m) => m.place) // 장소를 고르지 않은 줄은 건너뛴다
-        .map((m) => ({
-          id: m.id,
-          start: m.start || null,
-          stay_min: Number(m.stay) || null,
-          // 카카오 검색으로 고른 곳은 서버에 없으니 이름·업종·좌표를 함께 보낸다
-          ...(m.id.startsWith("kakao_")
-            ? {
-              name: m.place.name, category: m.place.category, area: m.place.area, lat: m.place.lat, lng: m.place.lng,
-              description: m.place.description, // 업종 이름: 영화관이면 머무는 시간을 길게 잡고 다른 영화관을 빼는 데 쓴다
-            }
-            : {}),
-        })),
+        .map((m) => ({ ...placeInput(m.place), start: m.start || null, stay_min: Number(m.stay) || null })),
+      start: startPlace ? placeInput(startPlace) : null,
       day_start: dayStart || null,
       day_end: dayEnd || null,
       budget: budget === "" ? null : Number(budget),
@@ -214,6 +216,20 @@ export default function PlanPage() {
       <main>
         <form id="plan-form" className="panel" onSubmit={submit}>
           <h2>조건 입력</h2>
+
+          <label htmlFor="start-place">출발 위치 <span className="muted small">(선택)</span></label>
+          <PlaceSearch
+            id="start-place"
+            place={startPlace}
+            known={mustData.known}
+            chosenIds={[]}
+            placeholder="예) 광주역, 유스퀘어, 묵는 숙소"
+            describedBy="start-help"
+            suggestVenues={false}
+            onPick={setStartPlace}
+            onClear={() => setStartPlace(null)}
+          />
+          <p id="start-help" className="muted small help">정하면 이곳에서 출발하는 동선으로 짭니다. 비워 두면 첫 장소부터 시작해요.</p>
 
           <MustVisitList
             musts={musts}
