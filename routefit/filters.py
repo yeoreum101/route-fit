@@ -84,6 +84,50 @@ ACTIVITY_WORDS = [
 _NEGATED = r"\S{0,3}\s*(?:싫|빼|말고|제외|별로|안\s*보)"
 
 
+# ---------- 장소 수 ("3곳만", "4곳 이상", "장소 너무 많아") ----------
+
+_KO_NUM = {"한": 1, "하나": 1, "두": 2, "둘": 2, "세": 3, "셋": 3, "네": 4, "넷": 4, "다섯": 5, "여섯": 6,
+           "일곱": 7, "여덟": 8, "아홉": 9, "열": 10}
+_NUM = r"(\d{1,2}|" + "|".join(sorted(_KO_NUM, key=len, reverse=True)) + ")"
+_UNIT = r"\s*(?:곳|군데|개|장소)"
+_COUNT_RANGE = re.compile(_NUM + r"\s*[~\-–]\s*" + _NUM + _UNIT)
+_COUNT_MIN = re.compile(r"(?:최소|적어도)\s*" + _NUM + _UNIT + "|" + _NUM + _UNIT + r"\s*(?:이상|넘게|넘는|넘어)")
+_COUNT_MAX = re.compile(r"(?:최대|많아야)\s*" + _NUM + _UNIT + "|" + _NUM + _UNIT + r"\s*(?:이하|까지|안쪽|넘지)")
+# 수만 말할 때는 "3곳만·세 군데 정도·4개로" 처럼 붙는 말이 있거나 "장소는 3곳" 처럼 장소 얘기여야 한다
+# ("만두 2개 먹고", "한 곳에 오래" 는 장소 수가 아니다)
+_COUNT = re.compile(
+    r"(?<![가-힣\d])" + _NUM + _UNIT + r"\s*(?:만|정도|쯤|으로|로)(?![가-힣])"
+    + r"|(?<![가-힣\d])" + _NUM + _UNIT + r"\s*(?:만|정도|쯤)"
+    + r"|장소\S{0,3}\s*" + _NUM + _UNIT
+)
+_FEWER = re.compile(
+    r"(?:장소|곳|코스|일정)\S{0,3}\s*(?:너무\s*많|적게|조금만|줄여|많지\s*않게)|몇\s*(?:군데|곳)만|너무\s*많은\s*(?:곳|장소)"
+)
+
+
+def _num(text: str) -> int:
+    return int(text) if text.isdigit() else _KO_NUM[text]
+
+
+def place_count(query: str, fewer: int) -> tuple[Optional[int], Optional[int]]:
+    """문장에서 말한 하루 장소 수 (최소, 최대). 출발 위치는 세지 않고 꼭 갈 곳은 센다.
+    "3~4곳" -> (3, 4), "4곳 이상" -> (4, None), "최대 3곳"·"3곳까지" -> (None, 3), "3곳만"·"세 군데" -> (3, 3),
+    수 없이 "장소 너무 많아"·"조금만" -> (None, fewer). 말이 없으면 (None, None)."""
+    if m := _COUNT_RANGE.search(query):
+        lo, hi = sorted((_num(m.group(1)), _num(m.group(2))))
+        return lo, hi
+    if m := _COUNT_MIN.search(query):
+        return _num(m.group(1) or m.group(2)), None
+    if m := _COUNT_MAX.search(query):
+        return None, _num(m.group(1) or m.group(2))
+    if m := _COUNT.search(query):
+        n = _num(next(g for g in m.groups() if g))
+        return n, n
+    if _FEWER.search(query):
+        return None, fewer
+    return None, None
+
+
 # ---------- 대중교통을 타지 않겠다는 말 ----------
 
 _NO_TRANSIT = re.compile(

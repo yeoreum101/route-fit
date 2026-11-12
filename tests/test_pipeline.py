@@ -241,6 +241,42 @@ def _plan(query, **kw):
     return make_course(PlanRequest(query=query, **kw))
 
 
+def test_place_count_is_read_from_sentence():
+    from routefit.filters import place_count
+
+    cases = {
+        "장소 너무 많아. 3곳만 해줘": (3, 3), "세 군데 정도": (3, 3), "네 곳으로 짜줘": (4, 4), "장소는 5개": (5, 5),
+        "4곳 이상 가고 싶어": (4, None), "최소 다섯 곳": (5, None), "최대 3곳": (None, 3), "3곳까지만": (None, 3),
+        "3~4곳": (3, 4), "장소 너무 많아": (None, 9), "몇 군데만 천천히": (None, 9),
+        # 장소 수가 아닌 말
+        "만두 2개 먹고": (None, None), "한 곳에 오래 있고 싶어": (None, None), "돈은 적게 쓰고 싶어": (None, None),
+        "조금만 걷고 싶어": (None, None), "오후 2시부터 5만원으로": (None, None),
+    }
+    for q, want in cases.items():
+        assert place_count(q, fewer=9) == want, q
+
+
+@pytest.mark.parametrize("planner", ["greedy", "ortools"])
+def test_place_count_limits_the_course(planner):
+    from routefit import config
+
+    query = "맛집이랑 카페, 구경거리"
+    assert len(_plan(query, planner=planner).stops) > 3  # 말이 없으면 더 넣는다
+
+    few = _plan(query + ". 장소 너무 많아. 3곳만 해줘", planner=planner)
+    assert len(few.stops) == 3 and (few.constraints.min_places, few.constraints.max_places) == (3, 3)
+    vague = _plan(query + ". 장소 너무 많아", planner=planner)
+    assert len(vague.stops) <= config.LIMITS.fewer_places
+    # 꼭 갈 곳도 센다: 야구장 + AI 2곳
+    with_must = _plan(query + " 3곳만", must_visits=[BASEBALL], planner=planner)
+    assert len(with_must.stops) == 3 and sum(s.kind == "ai" for s in with_must.stops) == 2
+
+    # 기본 상한(6곳)보다 많이 달라고 하면 그만큼 넣는다. 하루가 짧아 못 채우면 들어가는 만큼 넣고 알린다
+    assert len(_plan("구경거리 많이. 8곳 이상 가고 싶어", planner=planner).stops) >= 8
+    short = _plan("구경거리 많이. 8곳 이상 가고 싶어", day_start="15:00", day_end="19:00", planner=planner)
+    assert len(short.stops) < 8 and any("곳까지만 넣을 수 있었습니다" in n for n in short.constraints.notes)
+
+
 def test_no_transit_is_read_from_sentence():
     from routefit.filters import avoids_transit
 

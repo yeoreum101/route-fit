@@ -9,7 +9,7 @@
 import logging
 from typing import Optional
 
-from ..config import LIMITS, WEIGHTS
+from ..config import LIMITS, WEIGHTS, Limits
 from .core import (
     Node,
     PlanError,
@@ -35,13 +35,14 @@ def plan_ortools(
     day_end: int,
     budget: Optional[int],
     travel: Travel,
+    limits: Limits = LIMITS,
     time_limit_s: int = 2,
 ) -> list[Node]:
     try:
         from ortools.constraint_solver import pywrapcp, routing_enums_pb2
     except ImportError:
         log.warning("ortools 미설치: 그리디로 대체")
-        return plan_greedy(musts, candidates, day_start, day_end, budget, travel)
+        return plan_greedy(musts, candidates, day_start, day_end, budget, travel, limits)
 
     hard_end = day_end + LIMITS.overtime_grace_min
 
@@ -72,7 +73,7 @@ def plan_ortools(
         return n.value + (WEIGHTS.meal if n.meal else 0)
 
     for n in candidates:
-        if prize(n) <= 0:
+        if prize(n) <= 0 and not limits.min_ai_stops:  # 최소 장소 수가 있으면 가치가 낮아도 후보로 둔다
             continue
         meal_slots = range(len(LIMITS.meal_windows)) if n.meal else [None]
         group = [add(n, windows(n, slot), slot) for slot in meal_slots if windows(n, slot)]
@@ -120,7 +121,9 @@ def plan_ortools(
         routing.AddDimension(cb, 0, capacity, True, name)
 
     is_ai = [0] + [0 if n.mandatory else 1 for n in nodes]
-    add_capacity("Stops", is_ai, LIMITS.max_ai_stops)
+    add_capacity("Stops", is_ai, limits.max_ai_stops)
+    if limits.min_ai_stops:  # 못 채우면 해가 없고, 아래에서 그리디가 들어가는 만큼 채운다
+        routing.solver().Add(routing.GetDimensionOrDie("Stops").CumulVar(routing.End(0)) >= limits.min_ai_stops)
     for cat, cap in LIMITS.category_caps:
         add_capacity(f"Cap_{cat}", [0] + [int(not n.mandatory and n.place.category == cat) for n in nodes], cap)
     if budget is not None:
@@ -159,7 +162,7 @@ def plan_ortools(
                 solver.Add(a_first + b_first + both >= 1)
 
     for group in groups:
-        routing.AddDisjunction([manager.NodeToIndex(k) for k in group], round(SCALE * prize(nodes[group[0] - 1])), 1)
+        routing.AddDisjunction([manager.NodeToIndex(k) for k in group], max(0, round(SCALE * prize(nodes[group[0] - 1]))), 1)
 
     params = pywrapcp.DefaultRoutingSearchParameters()
     params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
@@ -168,7 +171,7 @@ def plan_ortools(
     solution = routing.SolveWithParameters(params)
     if solution is None:
         log.warning("OR-Tools 해 없음: 그리디로 대체")
-        return plan_greedy(musts, candidates, day_start, day_end, budget, travel)
+        return plan_greedy(musts, candidates, day_start, day_end, budget, travel, limits)
 
     route = []
     index = solution.Value(routing.NextVar(routing.Start(0)))

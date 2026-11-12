@@ -42,6 +42,9 @@ class Weights:
 class Limits:
     overtime_grace_min: int = 30  # 종료 희망 시각을 이만큼까지는 넘길 수 있다(감점)
     max_ai_stops: int = 6
+    # AI 추천 장소를 이만큼은 넣는다. 기본은 없음. 문장에서 "4곳 이상" 처럼 말하면 요청마다 바꾼다(dataclasses.replace)
+    min_ai_stops: int = 0
+    fewer_places: int = 4  # 수 없이 "장소 너무 많아"·"몇 군데만" 이라고 하면 하루 장소를 이만큼까지
     category_caps: tuple[tuple[str, int], ...] = (("food", 2), ("cafe", 2), ("night", 1))
     min_cafe_stay: int = 90  # 카페는 이보다 짧게 머물지 않는다 (장소의 머무는 시간이 더 길면 그것을 쓴다)
     min_meal_stay: int = 70  # 식당도 마찬가지. 60분이면 밥이 빠듯하다는 설문 의견

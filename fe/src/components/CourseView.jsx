@@ -27,6 +27,12 @@ function Conditions({ course }) {
   }
   if (c.companions) add("동행", c.companions, "텍스트");
   if (c.walk_only) add("이동", "걸어서 (대중교통 X)", "텍스트"); // 걸어서 닿는 곳끼리 골랐다
+  if (c.min_places != null || c.max_places != null) { // 하루 장소 수 (꼭 갈 곳 포함)
+    const n = c.min_places === c.max_places ? `${c.min_places}곳`
+      : c.min_places != null && c.max_places != null ? `${c.min_places}–${c.max_places}곳`
+      : c.min_places != null ? `${c.min_places}곳 이상` : `${c.max_places}곳 이하`;
+    add("장소 수", n, "텍스트");
+  }
   if (c.avoid_categories && c.avoid_categories.length) add("제외", c.avoid_categories.map((k) => CATEGORY_KO[k] || k).join(", "), "텍스트");
   if (c.skip_meals && c.skip_meals.length) add("끼니 제외", c.skip_meals.join(", "), "텍스트"); // 이 끼니에는 식당을 넣지 않는다
   if (c.avoid_keywords && c.avoid_keywords.length) add("싫은 것", c.avoid_keywords.join(", "), "텍스트"); // 이 낱말이 든 장소는 뺐다

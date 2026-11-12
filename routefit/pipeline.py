@@ -2,6 +2,7 @@
 import logging
 import threading
 import time
+from dataclasses import replace
 from typing import Optional
 
 from . import config, filters, travel
@@ -185,6 +186,15 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str], 
     return [n for n in nodes if n.windows]  # 머무는 시간만큼 열려 있는 구간이 없는 곳은 뺀다
 
 
+def _stop_limits(c: Constraints, n_musts: int) -> config.Limits:
+    """문장에서 말한 하루 장소 수(꼭 갈 곳 포함)를 AI 추천 장소 수의 최소·최대로 바꾼다. 말이 없으면 기본값."""
+    if c.min_places is None and c.max_places is None:
+        return config.LIMITS
+    min_ai = max(0, (c.min_places or 0) - n_musts)
+    max_ai = config.LIMITS.max_ai_stops if c.max_places is None else max(0, c.max_places - n_musts)
+    return replace(config.LIMITS, min_ai_stops=min_ai, max_ai_stops=max(max_ai, min_ai))
+
+
 def _choosing_travel(c: Constraints):
     """코스를 고를 때 쓰는 이동시간. 대중교통을 타지 않겠다고 했으면 걸어서 못 가는 구간을 LIMITS.no_transit_extra_min
     만큼 더 걸리는 것으로 본다. 둘 다 사용자가 정한 곳(출발 위치·꼭 갈 곳)인 구간은 피할 수 없으므로 그대로 둔다."""
@@ -315,6 +325,7 @@ def make_course(req: PlanRequest) -> Course:
             f"({req.visit_date:%m/%d}, {WEEKDAY_KO[weekday]}요일)를 썼습니다."
         )
 
+    min_places, max_places = filters.place_count(req.query, config.LIMITS.fewer_places)
     c = Constraints(
         taste=parsed.taste or req.query,
         day_start=to_hm(day_start),
@@ -327,6 +338,8 @@ def make_course(req: PlanRequest) -> Course:
         avoid_keywords=parsed.avoid_keywords,
         excluded_places=[p.name for p in load_places() if p.id in set(req.exclude_ids)],
         walk_only=filters.avoids_transit(req.query),
+        min_places=min_places,
+        max_places=max_places,
         visit_date=req.visit_date,
         must_visits=[m.place.name for m in musts],
         start_place=origin.place.name if origin else None,
@@ -348,8 +361,9 @@ def make_course(req: PlanRequest) -> Course:
     # 후보 비교는 어림값으로 하고, 고른 코스의 구간만 TMAP 으로 재서 시간표를 다시 짠다.
     # 실측으로 시간이 맞지 않으면 실측값이 반영된 상태로 다시 고른다.
     choose_travel = _choosing_travel(c)  # 고를 때만 쓴다. 시간표(schedule)는 실제 이동시간으로 짠다
+    limits = _stop_limits(c, len(musts))
     for _ in range(MEASURE_ROUNDS):
-        route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel)
+        route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel, limits)
         route = improve_order(route, day_start, day_end, choose_travel)  # 같은 장소를 덜 오가는 순서로
         new_legs = travel.measure_route(route)
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
@@ -357,11 +371,16 @@ def make_course(req: PlanRequest) -> Course:
             break
     if visits is None and planner is plan_ortools:
         # OR-Tools 의 시간 모델과 schedule() 이 어긋나 시간표가 안 나오면 그리디로 한 번 더
-        route = plan_greedy(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel)
+        route = plan_greedy(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel, limits)
         travel.measure_route(route)
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
     if visits is None:
         raise PlanError("실행 가능한 코스를 만들지 못했습니다. 시간·예산 조건을 완화해 주세요.")
+    n_places = sum(not v.node.origin for v in visits)
+    if c.max_places is not None and len(musts) > c.max_places:
+        c.notes.append(f"꼭 갈 곳이 {len(musts)}곳이라 말씀하신 {c.max_places}곳보다 많습니다. 꼭 갈 곳만 넣었습니다.")
+    elif c.min_places is not None and n_places < c.min_places:
+        c.notes.append(f"하루 시간·영업시간 안에 {n_places}곳까지만 넣을 수 있었습니다(말씀하신 {c.min_places}곳).")
     if c.walk_only:
         rides = [b.node.place.name for a, b in zip(visits, visits[1:]) if travel_mode(a.node, b.node) != "walk"]
         c.notes.append(
