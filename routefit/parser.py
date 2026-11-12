@@ -11,7 +11,7 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 �
 규칙:
 - 문장에 없는 값은 추측하지 말고 null(목록은 빈 목록)로 둔다.
 - taste: 사용자가 원하는 분위기·활동·취향만 남겨 한 문장으로 정리한다. 시간·예산·필수 방문지 언급은 뺀다.
-- day_start, day_end, must_visits.start: 24시간제 'HH:MM'.
+- day_start, day_end, must_visits.start: 24시간제 'HH:MM'. "저녁까지"처럼 시각 없이 말한 하루 끝은 null 로 둔다(따로 정한다).
 - budget: 1인 기준 원 단위 정수. "10만원" -> 100000.
 - weekday: 0=월요일 ... 6=일요일.
 - must_visits: 사용자가 이미 가기로 정한 장소만 넣는다. 아래 [알려진 목적지]에 해당하면 그 이름을 그대로 쓴다.
@@ -74,6 +74,8 @@ def sanitize(parsed: ParsedQuery, known: list[Place], query: str | None = None) 
     parsed.companions = normalize_companions(parsed.companions)
     parsed.day_start = _hm(parsed.day_start)
     parsed.day_end = _hm(parsed.day_end)
+    if query is not None and _times(query)[1] is None and (vague := vague_day_end(query)):
+        parsed.day_end = vague  # "저녁까지" 를 모델마다 19시·21시로 다르게 읽지 않게 규칙으로 정한다
     if parsed.budget is not None and parsed.budget <= 0:
         parsed.budget = None
     if parsed.weekday is not None and not 0 <= parsed.weekday <= 6:
@@ -158,8 +160,26 @@ def _times(text: str) -> tuple[str | None, str | None]:
     return start, end
 
 
+# 시각 없이 하루 끝을 말한 것. 앞에 있는 것이 먼저 잡힌다("저녁 전까지" 가 "저녁까지" 보다 앞)
+_VAGUE_END = [
+    (re.compile(r"저녁\s*(?:먹기\s*)?전\s*까지|해\s*지기\s*전\s*까지"), "18:00"),
+    (re.compile(r"점심\s*(?:때|시간)?\s*까지"), "14:00"),
+    (re.compile(r"오후\s*(?:늦게)?\s*까지"), "18:00"),
+    (re.compile(r"저녁\s*(?:때|시간|먹을\s*때)?\s*까지|저녁\s*먹고\s*(?:들어|헤어|집에)"), "20:00"),
+    (re.compile(r"밤\s*(?:늦게)?\s*까지|늦게\s*까지"), "22:00"),
+]
+
+
+def vague_day_end(query: str) -> str | None:
+    """"저녁까지 놀 거야" -> "20:00", "점심까지" -> "14:00", "오후까지·저녁 전까지" -> "18:00",
+    "밤까지·늦게까지" -> "22:00"(기본 종료 21시보다 늦게). 없으면 None."""
+    return next((hm for pattern, hm in _VAGUE_END if pattern.search(query)), None)
+
+
 def parse_rule_based(query: str, known: list[Place]) -> ParsedQuery:
     day_start, day_end = _times(query)
+    if day_end is None:
+        day_end = vague_day_end(query)
     weekday = next((i for i, d in enumerate(_WEEKDAYS) if f"{d}요일" in query), None)
     companions = next((v for k, v in _COMPANIONS.items() if k in query), None)
     compact = query.replace(" ", "")

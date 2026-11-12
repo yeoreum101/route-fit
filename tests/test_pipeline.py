@@ -177,7 +177,7 @@ def test_screen_overrides_sentence_with_notes():
 
 def test_defaults_when_nothing_given():
     c = make_course(PlanRequest(query="조용한 산책")).constraints
-    assert (c.day_start, c.day_end, c.budget) == ("10:00", "22:00", None)
+    assert (c.day_start, c.day_end, c.budget) == ("11:00", "21:00", None)
     assert c.sources == {"day_start": "기본값", "day_end": "기본값"}
     assert c.weekday is None and any("요일을 몰라" in n for n in c.notes)
 
@@ -262,6 +262,8 @@ def test_place_count_limits_the_course(planner):
 
     query = "맛집이랑 카페, 구경거리"
     assert len(_plan(query, planner=planner).stops) > 3  # 말이 없으면 더 넣는다
+    # 말이 없으면 꼭 갈 곳을 포함해 하루 LIMITS.max_places(6)곳까지
+    assert len(_plan(query, must_visits=[BASEBALL], planner=planner).stops) <= config.LIMITS.max_places
 
     few = _plan(query + ". 장소 너무 많아. 3곳만 해줘", planner=planner)
     assert len(few.stops) == 3 and (few.constraints.min_places, few.constraints.max_places) == (3, 3)
@@ -275,6 +277,64 @@ def test_place_count_limits_the_course(planner):
     assert len(_plan("구경거리 많이. 8곳 이상 가고 싶어", planner=planner).stops) >= 8
     short = _plan("구경거리 많이. 8곳 이상 가고 싶어", day_start="15:00", day_end="19:00", planner=planner)
     assert len(short.stops) < 8 and any("곳까지만 넣을 수 있었습니다" in n for n in short.constraints.notes)
+
+
+@pytest.mark.parametrize("planner", ["greedy", "ortools"])
+def test_default_place_cap_follows_day_length(planner):
+    # 장소 수를 말하지 않으면 100분에 1곳, 많아야 6곳(꼭 갈 곳 포함). 기본 하루(11~21시)는 6곳, 짧은 하루는 덜 넣는다
+    query = "맛집이랑 카페, 구경거리"
+    assert len(_plan(query, planner=planner).stops) <= 6
+    for start, end, cap in (("10:00", "19:00", 5), ("13:00", "19:00", 3)):
+        assert len(_plan(query, day_start=start, day_end=end, planner=planner).stops) <= cap, (start, end)
+    # 직접 말하면 그 수를 따른다
+    assert len(_plan(query + ". 4곳 정도", day_start="13:00", day_end="19:00", planner=planner).stops) == 4
+
+
+@pytest.mark.parametrize("planner", ["greedy", "ortools"])
+def test_capped_day_is_filled_by_staying_longer(planner):
+    # 6곳으로 줄여도 22시까지 놀겠다는 하루를 20시에 끝내지 않는다. 남는 시간만큼 AI 가 고른 곳에 더 머문다
+    from routefit.data import load_places
+
+    base = {p.id: p for p in load_places()}
+    c = _plan("연인이랑 맛있는 거 먹고 카페랑 구경거리", day_start="10:00", day_end="22:00", planner=planner)
+    assert len(c.stops) <= 6 and to_min(c.stops[-1].end) >= to_min("21:00")
+    assert to_min(c.stops[-1].end) <= to_min("22:00")
+    for s in c.stops:  # 원래의 1.5배를 넘지 않는다(카페·식당은 최소 시간부터)
+        floor = {"cafe": 90, "food": 70}.get(s.category, 0)
+        assert s.stay_min <= max(base[s.place_id].stay_min, floor) * 1.5 + 10
+
+
+def test_vague_day_end_is_read_from_sentence():
+    from routefit.parser import vague_day_end
+
+    cases = {"저녁까지 놀 거야": "20:00", "저녁 먹고 들어갈 거야": "20:00", "저녁 전까지": "18:00", "오후까지 구경": "18:00",
+             "점심까지만": "14:00", "밤까지 놀자": "22:00", "저녁 먹고 카페 가고 싶어": None, "저녁에 맛집": None}
+    for q, want in cases.items():
+        assert vague_day_end(q) == want, q
+    c = _plan("친구랑 맛집이랑 카페. 저녁까지 놀 거야")
+    assert c.constraints.day_end == "20:00" and to_min(c.stops[-1].end) <= to_min("20:00") + 30
+
+
+def test_reasons_do_not_get_walking_times(monkeypatch):
+    # 장소마다 "걸어서 ○분" 을 말하지 않게, 이유를 쓰는 AI 에 장소별 이동시간을 넘기지 않는다.
+    # 모두 가까운 코스인지(all_walk)만 넘겨 요약에서 한 번 말하게 한다
+    import json
+
+    from routefit import explain
+
+    sent = []
+    def fake(system, user, schema):  # 조건 파싱도 같은 함수를 부르므로 추천 이유 요청만 잡는다
+        if schema is explain.Explanation:
+            sent.append(json.loads(user))
+
+    monkeypatch.setattr(explain.llm, "structured", fake)
+    _plan("맛집이랑 카페, 구경거리")
+    facts = sent[-1]
+    assert isinstance(facts["all_walk"], bool)
+    assert not any(k.startswith(("travel", "walk")) for s in facts["stops"] for k in s)
+    # 그래도 이동 얘기를 쓰면 그 문장만 뺀다
+    text = "치즈케이크로 유명한 아늑한 카페입니다. 앞 장소에서 걸어서 3분이라 부담이 없습니다."
+    assert explain._drop_movement(text) == "치즈케이크로 유명한 아늑한 카페입니다."
 
 
 def test_no_transit_is_read_from_sentence():
@@ -340,16 +400,19 @@ def test_searched_cinema_gets_long_stay_and_no_second_cinema():
 
 
 @pytest.mark.parametrize("planner", ["greedy", "ortools"])
-def test_leave_times_are_in_10_minute_steps(planner):
-    # 도착(시작)은 실제 시각, 나가는 시각만 10분 단위. 다음 장소는 나간 시각 + 이동시간에 시작한다
+def test_times_are_in_5_and_10_minute_steps(planner):
+    # 시작은 5분 단위, 나가는 시각은 10분 단위라 머무는 시간이 5분 단위로 보인다. 다음 장소는 나간 시각 + 이동시간에 도착한다
+    from routefit.config import LIMITS
+
     c = _plan("연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어", planner=planner)
     assert c.stops and all(to_min(s.end) % 10 == 0 for s in c.stops)
+    assert all((to_min(s.end) - to_min(s.start)) % 5 == 0 for s in c.stops)
+    opens = {p.id: p.open for p in load_places()}
     for prev, s in zip(c.stops, c.stops[1:]):
         assert to_min(s.arrive) == to_min(prev.end) + s.travel_min
         assert to_min(s.end) - to_min(s.start) - s.stay_min in range(10)
-        # 몇 분 일찍 왔다고 기다리게 하지 않는다. 식사 시간대 시작(17:00)이나 영업 시작을 기다리는 것만 된다
-        if 0 < to_min(s.start) - to_min(s.arrive) < 10:
-            opens = {p.id: p.open for p in load_places()}
+        # 5분 단위로 맞추느라 몇 분(5분 미만) 기다리는 것 말고는, 식사 시간대 시작(17:00)이나 영업 시작만 기다린다
+        if to_min(s.start) - to_min(s.arrive) >= LIMITS.start_step:
             assert s.start in ("11:00", "17:00") or s.start == opens.get(s.place_id)
 
 

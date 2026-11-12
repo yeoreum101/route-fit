@@ -1,6 +1,6 @@
 """③ 코스 생성기 공통부: 노드, 시간표 계산(실행 가능성 검사), 추천 점수식."""
 import itertools
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable, Optional
 
 from ..config import LIMITS, WEIGHTS, Limits, Weights
@@ -207,7 +207,52 @@ def schedule(route: list[Node], day_start: int, hard_end: int, travel: Travel) -
             same_meal = not v.node.meal or meal_slot(v.arrive) == meal_slot(v.start)
             if window and window[0] <= v.arrive and same_meal:
                 v.start = v.arrive
+        # 시작은 5분 단위로 올린다(12:17 -> 12:20). 나가는 시각이 10분 단위라 머무는 시간이 5분 단위로 보인다.
+        # 영업·끼니 구간 안이고 원래 머무는 시간이 남을 때만
+        aligned = ceil_step(v.start, LIMITS.start_step)
+        if v.node.fixed_start is None and aligned != v.start and aligned + v.node.stay <= v.end:
+            window = next(((lo, hi) for lo, hi in v.node.windows if lo <= v.start <= hi), None)
+            if window and aligned <= window[1] and (not v.node.meal or meal_slot(aligned) == meal_slot(v.start)):
+                v.start = aligned
     return visits
+
+
+def _windows_for_stay(n: Node, stay: int) -> list[Window]:
+    """더 오래 머물 때의 시작 가능 구간: 지금 구간에서, 문 닫기(브레이크 시작) 전에 나올 수 있는 만큼만 남긴다.
+    식사 시간대처럼 영업과 상관없는 시작 한계는 그대로 둔다."""
+    p = n.place
+    ends = [to_min(p.close)]
+    if p.break_start and p.break_end:
+        ends = [to_min(p.break_start), to_min(p.close)]
+    out = []
+    for lo, hi in n.windows:
+        close = next((e for e in ends if e > lo), ends[-1])  # 이 구간이 들어 있는 영업 구간의 끝
+        hi = min(hi, close - stay)
+        if lo <= hi:
+            out.append((lo, hi))
+    return out
+
+
+def fill_day(route: list[Node], day_start: int, day_end: int, travel: Travel, limits: Limits = LIMITS) -> list[Node]:
+    """장소 수를 줄여 하루가 일찍 끝나면, 남는 시간만큼 AI 가 고른 곳에 더 머물게 한다(21시까지 놀겠다는데 19시에
+    끝나지 않게). 장소마다 돌아가며 10분씩, 원래의 limits.stretch_max 배까지, 영업 종료·하루 종료를 넘지 않는 만큼.
+    사용자가 고른 곳(꼭 갈 곳·출발 위치)은 정한 시간 그대로 둔다."""
+    step = limits.time_step
+    route = list(route)
+    caps = [n.stay if n.mandatory else ceil_step(round(n.stay * limits.stretch_max)) for n in route]
+    grown = True
+    while grown:
+        grown = False
+        for i, n in enumerate(route):
+            if n.stay + step > caps[i]:
+                continue
+            windows = _windows_for_stay(n, n.stay + step)
+            if not windows:
+                continue
+            trial = route[:i] + [replace(n, stay=n.stay + step, windows=windows)] + route[i + 1 :]
+            if schedule(trial, day_start, day_end, travel) is not None:
+                route, grown = trial, True
+    return route
 
 
 def meals_covered(visits: list[Visit]) -> int:

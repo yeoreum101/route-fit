@@ -27,10 +27,9 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
   첫 문장은 그곳이 어떤 곳인지 description·activities·mood 로 쓴다. 식당·카페는 대표 메뉴와 분위기
   (예: "눈앞에서 한우를 구워 주는 코스 요리집으로, 룸이 있어 조용히 식사하기 좋습니다.").
   둘째 문장은 왜 이 자리인지: 취향 문장과 맞으면 그 점을, 아니면 하루에서 맡은 역할(meal 이 있으면 그 끼니, 카페면
-  쉬어 가는 자리)을 쓴다(예: "전시 사이 점심 자리로, 앞 장소에서 걸어서 5분이라 부담이 없습니다").
+  쉬어 가는 자리)을 쓴다(예: "전시를 본 뒤 여유 있게 점심을 먹는 자리입니다").
   "취향과 직접 맞닿지 않지만" 처럼 안 맞는다는 말로 시작하지 않는다.
-- 이동은 walk_min_from_prev 가 있을 때만 "앞 장소에서 걸어서 ○분" 처럼 쓴다. 없으면(멀거나 대중교통) 이동 얘기를 쓰지
-  않는다. 이동 시간·수단은 화면의 타임라인에 따로 나온다.
+- reasons 에는 이동 얘기("걸어서 ○분", "가까워서")를 쓰지 않는다. 이동 시간·수단은 화면의 타임라인에 따로 나온다.
 - summary: 코스 전체를 2~3문장, 150~170자로 하루가 어떻게 이어지는지 쓴다.
 - 장소 이름은 name 그대로 쓴다.
 - kind 가 "start" 인 곳은 사용자가 출발하는 위치다(머무는 곳이 아니다). 있으면 "○○에서 출발해" 처럼만 쓴다.
@@ -41,13 +40,18 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
 MUST_RULE = """- kind 가 "must" 인 곳은 사용자가 직접 고른 곳이다. summary 는 그곳을 중심으로 쓰고 "직접 고른" 처럼 부른다.
   "필수" 라는 말은 쓰지 않는다. kind 가 "ai" 인 곳은 사용자가 고른 곳처럼 쓰지 않는다.
 """
+# 모든 구간이 가까운 도보일 때만 붙인다. 늘 주면 버스 구간이 있는데도 "모두 걸어서 이어지는" 이라고 썼다
+WALK_RULE_ALL = '- 모든 구간이 걸어서 가깝다. summary 에서만 "모두 걸어서 이어지는" 처럼 한 번 말해도 된다.\n'
+WALK_RULE_NONE = "- summary 에도 이동 수단·거리(걸어서, 도보, 가깝다) 얘기를 쓰지 않는다.\n"
 
 
-SHORT_WALK_MIN = 10  # 이유에서 "걸어서 ○분" 을 장점으로 말해도 되는 도보 이동
+SHORT_WALK_MIN = 10  # 모든 구간이 걸어서 이만큼 안쪽이면 요약에서 "모두 걸어서 이어지는" 코스라고 한 번 말한다
 
 
-def _short_walk(prev: Visit, v: Visit) -> Optional[int]:
-    return v.travel if travel_mode(prev.node, v.node) == "walk" and v.travel <= SHORT_WALK_MIN else None
+def _all_short_walks(visits: list[Visit]) -> bool:
+    return len(visits) > 1 and all(
+        travel_mode(a.node, b.node) == "walk" and b.travel <= SHORT_WALK_MIN for a, b in zip(visits, visits[1:])
+    )
 
 
 class StopReason(BaseModel):
@@ -70,6 +74,8 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
         "user_taste": c.taste,
         "budget": c.budget,
         "companions": c.companions,
+        # 이동은 장소마다 말하지 않는다("걸어서 7분" 이 매번 나왔다). 모두 가까우면 요약에서 한 번만(WALK_RULE_ALL)
+        "all_walk": _all_short_walks(visits),
         "stops": [
             {
                 "place_id": v.node.id,
@@ -84,9 +90,6 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "meal": _meal_name(v) if v.node.meal else None,
                 "time": f"{to_hm(v.start)}~{to_hm(v.end)}",
                 "stay_min": v.node.stay,
-                # 앞 장소에서 걸어서 SHORT_WALK_MIN 분 안쪽이면 그 분, 아니면 None. 멀거나 대중교통인 구간은 타임라인에
-                # 이미 나오고 이유로 내세울 것이 아니라서 넘기지 않는다("대중교통으로 이어지기 부담이 적다" 같은 말이 나왔다)
-                "walk_min_from_prev": _short_walk(visits[i - 1], v) if i else None,
                 "taste_similarity": round(v.node.similarity, 3),
                 "gwangju_ness_1to5": v.node.place.gwangju_ness,
                 "stay_inducement_1to5": v.node.place.stay_inducement,
@@ -94,7 +97,7 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "is_local_commerce": v.node.place.is_local_commerce,
                 "suits_companions": v.node.companion_fit,  # 장소 태그 기준으로 동행과 어울리는지
             }
-            for i, v in enumerate(visits)
+            for v in visits
         ],
     }
 
@@ -103,23 +106,33 @@ def explain(visits: list[Visit], c: Constraints) -> tuple[str, dict[str, str], s
     """(코스 요약, {place_id: 추천 이유}, 사용된 설명기 이름)."""
     facts = _facts(visits, c)
     system = SYSTEM + (MUST_RULE if any(v.node.mandatory and not v.node.origin for v in visits) else "")
+    system += WALK_RULE_ALL if facts["all_walk"] else WALK_RULE_NONE
     result = llm.structured(system, json.dumps(facts, ensure_ascii=False, indent=1), Explanation)
     if result is None:
         return _template(visits)
     # 모델 출력은 그대로 믿지 않는다: 근거 없는 금액·시간이 섞였거나 빠진 문장은 템플릿으로 바꾼다.
     fallback_summary, fallback_reasons, _ = _template(visits)
     allowed_min = _allowed_minutes(facts)
-    given = {r.place_id: r.reason.strip() for r in result.reasons}
+    given = {r.place_id: _drop_movement(r.reason.strip()) for r in result.reasons}
     reasons = {}
     for v in visits:
         if v.node.mandatory:
             continue
         text = given.get(v.node.id, "")
         reasons[v.node.id] = text if text and _grounded(text, c.budget, allowed_min) else fallback_reasons[v.node.id]
-    summary = result.summary.strip()
+    summary = result.summary.strip() if facts["all_walk"] else _drop_movement(result.summary.strip())
     if not summary or not _grounded(summary, c.budget, allowed_min):
         summary = fallback_summary
     return summary, reasons, llm.name()
+
+
+_MOVEMENT = re.compile(r"걸어서|도보|대중교통|버스|이동")
+_SENTENCE = re.compile(r"(?<=[.!?다요])\s+")
+
+
+def _drop_movement(text: str) -> str:
+    """이동 얘기가 든 문장만 뺀다(규칙을 어기고 "걸어서 7분이라…" 를 써도 그 문장만 지운다). 다 지워지면 빈 문자열."""
+    return " ".join(s for s in _SENTENCE.split(text) if not _MOVEMENT.search(s)).strip()
 
 
 _MONEY = re.compile(r"(\d[\d,.]*)\s*([천만])?\s*원")
@@ -130,11 +143,10 @@ _CLOCK = re.compile(r"\d{1,2}\s*시\s*(\d{1,2}\s*분)?|\d{1,2}:\d{2}")
 
 
 def _allowed_minutes(facts: dict) -> set[int]:
-    """문장에 나와도 되는 '○분': 장소 사이 이동시간과 장소에 머무는 시간('1시간 30분'의 30분도 포함)."""
+    """문장에 나와도 되는 '○분': 장소에 머무는 시간('1시간 30분'의 30분도 포함). 이동시간은 넘기지 않으므로
+    "걸어서 ○분" 을 쓰면 지어낸 것으로 보고 템플릿으로 바꾼다."""
     out = set()
     for s in facts["stops"]:
-        if s["walk_min_from_prev"] is not None:
-            out.add(s["walk_min_from_prev"])
         out.add(s["stay_min"])
         if s["stay_min"] >= 60:
             out.add(s["stay_min"] % 60)

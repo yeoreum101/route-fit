@@ -84,11 +84,11 @@ def test_added_place_is_used_without_restart(restore_places):
     assert client.post("/api/admin/places", json=NEW_PLACE).status_code == 201
     assert client.post("/api/admin/places", json=NEW_PLACE).status_code == 409
     assert "test_lp_bar" in [p["id"] for p in client.get("/api/places").json()]
-    assert "test_lp_bar" in [s["place_id"] for s in plan(query=query, day_start="18:00")["stops"]]
+    assert "test_lp_bar" in [s["place_id"] for s in plan(query=query, day_start="18:00", day_end="23:00")["stops"]]
 
     assert client.delete("/api/admin/places/test_lp_bar").status_code == 204
     assert "test_lp_bar" not in [p.id for p in load_places()]
-    assert "test_lp_bar" not in [s["place_id"] for s in plan(query=query, day_start="18:00")["stops"]]
+    assert "test_lp_bar" not in [s["place_id"] for s in plan(query=query, day_start="18:00", day_end="23:00")["stops"]]
 
 
 def test_patch_and_validation(restore_places):

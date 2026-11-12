@@ -41,6 +41,13 @@ class Weights:
 @dataclass(frozen=True)
 class Limits:
     overtime_grace_min: int = 30  # 종료 희망 시각을 이만큼까지는 넘길 수 있다(감점)
+    # 장소 수를 말하지 않았을 때의 하루 장소 상한(꼭 갈 곳 포함, 출발 위치 제외): 하루 길이 minutes_per_place 분에
+    # 1곳, 많아야 max_places 곳(기본 하루 11~21시 6곳, 9시간 5곳, 6시간 3곳). 짧은 하루에 6곳을 채우면 빡빡했다.
+    # AI 추천은 이 안에서 꼭 갈 곳을 뺀 만큼 넣는다. 문장에서 "8곳 이상" 처럼 말하면 그 수를 따른다
+    max_places: int = 6
+    minutes_per_place: int = 100
+    # 장소 수를 줄여 하루가 일찍 끝나면 남는 시간만큼 AI 가 고른 곳에 더 머문다. 원래 머무는 시간의 이 배까지
+    stretch_max: float = 1.5
     max_ai_stops: int = 6
     # AI 추천 장소를 이만큼은 넣는다. 기본은 없음. 문장에서 "4곳 이상" 처럼 말하면 요청마다 바꾼다(dataclasses.replace)
     min_ai_stops: int = 0
@@ -52,6 +59,8 @@ class Limits:
     meal_windows: tuple[tuple[str, int, int], ...] = (("점심", 11 * 60, 13 * 60 + 30), ("저녁", 17 * 60, 19 * 60 + 30))
     # 나가는 시각을 이 단위(분)로 맞춘다. 분 단위 일정은 따르기 어렵다는 설문 의견. 도착은 실제 시각 그대로 보여 준다
     time_step: int = 10
+    # 시작 시각은 이 단위로 올린다(최대 4분 기다림). 나가는 시각이 10분 단위라 머무는 시간이 5분 단위로 보인다
+    start_step: int = 5
     # 대중교통을 타지 않겠다고 하면 코스를 고를 때 걸어서 못 가는 구간을 이만큼 더 걸리는 것으로 본다(이동 감점과
     # 하루 시간을 함께 늘려 걸어서 닿는 곳끼리 고르게 한다). 꼭 갈 곳이 멀면 그 구간은 남는다. 시간표는 실제 이동시간으로 짠다
     no_transit_extra_min: int = 60
@@ -61,8 +70,9 @@ class Limits:
 WEIGHTS = Weights()
 LIMITS = Limits()
 
-DEFAULT_DAY_START = "10:00"
-DEFAULT_DAY_END = "22:00"
+DEFAULT_DAY_START = "11:00"  # 10시는 문 연 곳이 적어 첫 장소까지 기다리는 코스가 많았다
+# 종료 시각을 말하지 않았을 때. 22시는 하루가 길어 늦게까지 끌려다니는 코스가 됐다. "저녁까지"(20시)보다 한 시간 뒤
+DEFAULT_DAY_END = "21:00"
 
 LLM_MODE = os.getenv("ROUTEFIT_LLM", "auto").strip().lower()
 LLM_PROVIDER = os.getenv("ROUTEFIT_LLM_PROVIDER", "gemini").strip().lower()

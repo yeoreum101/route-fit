@@ -25,7 +25,7 @@ from .models import (
 from .parser import find_by_name, parse_query
 from .place_search import default_stay, is_kakao_id
 from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule, start_windows
-from .planner.core import improve_order
+from .planner.core import fill_day, improve_order
 
 log = logging.getLogger(__name__)
 
@@ -186,12 +186,16 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str], 
     return [n for n in nodes if n.windows]  # 머무는 시간만큼 열려 있는 구간이 없는 곳은 뺀다
 
 
-def _stop_limits(c: Constraints, n_musts: int) -> config.Limits:
-    """문장에서 말한 하루 장소 수(꼭 갈 곳 포함)를 AI 추천 장소 수의 최소·최대로 바꾼다. 말이 없으면 기본값."""
-    if c.min_places is None and c.max_places is None:
-        return config.LIMITS
+def _stop_limits(c: Constraints, n_musts: int, day_min: int) -> config.Limits:
+    """하루 장소 수(꼭 갈 곳 포함)를 AI 추천 장소 수의 최소·최대로 바꾼다. 말이 없으면 하루 길이에 맞춘 상한
+    (LIMITS.minutes_per_place 분에 1곳, 많아야 LIMITS.max_places)에서 꼭 갈 곳을 뺀 만큼까지.
+    문장에서 장소 수를 말했으면 상한을 넘더라도 그 수를 따른다."""
+    if c.max_places is not None:
+        max_ai = max(0, c.max_places - n_musts)
+    else:
+        cap = min(config.LIMITS.max_places, max(1, day_min // config.LIMITS.minutes_per_place))
+        max_ai = min(config.LIMITS.max_ai_stops, max(0, cap - n_musts))
     min_ai = max(0, (c.min_places or 0) - n_musts)
-    max_ai = config.LIMITS.max_ai_stops if c.max_places is None else max(0, c.max_places - n_musts)
     return replace(config.LIMITS, min_ai_stops=min_ai, max_ai_stops=max(max_ai, min_ai))
 
 
@@ -361,7 +365,7 @@ def make_course(req: PlanRequest) -> Course:
     # 후보 비교는 어림값으로 하고, 고른 코스의 구간만 TMAP 으로 재서 시간표를 다시 짠다.
     # 실측으로 시간이 맞지 않으면 실측값이 반영된 상태로 다시 고른다.
     choose_travel = _choosing_travel(c)  # 고를 때만 쓴다. 시간표(schedule)는 실제 이동시간으로 짠다
-    limits = _stop_limits(c, len(musts))
+    limits = _stop_limits(c, len(musts), day_end - day_start)
     for _ in range(MEASURE_ROUNDS):
         route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel, limits)
         route = improve_order(route, day_start, day_end, choose_travel)  # 같은 장소를 덜 오가는 순서로
@@ -376,6 +380,10 @@ def make_course(req: PlanRequest) -> Course:
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
     if visits is None:
         raise PlanError("실행 가능한 코스를 만들지 못했습니다. 시간·예산 조건을 완화해 주세요.")
+    # 장소 수를 줄여 하루가 일찍 끝나면 남는 시간만큼 더 머문다(순서·장소는 그대로라 이동시간은 이미 쟀다)
+    filled = schedule(fill_day([v.node for v in visits], day_start, day_end, travel_minutes), day_start, day_end, travel_minutes)
+    if filled is not None:
+        visits = filled
     n_places = sum(not v.node.origin for v in visits)
     if c.max_places is not None and len(musts) > c.max_places:
         c.notes.append(f"꼭 갈 곳이 {len(musts)}곳이라 말씀하신 {c.max_places}곳보다 많습니다. 꼭 갈 곳만 넣었습니다.")
