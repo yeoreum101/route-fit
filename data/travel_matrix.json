@@ -1,0 +1,2570 @@
+{
+  "acc|acc_sky_yard": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "acc|art_street": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc|arts_center": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "acc|asia_food_street": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "acc|c_003": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "acc|c_005": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc|c_007": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "acc|c_010": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "acc|c_013": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "acc|daein_market": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "acc|jeonil245": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "acc|plaza_518": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "acc|s_014": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc|s_030": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "acc|s_034": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "acc|s_036": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "acc|s_049": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "acc_sky_yard|acc": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "acc_sky_yard|art_street": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc_sky_yard|arts_center": {
+    "minutes": 34,
+    "mode": "transit"
+  },
+  "acc_sky_yard|asia_food_street": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc_sky_yard|c_001": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "acc_sky_yard|c_003": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "acc_sky_yard|c_007": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "acc_sky_yard|c_008": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc_sky_yard|c_010": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc_sky_yard|c_012": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "acc_sky_yard|c_013": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "acc_sky_yard|champions_field": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "acc_sky_yard|chungjangro": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "acc_sky_yard|daein_market": {
+    "minutes": 17,
+    "mode": "transit"
+  },
+  "acc_sky_yard|gungjeon_bakery": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "acc_sky_yard|gwangju_park_pocha": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "acc_sky_yard|jeonil245": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "acc_sky_yard|lee_jangwoo_house": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "acc_sky_yard|oritang_street": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "acc_sky_yard|penguin_village": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "acc_sky_yard|plaza_518": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "acc_sky_yard|pureungil": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_003": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_008": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_009": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_010": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_012": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_014": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_019": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_020": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_021": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_023": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_027": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_030": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_032": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_033": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_034": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_035": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_036": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "acc_sky_yard|s_049": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "acc_sky_yard|sajik_tower": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "acc_sky_yard|sangchu_twigim": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "acc_sky_yard|yangdong_market": {
+    "minutes": 18,
+    "mode": "transit"
+  },
+  "art_street|acc": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "art_street|acc_sky_yard": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "art_street|arts_center": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "art_street|c_001": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "art_street|c_003": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "art_street|c_005": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "art_street|c_007": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "art_street|c_009": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "art_street|c_010": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "art_street|c_012": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "art_street|c_013": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "art_street|chungjangro": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "art_street|daein_market": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "art_street|gungjeon_bakery": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "art_street|gwangju_theater": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "art_street|jeonil245": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "art_street|lee_jangwoo_house": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "art_street|oritang_street": {
+    "minutes": 19,
+    "mode": "transit"
+  },
+  "art_street|penguin_village": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "art_street|plaza_518": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "art_street|s_006": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "art_street|s_007": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "art_street|s_008": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "art_street|s_009": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "art_street|s_010": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "art_street|s_014": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "art_street|s_019": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "art_street|s_027": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "art_street|s_031": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "art_street|s_034": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "art_street|s_036": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "art_street|s_049": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "art_street|sajik_tower": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "art_street|sangchu_twigim": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "art_street|yangdong_market": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "art_street|yangnim_cafe": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "art_street|yangnim_history": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "arts_center|acc": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "arts_center|acc_sky_yard": {
+    "minutes": 34,
+    "mode": "transit"
+  },
+  "arts_center|art_street": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "arts_center|c_013": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "arts_center|champions_field": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "arts_center|daein_market": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "arts_center|kdj_convention": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "arts_center|lee_jangwoo_house": {
+    "minutes": 41,
+    "mode": "transit"
+  },
+  "arts_center|oritang_street": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "arts_center|s_018": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "arts_center|s_019": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "arts_center|s_027": {
+    "minutes": 36,
+    "mode": "transit"
+  },
+  "arts_center|s_034": {
+    "minutes": 34,
+    "mode": "transit"
+  },
+  "arts_center|yangdong_market": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "asia_food_street|acc": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "asia_food_street|acc_sky_yard": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "asia_food_street|c_003": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "asia_food_street|c_007": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "asia_food_street|c_008": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "asia_food_street|c_012": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "asia_food_street|c_013": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "asia_food_street|chungjangro": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "asia_food_street|daein_market": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "asia_food_street|gungjeon_bakery": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "asia_food_street|gwangju_theater": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "asia_food_street|jeonil245": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "asia_food_street|oritang_street": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "asia_food_street|plaza_518": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "asia_food_street|s_010": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "asia_food_street|s_015": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "asia_food_street|s_027": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "asia_food_street|s_030": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "asia_food_street|s_032": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "asia_food_street|s_036": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "asia_food_street|s_049": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "asia_food_street|yangdong_market": {
+    "minutes": 18,
+    "mode": "transit"
+  },
+  "c_001|acc_sky_yard": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_001|art_street": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "c_001|daein_market": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "c_001|plaza_518": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_001|pureungil": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_001|s_010": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "c_001|s_014": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_001|s_019": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "c_001|s_023": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "c_001|s_027": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_001|s_034": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_001|s_036": {
+    "minutes": 19,
+    "mode": "walk"
+  },
+  "c_001|s_049": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "c_002|gwangju_theater": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "c_003|acc": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "c_003|acc_sky_yard": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "c_003|art_street": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_003|asia_food_street": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "c_003|daein_market": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_003|s_010": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_003|s_019": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "c_003|s_027": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_003|s_031": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "c_004|gwangju_park_pocha": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "c_004|s_019": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "c_004|s_034": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "c_005|acc": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_005|art_street": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "c_005|jeonil245": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_005|s_010": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_005|s_014": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "c_005|s_034": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "c_006|s_032": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "c_006|s_034": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "c_007|acc": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_007|acc_sky_yard": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "c_007|art_street": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_007|asia_food_street": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "c_007|daein_market": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "c_007|gwangju_park_pocha": {
+    "minutes": 22,
+    "mode": "transit"
+  },
+  "c_007|jeonil245": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_007|penguin_village": {
+    "minutes": 28,
+    "mode": "transit"
+  },
+  "c_007|plaza_518": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_007|pureungil": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "c_007|s_010": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_007|s_014": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_007|s_019": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_007|s_027": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_007|s_032": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "c_007|s_034": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "c_007|s_049": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "c_008|acc_sky_yard": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_008|asia_food_street": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "c_008|daein_market": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "c_008|s_015": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "c_008|s_020": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "c_008|s_021": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "c_009|art_street": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "c_009|daein_market": {
+    "minutes": 22,
+    "mode": "transit"
+  },
+  "c_009|gwangju_theater": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "c_009|kdj_convention": {
+    "minutes": 40,
+    "mode": "transit"
+  },
+  "c_009|lee_jangwoo_house": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "c_009|s_004": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "c_009|s_016": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "c_009|s_023": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_009|s_029": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_009|s_030": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "c_009|s_032": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_009|s_035": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "c_009|s_049": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_009|sajik_tower": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "c_010|acc": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "c_010|acc_sky_yard": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_010|art_street": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "c_010|jeonil245": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "c_010|s_014": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_010|s_020": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "c_010|s_036": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "c_011|yangdong_market": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "c_012|acc_sky_yard": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_012|art_street": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_012|asia_food_street": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "c_012|champions_field": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "c_012|daein_market": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "c_012|s_014": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "c_012|s_019": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_012|s_021": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "c_012|s_023": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_012|s_032": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_013|acc": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_013|acc_sky_yard": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "c_013|art_street": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "c_013|arts_center": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "c_013|asia_food_street": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "c_013|daein_market": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "c_013|gwangju_park_pocha": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "c_013|jeonil245": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_013|penguin_village": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "c_013|plaza_518": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "c_013|pureungil": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "c_013|s_005": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_013|s_008": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_013|s_009": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_013|s_012": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "c_013|s_014": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_013|s_019": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_013|s_020": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_013|s_023": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "c_013|s_025": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "c_013|s_027": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "c_013|s_032": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_013|s_034": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_013|s_035": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "c_013|s_036": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "c_013|s_049": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "c_013|yangdong_market": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "champions_field|acc_sky_yard": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "champions_field|arts_center": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "champions_field|c_012": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "champions_field|daein_market": {
+    "minutes": 29,
+    "mode": "transit"
+  },
+  "champions_field|gwangju_park_pocha": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "champions_field|oritang_street": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "champions_field|plaza_518": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "champions_field|pureungil": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "champions_field|s_004": {
+    "minutes": 36,
+    "mode": "transit"
+  },
+  "champions_field|s_019": {
+    "minutes": 35,
+    "mode": "transit"
+  },
+  "champions_field|s_023": {
+    "minutes": 34,
+    "mode": "transit"
+  },
+  "champions_field|s_027": {
+    "minutes": 36,
+    "mode": "transit"
+  },
+  "champions_field|yangdong_market": {
+    "minutes": 28,
+    "mode": "transit"
+  },
+  "chungjangro|acc_sky_yard": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "chungjangro|art_street": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "chungjangro|asia_food_street": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "chungjangro|daein_market": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "chungjangro|gungjeon_bakery": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "chungjangro|gwangju_park_pocha": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "chungjangro|gwangju_theater": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "chungjangro|s_049": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "chungjangro|sangchu_twigim": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "daein_market|acc": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "daein_market|acc_sky_yard": {
+    "minutes": 17,
+    "mode": "transit"
+  },
+  "daein_market|art_street": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "daein_market|arts_center": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "daein_market|asia_food_street": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "daein_market|c_001": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "daein_market|c_003": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "daein_market|c_007": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "daein_market|c_008": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "daein_market|c_009": {
+    "minutes": 22,
+    "mode": "transit"
+  },
+  "daein_market|c_012": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "daein_market|c_013": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "daein_market|champions_field": {
+    "minutes": 29,
+    "mode": "transit"
+  },
+  "daein_market|chungjangro": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "daein_market|gungjeon_bakery": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "daein_market|gwangju_theater": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "daein_market|plaza_518": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "daein_market|s_003": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "daein_market|s_019": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "daein_market|s_027": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "daein_market|s_032": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "daein_market|s_034": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "daein_market|s_036": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "daein_market|s_049": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "daein_market|sangchu_twigim": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "daein_market|yangdong_market": {
+    "minutes": 19,
+    "mode": "transit"
+  },
+  "gungjeon_bakery|acc_sky_yard": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "gungjeon_bakery|art_street": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "gungjeon_bakery|asia_food_street": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "gungjeon_bakery|chungjangro": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "gungjeon_bakery|daein_market": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "gungjeon_bakery|gwangju_theater": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "gungjeon_bakery|oritang_street": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "gungjeon_bakery|plaza_518": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "gungjeon_bakery|s_036": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "gwangju_park_pocha|acc_sky_yard": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|c_004": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|c_007": {
+    "minutes": 22,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|c_013": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|champions_field": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|chungjangro": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "gwangju_park_pocha|gwangju_theater": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "gwangju_park_pocha|oritang_street": {
+    "minutes": 22,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|plaza_518": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "gwangju_park_pocha|s_014": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|s_016": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|s_030": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|s_034": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "gwangju_park_pocha|s_049": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "gwangju_theater|art_street": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "gwangju_theater|asia_food_street": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "gwangju_theater|c_002": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "gwangju_theater|c_009": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "gwangju_theater|chungjangro": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "gwangju_theater|daein_market": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "gwangju_theater|gungjeon_bakery": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "gwangju_theater|gwangju_park_pocha": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "gwangju_theater|lee_jangwoo_house": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "gwangju_theater|oritang_street": {
+    "minutes": 18,
+    "mode": "transit"
+  },
+  "gwangju_theater|s_029": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "gwangju_theater|s_034": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "gwangju_theater|s_036": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "hanheewon_museum|lee_jangwoo_house": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "hanheewon_museum|sajik_tower": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "jeonil245|acc": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "jeonil245|acc_sky_yard": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "jeonil245|art_street": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "jeonil245|asia_food_street": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "jeonil245|c_005": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "jeonil245|c_007": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "jeonil245|c_010": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "jeonil245|c_013": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "jeonil245|lee_jangwoo_house": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "jeonil245|plaza_518": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "jeonil245|s_009": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "jeonil245|s_014": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "jeonil245|s_027": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "jeonil245|s_036": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "jeonil245|s_049": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "jeonil245|sajik_tower": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "jeonil245|sangchu_twigim": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "jeonil245|yangnim_cafe": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "kdj_convention|arts_center": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "kdj_convention|c_009": {
+    "minutes": 40,
+    "mode": "transit"
+  },
+  "kdj_convention|s_036": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|acc_sky_yard": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|art_street": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|arts_center": {
+    "minutes": 41,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|c_009": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|gwangju_theater": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|hanheewon_museum": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "lee_jangwoo_house|jeonil245": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|penguin_village": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "lee_jangwoo_house|plaza_518": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|pureungil": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|s_019": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|s_032": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "lee_jangwoo_house|sajik_tower": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "lee_jangwoo_house|yangnim_cafe": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "oritang_street|acc_sky_yard": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "oritang_street|art_street": {
+    "minutes": 19,
+    "mode": "transit"
+  },
+  "oritang_street|arts_center": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "oritang_street|asia_food_street": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "oritang_street|champions_field": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "oritang_street|gungjeon_bakery": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "oritang_street|gwangju_park_pocha": {
+    "minutes": 22,
+    "mode": "transit"
+  },
+  "oritang_street|gwangju_theater": {
+    "minutes": 18,
+    "mode": "transit"
+  },
+  "oritang_street|yangdong_market": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "penguin_village|acc_sky_yard": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "penguin_village|art_street": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "penguin_village|c_007": {
+    "minutes": 28,
+    "mode": "transit"
+  },
+  "penguin_village|c_013": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "penguin_village|lee_jangwoo_house": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "penguin_village|plaza_518": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "penguin_village|s_009": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "penguin_village|s_010": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "penguin_village|s_014": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "penguin_village|s_036": {
+    "minutes": 19,
+    "mode": "walk"
+  },
+  "penguin_village|sajik_tower": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "plaza_518|acc": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "plaza_518|acc_sky_yard": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "plaza_518|art_street": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "plaza_518|asia_food_street": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "plaza_518|c_001": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "plaza_518|c_007": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "plaza_518|c_013": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "plaza_518|champions_field": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "plaza_518|daein_market": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "plaza_518|gungjeon_bakery": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "plaza_518|gwangju_park_pocha": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "plaza_518|jeonil245": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "plaza_518|lee_jangwoo_house": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "plaza_518|penguin_village": {
+    "minutes": 16,
+    "mode": "walk"
+  },
+  "plaza_518|pureungil": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "plaza_518|s_008": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "plaza_518|s_010": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "plaza_518|s_012": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "plaza_518|s_014": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "plaza_518|s_019": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "plaza_518|s_032": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "plaza_518|s_034": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "plaza_518|s_036": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "plaza_518|s_049": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "plaza_518|sajik_tower": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "plaza_518|yangnim_cafe": {
+    "minutes": 28,
+    "mode": "transit"
+  },
+  "pureungil|acc_sky_yard": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "pureungil|c_001": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "pureungil|c_007": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "pureungil|c_013": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "pureungil|champions_field": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "pureungil|lee_jangwoo_house": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "pureungil|plaza_518": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "pureungil|s_008": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "pureungil|s_009": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "pureungil|s_010": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "pureungil|s_014": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "pureungil|s_019": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "pureungil|s_020": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "pureungil|s_023": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "pureungil|s_032": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "pureungil|s_033": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "pureungil|s_035": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "pureungil|sajik_tower": {
+    "minutes": 35,
+    "mode": "transit"
+  },
+  "pureungil|yangnim_cafe": {
+    "minutes": 29,
+    "mode": "transit"
+  },
+  "s_003|acc_sky_yard": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_003|daein_market": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_004|c_009": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "s_004|champions_field": {
+    "minutes": 36,
+    "mode": "transit"
+  },
+  "s_005|c_013": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_006|art_street": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_007|art_street": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_008|acc_sky_yard": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_008|art_street": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_008|c_013": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_008|plaza_518": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_008|pureungil": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_008|s_049": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_009|acc_sky_yard": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_009|art_street": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_009|c_013": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_009|jeonil245": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_009|penguin_village": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "s_009|pureungil": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_010|acc_sky_yard": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_010|art_street": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_010|asia_food_street": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "s_010|c_001": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_010|c_003": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_010|c_005": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_010|c_007": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_010|penguin_village": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "s_010|plaza_518": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_010|pureungil": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_012|acc_sky_yard": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_012|c_013": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_012|plaza_518": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "s_014|acc": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_014|acc_sky_yard": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_014|art_street": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_014|c_001": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_014|c_005": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "s_014|c_007": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_014|c_010": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_014|c_012": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_014|c_013": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_014|gwangju_park_pocha": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "s_014|jeonil245": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_014|penguin_village": {
+    "minutes": 31,
+    "mode": "transit"
+  },
+  "s_014|plaza_518": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_014|pureungil": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_014|s_049": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_015|asia_food_street": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "s_015|c_008": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "s_016|c_009": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "s_016|gwangju_park_pocha": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "s_018|arts_center": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "s_019|acc_sky_yard": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_019|art_street": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_019|arts_center": {
+    "minutes": 33,
+    "mode": "transit"
+  },
+  "s_019|c_001": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_019|c_003": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_019|c_004": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_019|c_007": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_019|c_012": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_019|c_013": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_019|champions_field": {
+    "minutes": 35,
+    "mode": "transit"
+  },
+  "s_019|daein_market": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_019|lee_jangwoo_house": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "s_019|plaza_518": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_019|pureungil": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_019|sajik_tower": {
+    "minutes": 29,
+    "mode": "transit"
+  },
+  "s_019|yangnim_cafe": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "s_020|acc_sky_yard": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_020|c_008": {
+    "minutes": 1,
+    "mode": "walk"
+  },
+  "s_020|c_010": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "s_020|c_013": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_020|pureungil": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_021|acc_sky_yard": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_021|c_008": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_021|c_012": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_023|acc_sky_yard": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_023|c_001": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_023|c_009": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_023|c_012": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_023|c_013": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_023|champions_field": {
+    "minutes": 34,
+    "mode": "transit"
+  },
+  "s_023|pureungil": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_025|c_013": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_027|acc_sky_yard": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_027|art_street": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_027|arts_center": {
+    "minutes": 36,
+    "mode": "transit"
+  },
+  "s_027|asia_food_street": {
+    "minutes": 15,
+    "mode": "walk"
+  },
+  "s_027|c_001": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_027|c_003": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_027|c_007": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_027|c_013": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_027|champions_field": {
+    "minutes": 36,
+    "mode": "transit"
+  },
+  "s_027|daein_market": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_027|jeonil245": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_027|s_049": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_029|c_009": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_029|gwangju_theater": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "s_030|acc": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_030|acc_sky_yard": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_030|asia_food_street": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "s_030|c_009": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_030|gwangju_park_pocha": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "s_031|art_street": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_031|c_003": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_032|acc_sky_yard": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_032|asia_food_street": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "s_032|c_006": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_032|c_007": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_032|c_009": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "s_032|c_012": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_032|c_013": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_032|daein_market": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "s_032|lee_jangwoo_house": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "s_032|plaza_518": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_032|pureungil": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_033|acc_sky_yard": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_033|pureungil": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_034|acc": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_034|acc_sky_yard": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_034|art_street": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_034|arts_center": {
+    "minutes": 34,
+    "mode": "transit"
+  },
+  "s_034|c_001": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_034|c_004": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "s_034|c_005": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_034|c_006": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_034|c_007": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_034|c_013": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_034|daein_market": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_034|gwangju_park_pocha": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "s_034|gwangju_theater": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "s_034|plaza_518": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_035|acc_sky_yard": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_035|c_009": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_035|c_013": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_035|pureungil": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_036|acc": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "s_036|acc_sky_yard": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_036|art_street": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_036|asia_food_street": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_036|c_001": {
+    "minutes": 19,
+    "mode": "walk"
+  },
+  "s_036|c_010": {
+    "minutes": 21,
+    "mode": "transit"
+  },
+  "s_036|c_013": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "s_036|daein_market": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "s_036|gungjeon_bakery": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_036|gwangju_theater": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_036|jeonil245": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_036|kdj_convention": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "s_036|penguin_village": {
+    "minutes": 19,
+    "mode": "walk"
+  },
+  "s_036|plaza_518": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_036|sajik_tower": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "s_036|yangdong_market": {
+    "minutes": 17,
+    "mode": "transit"
+  },
+  "s_049|acc": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_049|acc_sky_yard": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_049|art_street": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "s_049|asia_food_street": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_049|c_001": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_049|c_007": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_049|c_009": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "s_049|c_013": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "s_049|chungjangro": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_049|daein_market": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_049|gwangju_park_pocha": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "s_049|jeonil245": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_049|plaza_518": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_049|s_008": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_049|s_014": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "s_049|s_027": {
+    "minutes": 5,
+    "mode": "walk"
+  },
+  "s_049|sajik_tower": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "sajik_tower|acc_sky_yard": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "sajik_tower|art_street": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "sajik_tower|c_009": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "sajik_tower|hanheewon_museum": {
+    "minutes": 6,
+    "mode": "walk"
+  },
+  "sajik_tower|jeonil245": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "sajik_tower|lee_jangwoo_house": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "sajik_tower|penguin_village": {
+    "minutes": 13,
+    "mode": "walk"
+  },
+  "sajik_tower|plaza_518": {
+    "minutes": 25,
+    "mode": "transit"
+  },
+  "sajik_tower|pureungil": {
+    "minutes": 35,
+    "mode": "transit"
+  },
+  "sajik_tower|s_019": {
+    "minutes": 29,
+    "mode": "transit"
+  },
+  "sajik_tower|s_036": {
+    "minutes": 17,
+    "mode": "walk"
+  },
+  "sajik_tower|s_049": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "sajik_tower|yangnim_history": {
+    "minutes": 11,
+    "mode": "walk"
+  },
+  "sangchu_twigim|acc_sky_yard": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "sangchu_twigim|art_street": {
+    "minutes": 9,
+    "mode": "walk"
+  },
+  "sangchu_twigim|chungjangro": {
+    "minutes": 2,
+    "mode": "walk"
+  },
+  "sangchu_twigim|daein_market": {
+    "minutes": 14,
+    "mode": "walk"
+  },
+  "sangchu_twigim|jeonil245": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "yangdong_market|acc_sky_yard": {
+    "minutes": 18,
+    "mode": "transit"
+  },
+  "yangdong_market|art_street": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "yangdong_market|arts_center": {
+    "minutes": 24,
+    "mode": "transit"
+  },
+  "yangdong_market|asia_food_street": {
+    "minutes": 18,
+    "mode": "transit"
+  },
+  "yangdong_market|c_011": {
+    "minutes": 23,
+    "mode": "transit"
+  },
+  "yangdong_market|c_013": {
+    "minutes": 20,
+    "mode": "transit"
+  },
+  "yangdong_market|champions_field": {
+    "minutes": 28,
+    "mode": "transit"
+  },
+  "yangdong_market|daein_market": {
+    "minutes": 19,
+    "mode": "transit"
+  },
+  "yangdong_market|oritang_street": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "yangdong_market|s_036": {
+    "minutes": 17,
+    "mode": "transit"
+  },
+  "yangdong_market|yangnim_cafe": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "yangnim_cafe|art_street": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "yangnim_cafe|jeonil245": {
+    "minutes": 27,
+    "mode": "transit"
+  },
+  "yangnim_cafe|lee_jangwoo_house": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "yangnim_cafe|plaza_518": {
+    "minutes": 28,
+    "mode": "transit"
+  },
+  "yangnim_cafe|pureungil": {
+    "minutes": 29,
+    "mode": "transit"
+  },
+  "yangnim_cafe|s_019": {
+    "minutes": 32,
+    "mode": "transit"
+  },
+  "yangnim_cafe|yangdong_market": {
+    "minutes": 30,
+    "mode": "transit"
+  },
+  "yangnim_history|art_street": {
+    "minutes": 26,
+    "mode": "transit"
+  },
+  "yangnim_history|sajik_tower": {
+    "minutes": 11,
+    "mode": "walk"
+  }
+}

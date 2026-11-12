@@ -30,6 +30,20 @@ def restore_places():
     assert client.post("/api/admin/import").status_code == 200
 
 
+@pytest.fixture
+def no_travel_times(restore_places):
+    """잰 이동시간이 하나도 없는 상태에서 시작한다. data/travel_matrix.json 의 값은 끝나면 restore_places 가 되돌린다."""
+    from sqlalchemy import delete
+
+    from routefit import data, db
+
+    with db.session() as s:
+        s.execute(delete(db.TravelRow))
+        s.commit()
+    data.invalidate()
+    yield
+
+
 def plan(**body):
     res = client.post("/api/plan", json={"query": QUERY, **body})
     assert res.status_code == 200, res.text
@@ -93,6 +107,8 @@ def test_patch_and_validation(restore_places):
 def test_checklist_scores(restore_places):
     """5·18민주광장: 체류 20분 · 지출 0원 · 할 거리 2개 · 24시까지 운영 → 자동 항목 2개 체크."""
     url = "/api/admin/places/plaza_518/checklists"
+    for sheet in client.get(url).json()["sheets"]:  # data/checklists.json 에 있는 실제 채점은 빼고 시작한다
+        assert client.delete(f"{url}/{sheet['rater']}").status_code == 200
     a = {"rater": "a", "checks": {"history_site": True, "not_franchise": True, "seating": True},
          "evidence": {"history_site": "5·18 사적지"}}
     b = {"rater": "b", "checks": {"history_site": True, "not_franchise": True, "market_zone": True}}
@@ -138,7 +154,7 @@ def test_stops_say_walk_or_transit(restore_places):
     assert data.travel_mode(a, b) == "car"
 
 
-def test_travel_times(restore_places):
+def test_travel_times(no_travel_times):
     from routefit.data import travel_minutes
 
     a, b = (next(p for p in load_places() if p.id == i) for i in ("acc", "daein_market"))
@@ -148,7 +164,7 @@ def test_travel_times(restore_places):
     assert client.get("/api/admin/export").json()["travel_matrix"] == {"acc|daein_market": {"minutes": 42, "mode": None}}
 
 
-def test_travel_mode_survives_export_and_seed(restore_places, monkeypatch):
+def test_travel_mode_survives_export_and_seed(no_travel_times, monkeypatch):
     # 내보낸 이동시간을 data/travel_matrix.json 으로 다시 채워도 이동 수단이 남는다. 예전 형식(분 숫자만)도 읽는다.
     from routefit import db
 
@@ -200,7 +216,7 @@ def test_rate_limit(monkeypatch):
     ratelimit.reset()
 
 
-def test_travel_builder_with_mocked_kakao(restore_places):
+def test_travel_builder_with_mocked_kakao(no_travel_times):
     import httpx
 
     from routefit import data, travel
@@ -224,7 +240,7 @@ def test_travel_builder_with_mocked_kakao(restore_places):
         assert travel.build(mock, pause_s=0)["called"] == 0  # 이미 채운 구간은 다시 부르지 않는다
 
 
-def test_travel_builder_with_mocked_tmap_transit(restore_places):
+def test_travel_builder_with_mocked_tmap_transit(no_travel_times):
     import httpx
 
     from routefit import data, travel
@@ -250,7 +266,7 @@ def test_travel_builder_with_mocked_tmap_transit(restore_places):
     assert data.travel_minutes(a, b) == data.travel_minutes(b, a) == expected
 
 
-def test_course_legs_are_measured_once(restore_places, monkeypatch):
+def test_course_legs_are_measured_once(no_travel_times, monkeypatch):
     # 코스에 들어간 구간만 TMAP 으로 재서 저장하고, 같은 구간은 다시 부르지 않는다.
     from routefit import data, travel
 
@@ -264,9 +280,14 @@ def test_course_legs_are_measured_once(restore_places, monkeypatch):
     monkeypatch.setattr(travel, "fetch_leg", fake_leg)
     data.invalidate()
 
+    from routefit.pipeline import MEASURE_ROUNDS
+
     course = plan()
     legs = len(course["stops"]) - 1
-    assert len(calls) == legs > 0  # 후보 비교 구간이 아니라 코스 구간만
+    # 후보 비교 구간(수백 개)이 아니라 고른 코스의 구간만 잰다. 실측으로 시간이 맞지 않으면 다시 골라
+    # 새 구간을 더 잴 수 있으므로(최대 MEASURE_ROUNDS 번) 마지막 코스의 구간보다 많을 수 있다.
+    assert 0 < legs <= len(calls) <= MEASURE_ROUNDS * 12
+    assert len({frozenset(c) for c in calls}) == len(calls)  # 같은 구간을 두 번 재지 않는다
     assert course["engine"]["travel"] == "tmap"
     assert all((s["travel_min"], s["travel_mode"]) == (12, "transit") for s in course["stops"][1:])
     rows = {(t["from_id"], t["to_id"]) for t in client.get("/api/admin/travel-times").json()}
@@ -278,7 +299,7 @@ def test_course_legs_are_measured_once(restore_places, monkeypatch):
     assert not first & {frozenset(c) for c in calls}  # 이미 잰 구간은 다시 부르지 않는다
 
 
-def test_course_without_tmap_key_uses_estimate():
+def test_course_without_tmap_key_uses_estimate(no_travel_times):
     assert plan()["engine"]["travel"] == "estimate"
 
 

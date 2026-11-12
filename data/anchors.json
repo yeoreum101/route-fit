@@ -1,16 +1,5 @@
 [
   {
-    "id": "champions_field",
-    "name": "광주-기아 챔피언스 필드",
-    "category": "venue",
-    "area": "북구 임동",
-    "lat": 35.1683,
-    "lng": 126.8891,
-    "description": "KIA 타이거즈 홈구장. 프로야구 경기 관람.",
-    "aliases": ["챔피언스필드", "챔필", "야구장", "야구"],
-    "stay_min": 210
-  },
-  {
     "id": "arts_center",
     "name": "광주예술의전당",
     "category": "venue",
@@ -18,8 +7,68 @@
     "lat": 35.178,
     "lng": 126.8814,
     "description": "공연·콘서트·뮤지컬이 열리는 공연장.",
-    "aliases": ["예술의전당", "광주문화예술회관", "문예회관"],
-    "stay_min": 150
+    "tags": {},
+    "aliases": [
+      "예술의전당",
+      "광주문화예술회관",
+      "문예회관"
+    ],
+    "open": "09:00",
+    "close": "22:30",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 150,
+    "cost": 20000,
+    "gwangju_ness": 3,
+    "stay_inducement": 4,
+    "commerce_link": 3,
+    "is_local_commerce": false,
+    "verified": false
+  },
+  {
+    "id": "champions_field",
+    "name": "광주-기아 챔피언스 필드",
+    "category": "venue",
+    "area": "북구 임동",
+    "lat": 35.1683,
+    "lng": 126.8891,
+    "description": "KIA 타이거즈 홈구장. 프로야구 경기 관람.",
+    "tags": {
+      "mood": [
+        "활기찬",
+        "정겨운"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "혼자",
+        "친구",
+        "연인",
+        "가족",
+        "아이 동반"
+      ]
+    },
+    "aliases": [
+      "챔피언스필드",
+      "챔필",
+      "야구장",
+      "야구"
+    ],
+    "open": "00:00",
+    "close": "24:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 210,
+    "cost": 0,
+    "gwangju_ness": 3,
+    "stay_inducement": 4,
+    "commerce_link": 1,
+    "is_local_commerce": false,
+    "verified": false
   },
   {
     "id": "kdj_convention",
@@ -29,7 +78,23 @@
     "lat": 35.1432,
     "lng": 126.8414,
     "description": "학회·박람회·전시가 열리는 컨벤션센터.",
-    "aliases": ["김대중컨벤션", "컨벤션센터", "DJ센터"],
-    "stay_min": 240
+    "tags": {},
+    "aliases": [
+      "김대중컨벤션",
+      "컨벤션센터",
+      "DJ센터"
+    ],
+    "open": "00:00",
+    "close": "24:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 240,
+    "cost": 0,
+    "gwangju_ness": 2,
+    "stay_inducement": 4,
+    "commerce_link": 2,
+    "is_local_commerce": false,
+    "verified": false
   }
 ]
