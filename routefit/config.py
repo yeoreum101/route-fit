@@ -41,6 +41,7 @@ class Limits:
     max_ai_stops: int = 6
     category_caps: tuple[tuple[str, int], ...] = (("food", 2), ("cafe", 2), ("night", 1))
     min_cafe_stay: int = 90  # 카페는 이보다 짧게 머물지 않는다 (장소의 머무는 시간이 더 길면 그것을 쓴다)
+    min_meal_stay: int = 70  # 식당도 마찬가지. 60분이면 밥이 빠듯하다는 설문 의견
     # AI 가 고른 식당은 식사 시간대 안에서 시작하고, 한 끼에 한 곳만 넣는다. (이름, 시작 가능 구간, 자정 기준 분)
     meal_windows: tuple[tuple[str, int, int], ...] = (("점심", 11 * 60, 13 * 60 + 30), ("저녁", 17 * 60, 19 * 60 + 30))
     # 나가는 시각을 이 단위(분)로 맞춘다. 분 단위 일정은 따르기 어렵다는 설문 의견. 도착은 실제 시각 그대로 보여 준다

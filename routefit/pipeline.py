@@ -68,9 +68,11 @@ def _find(known: list[Place], m: MustVisitInput) -> Optional[Place]:
 
 
 def _stay(place: Place) -> int:
-    """머무는 시간. 카페는 커피만 마시고 나오지 않도록 최소 시간을 둔다."""
+    """머무는 시간. 카페는 커피만 마시고 나오지 않도록, 식당은 밥을 서두르지 않도록 최소 시간을 둔다."""
     if place.category == "cafe":
         return max(place.stay_min, config.LIMITS.min_cafe_stay)
+    if place.category == "food":
+        return max(place.stay_min, config.LIMITS.min_meal_stay)
     return place.stay_min
 
 

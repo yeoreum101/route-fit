@@ -35,6 +35,7 @@ def test_must_visit_is_kept_and_course_is_executable(planner):
     for prev, cur in zip(course.stops, course.stops[1:]):
         assert not prev.category == cur.category == "cafe"  # 카페 연달아 금지
     assert all(s.stay_min >= 90 for s in course.stops if s.category == "cafe")
+    assert all(s.stay_min >= 70 for s in course.stops if s.category == "food")
     meals = [s for s in course.stops if s.kind == "ai" and s.category == "food"]
     slots = [meal_slot(to_min(s.start)) for s in meals]
     assert None not in slots and len(set(slots)) == len(slots)  # 식사 시간대 안, 한 끼에 한 곳
