@@ -4,13 +4,16 @@ LLM 에는 점수 계산 결과(유사도·이동시간·라벨 점수)만 넘�
 """
 import json
 import re
+from typing import Optional
 
 from pydantic import BaseModel
 
 from . import llm
+from .config import LIMITS
 from .data import travel_mode
 from .models import CATEGORY_KO, Constraints, to_hm
 from .planner import Visit
+from .planner.core import meal_slot
 
 SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 해설자다.
 코스는 이미 알고리즘이 확정했다. 너는 주어진 계산 결과를 근거로 "왜 이 코스인가"를 한국어로 설명만 한다.
@@ -20,9 +23,15 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
 - 장소를 추가·삭제하거나 순서를 바꾸자고 제안하지 않는다.
 - 그 장소에서 하는 일은 activities 와 description 에 있는 것만 말한다. 사용자가 원한 일이 activities 에 없으면(전시를 원했는데
   극장) 그 일을 하는 곳처럼 쓰지 말고, 실제로 하는 일과 동선을 이유로 든다.
-- reasons: kind 가 "ai" 인 장소마다 1~2문장. 사용자의 취향 문장과 어떻게 맞는지, 동선상 왜 이 자리인지를 구체적으로 쓴다.
+- reasons: kind 가 "ai" 인 장소마다 2문장.
+  첫 문장은 그곳이 어떤 곳인지 description·activities·mood 로 구체적으로 쓴다. 식당·카페는 무엇을 먹고 마시는 곳인지,
+  어떤 분위기인지를 쓴다(예: "눈앞에서 한우를 구워 주는 코스 요리집으로, 룸이 있어 조용히 식사하기 좋습니다").
+  둘째 문장은 왜 이 자리인지: 취향 문장과 맞으면 그 점을, 아니면 하루에서 맡은 역할(meal 이 있으면 그 끼니, 카페면
+  쉬어 가는 자리)과 동선을 쓴다. "취향과 직접 맞닿지 않지만" 처럼 안 맞는다는 말로 시작하지 않는다.
 - summary: 코스 전체를 2~3문장으로 하루가 어떻게 이어지는지 설명한다.
+- 장소 이름은 name 그대로 쓴다.
 - kind 가 "start" 인 곳은 사용자가 출발하는 위치다(머무는 곳이 아니다). 있으면 "○○에서 출발해" 처럼만 쓴다.
+  start 가 없으면 '출발' 이라는 말을 쓰지 않고 "○○에서 시작해" 처럼 쓴다.
 - 점수 숫자를 그대로 나열하지 말고 자연스러운 말로 풀어 쓴다.
 """
 # 사용자가 직접 고른 곳(kind 가 must)이 있을 때만 붙인다. 없을 때도 이 말을 주면 "직접 고른 곳은 없지만" 처럼 쓴다.
@@ -44,6 +53,11 @@ class Explanation(BaseModel):
     reasons: list[StopReason]
 
 
+def _meal_name(v: Visit) -> Optional[str]:
+    slot = meal_slot(v.start)
+    return None if slot is None else LIMITS.meal_windows[slot][0]
+
+
 def _facts(visits: list[Visit], c: Constraints) -> dict:
     return {
         "user_taste": c.taste,
@@ -58,6 +72,9 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "area": v.node.place.area,
                 "description": v.node.place.description,
                 "activities": v.node.place.tags.get("activity", []),  # '할 거리' 태그. 유형 이름(문화·전시)보다 정확하다
+                "mood": v.node.place.tags.get("mood", []),
+                # 식사 시간대에 넣은 식당이면 그 끼니("점심"·"저녁"). 취향과 상관없이 들어간 식당의 이유가 된다
+                "meal": _meal_name(v) if v.node.meal else None,
                 "time": f"{to_hm(v.start)}~{to_hm(v.end)}",
                 "stay_min": v.node.stay,
                 "travel_min_from_prev": v.travel,
