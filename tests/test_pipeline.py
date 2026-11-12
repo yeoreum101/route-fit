@@ -241,6 +241,37 @@ def _plan(query, **kw):
     return make_course(PlanRequest(query=query, **kw))
 
 
+def test_no_transit_is_read_from_sentence():
+    from routefit.filters import avoids_transit
+
+    for q in ("대중교통 타기 싫어", "버스는 안 탈래", "지하철 말고", "걸어서 다닐 수 있는 곳으로만", "도보로만 다닐래"):
+        assert avoids_transit(q), q
+    for q in ("많이 걷기 싫어", "버스 타고 가도 돼", "맛집이랑 카페"):
+        assert not avoids_transit(q), q
+    assert parse_rule_based("대중교통 타기 싫어. 맛집", []).avoid_keywords == []  # '싫은 것'으로 장소를 거르지 않는다
+
+
+@pytest.mark.parametrize("planner", ["greedy", "ortools"])
+def test_no_transit_course_walks_between_places(planner):
+    from routefit.data import travel_mode
+
+    def rides(course):
+        nodes = {p.id: p for p in load_places() + load_anchors()}
+        stops = [nodes[s.place_id] for s in course.stops]
+        return [(a.id, b.id) for a, b in zip(stops, stops[1:]) if travel_mode(a, b) != "walk"]
+
+    query = "대중교통 타기 싫어. 맛집이랑 카페, 구경거리"
+    c = _plan(query, planner=planner)
+    assert c.constraints.walk_only and len(c.stops) >= 3
+    assert rides(c) == []
+    assert any("걸어서 닿는 곳끼리" in n for n in c.constraints.notes)
+
+    # 꼭 갈 곳이 멀면(야구장) 그곳을 오가는 구간만 대중교통이 남고, 그렇다고 알린다
+    far = _plan(query, must_visits=[BASEBALL], planner=planner)
+    assert all("champions_field" in leg for leg in rides(far))
+    assert any("대중교통 구간이 남았습니다" in n for n in far.constraints.notes) == bool(rides(far))
+
+
 def test_disliked_word_and_excluded_places_are_not_recommended():
     # "오리탕 싫어" -> 오리탕 거리를 빼고, 화면에서 뺀 장소도 빼고, 인식된 조건에 남긴다
     c = _plan("오리탕 싫어. 맛집이랑 시장 구경", exclude_ids=["daein_market"])

@@ -185,6 +185,22 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str], 
     return [n for n in nodes if n.windows]  # 머무는 시간만큼 열려 있는 구간이 없는 곳은 뺀다
 
 
+def _choosing_travel(c: Constraints):
+    """코스를 고를 때 쓰는 이동시간. 대중교통을 타지 않겠다고 했으면 걸어서 못 가는 구간을 LIMITS.no_transit_extra_min
+    만큼 더 걸리는 것으로 본다. 둘 다 사용자가 정한 곳(출발 위치·꼭 갈 곳)인 구간은 피할 수 없으므로 그대로 둔다."""
+    if not c.walk_only:
+        return travel_minutes
+    extra = config.LIMITS.no_transit_extra_min
+
+    def minutes(a: Node, b: Node) -> int:
+        t = travel_minutes(a, b)
+        if (a.mandatory and b.mandatory) or travel_mode(a, b) == "walk":
+            return t
+        return t + extra
+
+    return minutes
+
+
 def _to_course(visits: list[Visit], c: Constraints, engine: dict[str, str]) -> Course:
     summary, reasons, engine["explainer"] = explain(visits, c)
     stops = [
@@ -310,6 +326,7 @@ def make_course(req: PlanRequest) -> Course:
         skip_meals=parsed.skip_meals,
         avoid_keywords=parsed.avoid_keywords,
         excluded_places=[p.name for p in load_places() if p.id in set(req.exclude_ids)],
+        walk_only=filters.avoids_transit(req.query),
         visit_date=req.visit_date,
         must_visits=[m.place.name for m in musts],
         start_place=origin.place.name if origin else None,
@@ -330,20 +347,28 @@ def make_course(req: PlanRequest) -> Course:
     planner = plan_ortools if planner_name == "ortools" else plan_greedy
     # 후보 비교는 어림값으로 하고, 고른 코스의 구간만 TMAP 으로 재서 시간표를 다시 짠다.
     # 실측으로 시간이 맞지 않으면 실측값이 반영된 상태로 다시 고른다.
+    choose_travel = _choosing_travel(c)  # 고를 때만 쓴다. 시간표(schedule)는 실제 이동시간으로 짠다
     for _ in range(MEASURE_ROUNDS):
-        route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, travel_minutes)
-        route = improve_order(route, day_start, day_end, travel_minutes)  # 같은 장소를 덜 오가는 순서로
+        route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel)
+        route = improve_order(route, day_start, day_end, choose_travel)  # 같은 장소를 덜 오가는 순서로
         new_legs = travel.measure_route(route)
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
         if visits is not None or not new_legs:
             break
     if visits is None and planner is plan_ortools:
         # OR-Tools 의 시간 모델과 schedule() 이 어긋나 시간표가 안 나오면 그리디로 한 번 더
-        route = plan_greedy(fixed_nodes, candidates, day_start, day_end, c.budget, travel_minutes)
+        route = plan_greedy(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel)
         travel.measure_route(route)
         visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
     if visits is None:
         raise PlanError("실행 가능한 코스를 만들지 못했습니다. 시간·예산 조건을 완화해 주세요.")
+    if c.walk_only:
+        rides = [b.node.place.name for a, b in zip(visits, visits[1:]) if travel_mode(a.node, b.node) != "walk"]
+        c.notes.append(
+            f"대중교통을 타지 않도록 걸어서 닿는 곳으로 골랐지만, 꼭 갈 곳이 멀어 {', '.join(rides)}까지는 대중교통 구간이 남았습니다."
+            if rides
+            else "대중교통을 타지 않도록 걸어서 닿는 곳끼리 골랐습니다."
+        )
 
     # ④ 추천 이유 생성
     measured = all(is_measured(a.node, b.node) for a, b in zip(visits, visits[1:]))

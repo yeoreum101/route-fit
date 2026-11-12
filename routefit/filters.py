@@ -84,6 +84,20 @@ ACTIVITY_WORDS = [
 _NEGATED = r"\S{0,3}\s*(?:싫|빼|말고|제외|별로|안\s*보)"
 
 
+# ---------- 대중교통을 타지 않겠다는 말 ----------
+
+_NO_TRANSIT = re.compile(
+    r"(?:대중교통|버스|지하철)\S{0,4}\s*(?:타기\s*|타는\s*(?:건|게)\s*)?(?:싫|별로|말고|빼|없이|안\s*타|안\s*탈|타지\s*않|못\s*타)"
+)
+_WALK_ONLY = re.compile(r"(?:걸어서|도보로?)\s*(?:만|다닐|갈\s*수|이동|돌아)")
+
+
+def avoids_transit(query: str) -> bool:
+    """"대중교통 타기 싫어", "버스는 안 탈래", "걸어서 다닐 수 있는 곳으로만" -> True.
+    "많이 걷기 싫어" 처럼 걷기를 피하는 말은 아니다."""
+    return bool(_NO_TRANSIT.search(query) or _WALK_ONLY.search(query))
+
+
 def wanted_activities(query: str) -> set[str]:
     """문장에서 하고 싶다고 한 할 거리 태그. "전시 좀 보고" -> {"전시 관람"}. "전시는 말고" 처럼 피하는 말이 붙으면 뺀다."""
     return {

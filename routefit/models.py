@@ -168,6 +168,7 @@ class Constraints(BaseModel):
     skip_meals: list[str] = []  # 식당을 넣지 않을 끼니("점심"·"저녁"). 예전에 저장된 코스에는 없다
     avoid_keywords: list[str] = []  # 싫다고 한 낱말. 이 낱말이 들어간 장소는 추천하지 않는다
     excluded_places: list[str] = []  # 화면에서 뺀 장소 이름
+    walk_only: bool = False  # 대중교통을 타지 않겠다고 했다: 걸어서 닿는 곳끼리 고른다
     start_place: Optional[str] = None  # 출발 위치 이름
     visit_date: Optional[date] = None
     must_visits: list[str] = []  # 필수 방문지 이름

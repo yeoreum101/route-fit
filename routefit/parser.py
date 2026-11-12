@@ -195,8 +195,11 @@ def skip_meals_in(query: str) -> list[str]:
     return [m for m in MEALS if m in skip]
 
 
-# 싫다고 한 낱말. 유형·끼니 낱말은 avoid_categories·skip_meals 가 맡으므로 여기서는 버린다.
-_NOT_KEYWORDS = {"점심", "저녁", "밥", "식사", "끼니", "시장", "전통시장", "카페", "식당", "밥집", "맛집", "명소", "전시", "쇼핑", "상점"}
+# 싫다고 한 낱말. 유형·끼니 낱말은 avoid_categories·skip_meals 가, 탈것은 filters.avoids_transit 이 맡으므로 여기서는 버린다.
+_NOT_KEYWORDS = {
+    "점심", "저녁", "밥", "식사", "끼니", "시장", "전통시장", "카페", "식당", "밥집", "맛집", "명소", "전시", "쇼핑", "상점",
+    "대중교통", "버스", "지하철", "택시", "타기", "걷기",  # "버스 타기 싫어", "많이 걷기 싫어" 의 바로 앞 낱말
+}
 _AVOID_KEYWORD = re.compile(r"([^\s,.!?]+?)(?:은|는|이|가|도|을|를)?\s*(?:싫|빼|말고|제외|별로|못\s*먹|안\s*먹)")
 
 
