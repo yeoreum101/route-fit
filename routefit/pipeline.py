@@ -155,7 +155,7 @@ def _excluded(places: list[Place], c: Constraints, query: str, musts: list[Node]
     return out
 
 
-def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str]) -> list[Node]:
+def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str], activities: set[str]) -> list[Node]:
     places = [
         p
         for p in load_places()
@@ -178,6 +178,7 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str]) 
             taste=(sims[p.id] - lo) / span,
             similarity=sims[p.id],
             companion_fit=bool(c.companions) and c.companions in p.tags.get("companions", []),
+            activity_fit=bool(activities & set(p.tags.get("activity", []))),
         )
         for p in places
     ]
@@ -320,7 +321,9 @@ def make_course(req: PlanRequest) -> Course:
     index = _index()
     excluded = _excluded(load_places(), c, req.query, musts, set(req.exclude_ids))
     fixed_nodes = ([origin] if origin else []) + musts  # 출발 위치 + 꼭 갈 곳: 코스에서 빼지 않는다
-    candidates = _candidate_nodes(c, index.similarities(c.taste), {m.id for m in fixed_nodes} | excluded)
+    candidates = _candidate_nodes(
+        c, index.similarities(c.taste), {m.id for m in fixed_nodes} | excluded, filters.wanted_activities(req.query)
+    )
 
     # ③ 제약 최적화
     planner_name = req.planner or config.DEFAULT_PLANNER

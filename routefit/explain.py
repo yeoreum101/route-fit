@@ -18,6 +18,8 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
 규칙:
 - 입력 JSON 에 있는 사실(장소 설명, 유사도, 이동시간, 라벨 점수, 시간, 동행 적합 여부)만 근거로 쓴다. 메뉴·가격·행사 등 없는 정보를 지어내지 않는다.
 - 장소를 추가·삭제하거나 순서를 바꾸자고 제안하지 않는다.
+- 그 장소에서 하는 일은 activities 와 description 에 있는 것만 말한다. 사용자가 원한 일이 activities 에 없으면(전시를 원했는데
+  극장) 그 일을 하는 곳처럼 쓰지 말고, 실제로 하는 일과 동선을 이유로 든다.
 - reasons: kind 가 "ai" 인 장소마다 1~2문장. 사용자의 취향 문장과 어떻게 맞는지, 동선상 왜 이 자리인지를 구체적으로 쓴다.
 - summary: 코스 전체를 2~3문장으로 하루가 어떻게 이어지는지 설명한다.
 - kind 가 "start" 인 곳은 사용자가 출발하는 위치다(머무는 곳이 아니다). 있으면 "○○에서 출발해" 처럼만 쓴다.
@@ -55,6 +57,7 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "category": CATEGORY_KO[v.node.place.category],
                 "area": v.node.place.area,
                 "description": v.node.place.description,
+                "activities": v.node.place.tags.get("activity", []),  # '할 거리' 태그. 유형 이름(문화·전시)보다 정확하다
                 "time": f"{to_hm(v.start)}~{to_hm(v.end)}",
                 "stay_min": v.node.stay,
                 "travel_min_from_prev": v.travel,

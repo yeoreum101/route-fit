@@ -65,3 +65,29 @@ KINDS = [
 def kind_of(p: Place) -> Optional[str]:
     text = place_text(p)
     return next((kind for kind, words in KINDS if any(w in text for w in words)), None)
+
+
+# ---------- 문장에서 콕 집어 말한 할 거리 ----------
+
+# (할 거리 태그, 문장에 이 낱말이 있으면 그 할 거리를 원한다고 본다). 먹고 마시는 것·산책·휴식처럼 넓은 말은
+# 유형·끼니 규칙과 취향 매칭이 맡으므로 넣지 않는다.
+ACTIVITY_WORDS = [
+    ("전시 관람", ("전시", "미술관", "갤러리", "박물관")),
+    ("공연·영화", ("공연", "영화", "연극", "뮤지컬", "콘서트")),
+    ("역사 탐방", ("역사",)),
+    ("건축 구경", ("건축",)),
+    ("야경", ("야경",)),
+    ("공방 체험", ("공방",)),
+    ("쇼핑", ("쇼핑",)),
+    ("시장 구경", ("시장",)),
+]
+_NEGATED = r"\S{0,3}\s*(?:싫|빼|말고|제외|별로|안\s*보)"
+
+
+def wanted_activities(query: str) -> set[str]:
+    """문장에서 하고 싶다고 한 할 거리 태그. "전시 좀 보고" -> {"전시 관람"}. "전시는 말고" 처럼 피하는 말이 붙으면 뺀다."""
+    return {
+        activity
+        for activity, words in ACTIVITY_WORDS
+        if any(w in query and not re.search(re.escape(w) + _NEGATED, query) for w in words)
+    }

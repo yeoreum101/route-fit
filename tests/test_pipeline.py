@@ -95,12 +95,38 @@ def test_companion_tag_raises_place_value():
     places = load_places()
     sims = {p.id: 0.5 for p in places}
     base = dict(taste="", day_start="10:00", day_end="22:00", budget=None, weekday=None, avoid_categories=[])
-    alone = {n.id: n for n in _candidate_nodes(Constraints(**base, companions=None), sims, set())}
-    couple = {n.id: n for n in _candidate_nodes(Constraints(**base, companions="연인"), sims, set())}
+    alone = {n.id: n for n in _candidate_nodes(Constraints(**base, companions=None), sims, set(), set())}
+    couple = {n.id: n for n in _candidate_nodes(Constraints(**base, companions="연인"), sims, set(), set())}
     for p in places:
         fits = "연인" in p.tags.get("companions", [])
         assert couple[p.id].companion_fit == fits
         assert (couple[p.id].value > alone[p.id].value) == fits
+
+
+def test_named_activity_is_read_from_sentence():
+    from routefit.filters import wanted_activities
+
+    assert wanted_activities("샌드위치 먹고 싶어. 그리고 적당히 전시 좀 보고") == {"전시 관람"}
+    assert wanted_activities("전시는 말고 영화 볼래") == {"공연·영화"}
+    assert wanted_activities("미술관이랑 야경") == {"전시 관람", "야경"}
+    assert wanted_activities("맛있는 거 먹고 쉬고 싶어") == set()
+
+
+def test_named_activity_tag_raises_place_value():
+    # '전시'를 말하면 '전시 관람' 태그가 있는 곳만 점수가 오른다. 광주극장(공연·영화)은 오르지 않는다
+    from routefit.models import Constraints
+    from routefit.pipeline import _candidate_nodes
+
+    places = load_places()
+    sims = {p.id: 0.5 for p in places}
+    c = Constraints(taste="", day_start="10:00", day_end="22:00", budget=None, weekday=None, avoid_categories=[], companions=None)
+    plain = {n.id: n for n in _candidate_nodes(c, sims, set(), set())}
+    exhibit = {n.id: n for n in _candidate_nodes(c, sims, set(), {"전시 관람"})}
+    for p in places:
+        fits = "전시 관람" in p.tags.get("activity", [])
+        assert exhibit[p.id].activity_fit == fits
+        assert (exhibit[p.id].value > plain[p.id].value) == fits
+    assert exhibit["acc"].activity_fit and not exhibit["gwangju_theater"].activity_fit
 
 
 def test_rule_based_parser():

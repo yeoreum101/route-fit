@@ -52,6 +52,7 @@ class Node:
     origin: bool = False  # 출발 위치: 하루 시작 시각에 머무는 시간 0 으로 맨 앞에 둔다
     taste: float = 0.0  # 후보 내 0~1 로 정규화한 취향 적합도
     companion_fit: bool = False  # 문장의 동행이 이 장소의 '어울리는 동행' 태그에 있다
+    activity_fit: bool = False  # 문장에서 말한 할 거리가 이 장소의 '할 거리' 태그에 있다
     similarity: float = 0.0  # 코사인 유사도 원값
 
     @property
@@ -73,6 +74,7 @@ class Node:
             WEIGHTS.taste * self.taste
             + WEIGHTS.local * self.place.local_score
             + WEIGHTS.companion * self.companion_fit
+            + WEIGHTS.activity * self.activity_fit
             - WEIGHTS.stop_cost
         )
 
