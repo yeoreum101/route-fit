@@ -30,11 +30,13 @@ export function findConflicts(musts) {
   return { messages, bad };
 }
 
-// 장소를 고르지 않은 줄은 시작 시각·머무는 시간을 쓸 데가 없으므로 잠근다.
+// 장소를 고르지 않은 줄은 방문 예정 시각·머무는 시간을 쓸 데가 없으므로 장소를 고른 뒤에야 보인다.
+// '+ 꼭 갈 곳 추가' 도 빈 줄이 남아 있으면 숨긴다(빈 줄을 여러 개 만들지 않게).
 // 다른 줄에서 이미 고른 장소는 고를 수 없게 하고, 한 줄만 남으면 빼기 버튼을 숨긴다.
 export default function MustVisitList({ musts, known, conflicts, onChange, onRemove, onAdd }) {
   const chosen = musts.map((m) => m.id);
   const any = chosen.some(Boolean);
+  const emptyRow = musts.some((m) => !m.id);
 
   return (
     <fieldset className="must-box">
@@ -78,39 +80,39 @@ export default function MustVisitList({ musts, known, conflicts, onChange, onRem
                 </p>
               ) : null}
 
-              <div className={`row must-detail${id ? "" : " off"}`}>
-                <div>
-                  <label htmlFor={`must-${n}-start-field`}>방문 예정 시각 <span className="muted small">(선택)</span></label>
-                  <TimePicker
-                    id={`must-${n}-start`}
-                    className="must-start"
-                    name="방문 예정 시각"
-                    value={m.start}
-                    disabled={!id}
-                    describedBy={errorId}
-                    invalid={invalid}
-                    onChange={(start) => onChange(m.key, { start })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor={`must-${n}-stay`}>머무는 시간</label>
-                  <div className="with-unit">
-                    <input
-                      id={`must-${n}-stay`}
-                      className="must-stay"
-                      type="number"
-                      min="10"
-                      step="10"
-                      value={m.stay}
-                      disabled={!id}
-                      placeholder={m.place ? `기본 ${m.place.stay_min}` : ""} // 장소마다 기본 체류시간이 다르다
-                      aria-invalid={invalid ? true : undefined}
-                      onChange={(e) => onChange(m.key, { stay: e.target.value })}
+              {id ? (
+                <div className="row must-detail">
+                  <div>
+                    <label htmlFor={`must-${n}-start-field`}>방문 예정 시각 <span className="muted small">(선택)</span></label>
+                    <TimePicker
+                      id={`must-${n}-start`}
+                      className="must-start"
+                      name="방문 예정 시각"
+                      value={m.start}
+                      describedBy={errorId}
+                      invalid={invalid}
+                      onChange={(start) => onChange(m.key, { start })}
                     />
-                    <span>분</span>
+                  </div>
+                  <div>
+                    <label htmlFor={`must-${n}-stay`}>머무는 시간</label>
+                    <div className="with-unit">
+                      <input
+                        id={`must-${n}-stay`}
+                        className="must-stay"
+                        type="number"
+                        min="10"
+                        step="10"
+                        value={m.stay}
+                        placeholder={m.place ? `기본 ${m.place.stay_min}` : ""} // 장소마다 기본 체류시간이 다르다
+                        aria-invalid={invalid ? true : undefined}
+                        onChange={(e) => onChange(m.key, { stay: e.target.value })}
+                      />
+                      <span>분</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
               <p className="must-error" id={errorId} role="alert" hidden={!message}>{message}</p>
             </div>
@@ -118,7 +120,7 @@ export default function MustVisitList({ musts, known, conflicts, onChange, onRem
         })}
       </div>
       <p className="muted small" id="must-help-off" hidden={musts.length === 0 || any}>비워 두면 AI가 모두 골라 줍니다. 문장에 적은 곳도 찾아요. 예: “챔필에서 야구 보기 전에…”</p>
-      <button type="button" id="add-must" className="add-must" hidden={musts.length >= MAX_MUSTS} onClick={onAdd}>+ 꼭 갈 곳 추가</button>
+      <button type="button" id="add-must" className="add-must" hidden={musts.length >= MAX_MUSTS || emptyRow} onClick={onAdd}>+ 꼭 갈 곳 추가</button>
     </fieldset>
   );
 }

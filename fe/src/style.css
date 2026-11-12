@@ -114,7 +114,6 @@ fieldset > legend + * { clear: both; }
 .must-box #must-help-off { margin-top: 8px; }
 .must-item + .must-item { margin-top: 14px; padding-top: 4px; border-top: 1px solid #fde3cf; }
 .must-head { display: flex; align-items: baseline; justify-content: space-between; }
-.must-detail.off { opacity: .45; }
 .must-error { margin: 6px 0 0; font-size: 12px; font-weight: 600; color: var(--danger); }
 .must-item [aria-invalid] { border-color: var(--danger); }
 /* 필수 방문지 장소 검색 (PlaceSearch.jsx) */
