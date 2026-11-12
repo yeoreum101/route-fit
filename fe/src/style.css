@@ -116,6 +116,19 @@ fieldset > legend + * { clear: both; }
 .must-head { display: flex; align-items: baseline; justify-content: space-between; }
 .must-error { margin: 6px 0 0; font-size: 12px; font-weight: 600; color: var(--danger); }
 .must-item [aria-invalid] { border-color: var(--danger); }
+/* 장소를 고르면 나오는 시각·머무는 시간, 새 줄, 추가 버튼이 툭 튀어나오지 않게: 높이가 늘며 아래 내용을 부드럽게
+   밀어내고, 다 펼쳐질 즈음 글자가 또렷해진다. 높이가 내용보다 커진 뒤에야 진해지므로 넘친 글자가 겹쳐 보이지 않는다 */
+@keyframes grow-in { /* 시각·시간 줄과 새 줄은 높이가 80px 남짓이라 그 근처에서 천천히 멈추게 한다 */
+  0% { opacity: 0; max-height: 0; }
+  60% { opacity: .3; max-height: 90px; }
+  100% { opacity: 1; max-height: 120px; }
+}
+@keyframes fade-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.must-detail, #must-list .must-item + .must-item { animation: grow-in .35s ease-in-out; }
+button.add-must { animation: fade-in .25s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .must-detail, #must-list .must-item + .must-item, button.add-must { animation: none; }
+}
 /* 필수 방문지 장소 검색 (PlaceSearch.jsx) */
 .place-search { position: relative; }
 .place-search input { padding-right: 40px; }
