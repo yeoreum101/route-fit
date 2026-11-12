@@ -186,7 +186,10 @@ button.add-must[hidden] { display: none; }
 .with-unit span { font-size: 13px; color: var(--muted); }
 /* 직접 지정(선택): 비워 두는 게 기본이라 덜 눈에 띄게 */
 .optional-box { margin: 18px 0 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfc; }
-.optional-box legend { font-size: 15px; font-weight: 700; }
+.optional-box legend, .optional-box > summary { font-size: 15px; font-weight: 700; }
+.optional-box > summary { cursor: pointer; width: fit-content; }
+.optional-box:not([open]) { padding-top: 12px; padding-bottom: 12px; }
+.optional-box[open] > summary { margin-bottom: 2px; }
 .optional-box > p { margin: 2px 0 0; }
 .optional-box label { margin-top: 10px; }
 .help { margin: 4px 0 0; }

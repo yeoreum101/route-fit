@@ -39,6 +39,9 @@ export default function PlanPage() {
   const [planner, setPlanner] = useState("greedy");
   const [excludes, setExcludes] = useState([]); // 추천에서 뺄 등록된 장소들
   const [startPlace, setStartPlace] = useState(null); // 출발 위치(선택)
+  const [moreOpen, setMoreOpen] = useState(false); // '더 자세히 정하기' 펼침
+  // 접혀 있어도 값이 들어가 있다는 걸 알 수 있게 제목 옆에 개수를 보인다
+  const optionalCount = [visitDate, dayStart, dayEnd, budget !== "" && budget != null].filter(Boolean).length + excludes.length;
 
   const [mustData, setMustData] = useState({ known: [], info: {} });
   const [musts, setMusts] = useState([]); // [{ key, id, place, start, stay }]
@@ -134,6 +137,7 @@ export default function PlanPage() {
     setPlanner(req.planner || "greedy");
     setExcludes((req.exclude_ids || []).map((id) => info[id]).filter(Boolean));
     setStartPlace(req.start ? placeOf(req.start, info) : null);
+    setMoreOpen(Boolean(req.day_start || req.day_end || req.budget != null || req.visit_date || req.exclude_ids?.length));
   }
 
   // 공유 링크(?course=<id>)로 들어오면 저장된 코스를 보여 준다.
@@ -244,8 +248,11 @@ export default function PlanPage() {
           <textarea id="query" rows={4} required aria-describedby="query-help" placeholder={QUERY_EXAMPLE} value={query} onChange={(e) => setQuery(e.target.value)} />
           <p id="query-help" className="muted small help">하고 싶은 것을 적어 주세요. 요일·시간·동행도 알아서 읽습니다.</p>
 
-          <fieldset className="optional-box">
-            <legend>직접 지정 <span className="muted small">(선택)</span></legend>
+          {/* 직접 지정: 문장으로 다 말할 수 있어서 접어 둔다. 공유 링크로 값이 채워지면 펼친다(fillForm) */}
+          <details className="optional-box" open={moreOpen} onToggle={(e) => setMoreOpen(e.currentTarget.open)}>
+            <summary>
+              더 자세히 정하기 <span className="muted small">(선택{optionalCount ? ` · ${optionalCount}개 지정됨` : ""})</span>
+            </summary>
             <label htmlFor="visit-date">방문 날짜 <span className="muted small">(휴무 제외)</span></label>
             <div className="with-unit">
               <input id="visit-date" type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} />
@@ -297,7 +304,7 @@ export default function PlanPage() {
             >
               모두 비우기
             </button>
-          </fieldset>
+          </details>
 
           <label htmlFor="planner">코스 짜는 방식</label>
           <select id="planner" aria-describedby="planner-help" value={planner} onChange={(e) => setPlanner(e.target.value)}>
