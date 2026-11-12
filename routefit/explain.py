@@ -27,8 +27,10 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 코스 �
   첫 문장은 그곳이 어떤 곳인지 description·activities·mood 로 쓴다. 식당·카페는 대표 메뉴와 분위기
   (예: "눈앞에서 한우를 구워 주는 코스 요리집으로, 룸이 있어 조용히 식사하기 좋습니다.").
   둘째 문장은 왜 이 자리인지: 취향 문장과 맞으면 그 점을, 아니면 하루에서 맡은 역할(meal 이 있으면 그 끼니, 카페면
-  쉬어 가는 자리)과 동선을 쓴다(예: "전시 사이 점심 자리로, 앞 장소에서 걸어서 5분이라 부담이 없습니다").
+  쉬어 가는 자리)을 쓴다(예: "전시 사이 점심 자리로, 앞 장소에서 걸어서 5분이라 부담이 없습니다").
   "취향과 직접 맞닿지 않지만" 처럼 안 맞는다는 말로 시작하지 않는다.
+- 이동은 walk_min_from_prev 가 있을 때만 "앞 장소에서 걸어서 ○분" 처럼 쓴다. 없으면(멀거나 대중교통) 이동 얘기를 쓰지
+  않는다. 이동 시간·수단은 화면의 타임라인에 따로 나온다.
 - summary: 코스 전체를 2~3문장, 150~170자로 하루가 어떻게 이어지는지 쓴다.
 - 장소 이름은 name 그대로 쓴다.
 - kind 가 "start" 인 곳은 사용자가 출발하는 위치다(머무는 곳이 아니다). 있으면 "○○에서 출발해" 처럼만 쓴다.
@@ -41,7 +43,11 @@ MUST_RULE = """- kind 가 "must" 인 곳은 사용자가 직접 고른 곳이다
 """
 
 
-TRAVEL_MODE_KO = {"walk": "도보", "transit": "대중교통", "car": "자동차"}
+SHORT_WALK_MIN = 10  # 이유에서 "걸어서 ○분" 을 장점으로 말해도 되는 도보 이동
+
+
+def _short_walk(prev: Visit, v: Visit) -> Optional[int]:
+    return v.travel if travel_mode(prev.node, v.node) == "walk" and v.travel <= SHORT_WALK_MIN else None
 
 
 class StopReason(BaseModel):
@@ -78,9 +84,9 @@ def _facts(visits: list[Visit], c: Constraints) -> dict:
                 "meal": _meal_name(v) if v.node.meal else None,
                 "time": f"{to_hm(v.start)}~{to_hm(v.end)}",
                 "stay_min": v.node.stay,
-                "travel_min_from_prev": v.travel,
-                # 도보·대중교통 구분. 이유에서 이동을 말할 때 이 수단으로 쓴다(예: "걸어서 6분")
-                "travel_mode_from_prev": TRAVEL_MODE_KO[travel_mode(visits[i - 1].node, v.node)] if i else None,
+                # 앞 장소에서 걸어서 SHORT_WALK_MIN 분 안쪽이면 그 분, 아니면 None. 멀거나 대중교통인 구간은 타임라인에
+                # 이미 나오고 이유로 내세울 것이 아니라서 넘기지 않는다("대중교통으로 이어지기 부담이 적다" 같은 말이 나왔다)
+                "walk_min_from_prev": _short_walk(visits[i - 1], v) if i else None,
                 "taste_similarity": round(v.node.similarity, 3),
                 "gwangju_ness_1to5": v.node.place.gwangju_ness,
                 "stay_inducement_1to5": v.node.place.stay_inducement,
@@ -127,7 +133,8 @@ def _allowed_minutes(facts: dict) -> set[int]:
     """문장에 나와도 되는 '○분': 장소 사이 이동시간과 장소에 머무는 시간('1시간 30분'의 30분도 포함)."""
     out = set()
     for s in facts["stops"]:
-        out.add(s["travel_min_from_prev"])
+        if s["walk_min_from_prev"] is not None:
+            out.add(s["walk_min_from_prev"])
         out.add(s["stay_min"])
         if s["stay_min"] >= 60:
             out.add(s["stay_min"] % 60)
