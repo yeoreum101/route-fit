@@ -75,6 +75,7 @@ export default function AdminPage() {
 
   const [form, setForm] = useState(() => toForm(BLANK_PLACE));
   const [formStatus, setFormStatus] = useState(NO_STATUS);
+  const [exportStatus, setExportStatus] = useState(null); // 엑셀 내보내기 결과
   const [tagGroups, setTagGroups] = useState([]);
 
   const [checklistDef, setChecklistDef] = useState(null);
@@ -357,6 +358,46 @@ export default function AdminPage() {
     }
   }
 
+  // 장소·체크리스트를 가게조사 엑셀로. 기존 엑셀을 고르면 [참고] 칸(메뉴·메모 등)은 두고 그 파일에 합친다.
+  function exportXlsx() {
+    const merge = confirm(
+      "가지고 있는 가게조사 엑셀에 합칠까요?\n\n확인: 엑셀 파일 고르기 (메뉴·메모 같은 [참고] 칸은 그대로 두고, 이 화면의 장소를 덮어쓰거나 더함)\n취소: 새 양식으로 받기",
+    );
+    if (!merge) return downloadXlsx(null);
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xlsx";
+    input.onchange = () => input.files[0] && downloadXlsx(input.files[0]);
+    input.click();
+  }
+
+  async function downloadXlsx(file) {
+    setExportStatus({ text: "엑셀을 만드는 중…", ok: true });
+    const res = await adminFetch("/api/admin/export.xlsx", {
+      method: "POST",
+      body: file ? await file.arrayBuffer() : new ArrayBuffer(0),
+      headers: { "Content-Type": "application/octet-stream" },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setExportStatus({ text: errorText(data, "엑셀을 만들지 못했습니다."), ok: false });
+      return;
+    }
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = file ? file.name : "가게조사_내보내기.xlsx";
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000); // 바로 지우면 브라우저가 파일 이름 없이 받는다
+    const n = (h) => res.headers.get(h) || "0";
+    setExportStatus({
+      text: `엑셀을 받았습니다: 가게 ${n("X-Export-Updated")}곳 갱신, ${n("X-Export-Added")}곳 추가, 체크리스트 ${n("X-Export-Checklists")}줄.`,
+      ok: true,
+    });
+  }
+
   async function resetToExamples() {
     if (!confirm("장소·이동시간·체크리스트를 data/*.json 기준으로 되돌립니다.\n이 화면에서 고친 내용과 체크리스트가 모두 지워집니다(data/checklists.json 이 있으면 그 내용으로). 계속할까요?")) return;
     const res = await adminFetch("/api/admin/import", { method: "POST" });
@@ -380,8 +421,13 @@ export default function AdminPage() {
 
       <main className="page">
         <section className="toolbar">
-          <p className="muted small">저장하면 다음 코스부터 바로 반영됩니다. 다 고친 뒤에는 <b>JSON 내보내기</b>로 받아 <code>data/</code>에 커밋해 두세요.</p>
+          <p className="muted small">
+            저장하면 다음 코스부터 바로 반영됩니다. 다 고친 뒤에는 <b>JSON 내보내기</b>로 받아 <code>data/</code>에 커밋해 두세요.
+            팀 엑셀에도 남기려면 <b>엑셀 내보내기</b>로 그 엑셀을 골라 합친 파일을 받으세요.
+            {exportStatus && <span id="export-status" className={`form-status${exportStatus.ok ? " ok" : ""}`} role="status"> {exportStatus.text}</span>}
+          </p>
           <div className="actions">
+            <button type="button" id="export-xlsx" className="inline secondary" onClick={exportXlsx}>엑셀 내보내기</button>
             <button type="button" id="export" className="inline secondary" onClick={exportJson}>JSON 내보내기</button>
             <button type="button" id="import" className="inline secondary" onClick={resetToExamples}>예시 데이터로 초기화</button>
           </div>

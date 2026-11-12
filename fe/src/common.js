@@ -67,7 +67,7 @@ export function askAdminToken() {
 // 관리자 API 호출. 401 이면 토큰을 물어보고 한 번 다시 시도한다.
 export async function adminFetch(url, options = {}, retry = true) {
   const headers = { ...(options.headers || {}), "X-Admin-Token": adminToken.get() };
-  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (options.body !== undefined && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401 && retry) {
     const token = await askAdminToken();

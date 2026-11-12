@@ -2,7 +2,7 @@
 import secrets
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import ValidationError
 from sqlalchemy import func, select
 
@@ -258,3 +258,35 @@ def export_json():
         out["places" if r.kind == "candidate" else "anchors"].append(to_place(r).model_dump())
     return out
 
+
+
+MAX_XLSX = 10 * 1024 * 1024
+
+
+@router.post("/export.xlsx")
+async def export_xlsx(request: Request):
+    """현재 DB 의 장소·체크리스트를 가게조사 엑셀로 내보낸다. 요청 본문에 기존 엑셀(.xlsx)을 그대로 실어 보내면
+    [참고] 칸(메뉴·메모 등)은 두고 그 파일에 합쳐서 돌려주고, 본문이 비어 있으면 새 양식에 채운다(규칙은 xlsx_export)."""
+    from urllib.parse import quote
+
+    from . import xlsx_export
+
+    body = await request.body()
+    if len(body) > MAX_XLSX:
+        raise HTTPException(status_code=413, detail="엑셀 파일이 너무 큽니다(10MB까지).")
+    try:
+        data, info = xlsx_export.export(body or None)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    name = quote("가게조사_내보내기.xlsx")
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{name}",
+            "X-Export-Updated": str(info["updated"]),
+            "X-Export-Added": str(info["added"]),
+            "X-Export-Checklists": str(info["checklists"]),
+            "Access-Control-Expose-Headers": "X-Export-Updated, X-Export-Added, X-Export-Checklists",
+        },
+    )
