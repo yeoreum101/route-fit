@@ -119,9 +119,10 @@ fieldset > legend + * { clear: both; }
 /* 장소를 고르면 나오는 시각·머무는 시간, 새 줄, 추가 버튼이 툭 튀어나오지 않게: 높이가 늘며 아래 내용을 부드럽게
    밀어내고, 다 펼쳐질 즈음 글자가 또렷해진다. 높이가 내용보다 커진 뒤에야 진해지므로 넘친 글자가 겹쳐 보이지 않는다 */
 @keyframes grow-in { /* 시각·시간 줄과 새 줄은 높이가 80px 남짓이라 그 근처에서 천천히 멈추게 한다 */
-  0% { opacity: 0; max-height: 0; }
-  60% { opacity: .3; max-height: 90px; }
-  100% { opacity: 1; max-height: 120px; }
+  /* 펼쳐지는 동안만 늘어나는 높이 밖을 잘라 아래 버튼과 겹쳐 보이지 않게 한다(끝나면 풀려 시각 고르기 창이 잘리지 않는다) */
+  0% { opacity: 0; max-height: 0; clip-path: inset(0); }
+  60% { opacity: .3; max-height: 90px; clip-path: inset(0); }
+  100% { opacity: 1; max-height: 120px; clip-path: inset(0); }
 }
 @keyframes fade-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 .must-detail, #must-list .must-item + .must-item { animation: grow-in .35s ease-in-out; }
@@ -187,8 +188,8 @@ button.time-field:disabled { cursor: default; background: var(--soft); }
 .time-foot .link { margin: 0; padding: 0; }
 button.remove-must { width: auto; margin: 0; padding: 0 4px; background: none; color: var(--muted); font-size: 12px; font-weight: 600; }
 button.remove-must:hover { color: var(--danger); }
-button.add-must {
-  margin-top: 14px; padding: 9px; font-size: 14px;
+button.add-must { /* 칸 폭만큼 넓지 않게, 글자 크기에 맞춘 작은 버튼 */
+  width: auto; margin-top: 12px; padding: 6px 14px; font-size: 13px; border-radius: 10px;
   color: var(--must); background: #fff; border: 1px dashed #f6b48a;
 }
 button.add-must:hover:not(:disabled) { background: var(--must-soft); }

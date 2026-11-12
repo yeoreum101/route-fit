@@ -245,7 +245,7 @@ export default function PlanPage() {
           />
 
           <label htmlFor="query">어떤 하루를 원하세요? <span className="tag ai">AI 추천</span></label>
-          <textarea id="query" rows={4} required aria-describedby="query-help" placeholder={QUERY_EXAMPLE} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <textarea id="query" rows={3} required aria-describedby="query-help" placeholder={QUERY_EXAMPLE} value={query} onChange={(e) => setQuery(e.target.value)} />
           <p id="query-help" className="muted small help">하고 싶은 것을 적어 주세요. 요일·시간·동행도 알아서 읽습니다.</p>
 
           {/* 직접 지정: 문장으로 다 말할 수 있어서 접어 둔다. 공유 링크로 값이 채워지면 펼친다(fillForm) */}
