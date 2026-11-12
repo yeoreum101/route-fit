@@ -86,6 +86,7 @@ export default function AdminPage() {
 
   const miniMap = useRef(null);
   const pendingPoint = useRef(null); // 편집창이 열린 뒤 지도에 적용할 좌표 ({lat, lng} | "remove")
+  const [geo, setGeo] = useState({ items: null, loading: false, message: "" }); // 이름으로 좌표 찾기 결과
 
   const setPlaces = (list) => { placesRef.current = list; setPlacesState(list); };
   const setSelected = (id) => { selectedRef.current = id; setSelectedState(id); };
@@ -96,6 +97,7 @@ export default function AdminPage() {
 
   // 편집창이 (다시) 열리면 지도 크기를 다시 재고, 정해 둔 좌표로 옮긴다.
   useEffect(() => {
+    setGeo({ items: null, loading: false, message: "" });
     if (!miniMap.current) return;
     miniMap.current.invalidateSize();
     const point = pendingPoint.current;
@@ -112,6 +114,30 @@ export default function AdminPage() {
   function movePoint() {
     const lat = Number(form.lat), lng = Number(form.lng);
     if (lat && lng) miniMap.current.setPoint(lat, lng);
+  }
+
+  // 입력한 이름으로 카카오 장소를 찾아 고르면 좌표(와 비어 있으면 지역)를 채운다.
+  async function findByName() {
+    const q = form.name.trim();
+    if (q.replace(/\s/g, "").length < 2) {
+      setGeo({ items: null, loading: false, message: "이름을 두 글자 이상 적어 주세요." });
+      return;
+    }
+    setGeo({ items: null, loading: true, message: "" });
+    try {
+      const res = await adminFetch(`/api/admin/kakao-search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(errorText(data, "검색하지 못했습니다."));
+      setGeo({ items: data, loading: false, message: data.length ? "" : "카카오에서 찾지 못했습니다. 지도를 클릭해 고르세요." });
+    } catch (e) {
+      setGeo({ items: null, loading: false, message: e.message });
+    }
+  }
+
+  function applyFound(p) {
+    patch({ lat: p.lat.toFixed(6), lng: p.lng.toFixed(6), ...(form.area.trim() ? {} : { area: p.area }) });
+    miniMap.current.setPoint(p.lat, p.lng);
+    setGeo({ items: null, loading: false, message: `‘${p.name}’ 좌표를 넣었습니다.` });
   }
 
   // ---------- 불러오기 ----------
@@ -501,7 +527,24 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <h3>위치 <span className="muted small">지도를 클릭하면 좌표가 들어갑니다</span></h3>
+              <h3>위치 <span className="muted small">이름으로 찾거나 지도를 클릭하면 좌표가 들어갑니다</span></h3>
+              <div className="geo-find">
+                <button type="button" id="find-by-name" onClick={findByName} disabled={geo.loading}>
+                  {geo.loading ? "찾는 중…" : "이름으로 좌표 찾기"}
+                </button>
+                <span className="muted small" role="status">{geo.message}</span>
+                {geo.items && geo.items.length ? (
+                  <ul className="geo-results">
+                    {geo.items.map((p) => (
+                      <li key={p.id}>
+                        <button type="button" onClick={() => applyFound(p)}>
+                          <b>{p.name}</b> <span className="muted small">{p.area} · {p.description}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <div className="form-grid location">
                 <MiniMap ref={miniMap} onPick={pickPoint} />
                 <div className="field-stack">

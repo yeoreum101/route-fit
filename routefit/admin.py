@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import ValidationError
 from sqlalchemy import func, select
 
-from . import checklist, config, courses, db
+from . import checklist, config, courses, db, place_search
 from . import tags as tag_vocab
 from .data import invalidate, to_place
-from .models import ChecklistIn, ChecklistSheet, ChecklistView, Feedback, PlaceKind, PlaceRecord, TravelTime
+from .models import ChecklistIn, ChecklistSheet, ChecklistView, Feedback, Place, PlaceKind, PlaceRecord, TravelTime
 
 
 def require_admin(x_admin_token: Optional[str] = Header(default=None)) -> None:
@@ -49,6 +49,13 @@ def _apply(row: db.PlaceRow, rec: PlaceRecord) -> None:
 
 
 # ---------- 장소 ----------
+
+
+@router.get("/kakao-search", response_model=list[Place])
+def kakao_search(q: str = Query(min_length=2, max_length=50)):
+    """장소 이름으로 카카오 장소 검색(좌표 채우기). /api/place-search 와 달리 이미 등록된 장소와 이름이 같아도
+    빼지 않는다(등록된 장소의 좌표를 고칠 때 그 장소가 나와야 한다). 키가 없으면 빈 목록."""
+    return place_search.search_kakao(q, size=8)
 
 
 @router.get("/places", response_model=list[PlaceRecord])

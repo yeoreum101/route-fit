@@ -1,48 +1,39 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-// 번들러를 거치면 Leaflet 이 기본 마커 그림 경로를 못 찾으므로 직접 알려 준다.
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
+import { createMapView } from "../map/mapView.js";
 
 // 좌표 고르기 지도. 지도를 클릭하면 onPick(lat, lng) 이 불린다.
+// 지도 엔진은 코스 지도와 같은 mapView.js 가 고른다(카카오맵, 안 되면 OpenStreetMap).
+// 지도는 만들어지는 데 시간이 걸리므로, 그 전에 온 호출은 지도가 준비되면 이어서 한다.
 const MiniMap = forwardRef(function MiniMap({ onPick }, ref) {
   const containerRef = useRef(null);
-  const api = useRef(null);
+  const ready = useRef(null);
   const pickRef = useRef(onPick);
   pickRef.current = onPick;
 
   useEffect(() => {
-    const map = L.map(containerRef.current).setView([35.1487, 126.9165], 15);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
-    const marker = L.marker([35.1487, 126.9165]);
-
-    map.on("click", (e) => pickRef.current(e.latlng.lat, e.latlng.lng));
-    api.current = {
-      setPoint(lat, lng, pan = true) {
-        marker.setLatLng([lat, lng]).addTo(map);
-        if (pan) map.setView([lat, lng], Math.max(map.getZoom(), 16));
-      },
-      removeMarker: () => marker.remove(),
-      invalidateSize: () => map.invalidateSize(), // 숨겨져 있던 지도는 크기를 다시 재야 한다
-    };
+    let cancelled = false;
+    let view = null;
+    ready.current = createMapView(containerRef.current).then((v) => {
+      if (cancelled) {
+        v.destroy(); // 만들어지는 사이에 화면이 사라졌다
+        return v;
+      }
+      view = v;
+      v.onMapClick((lat, lng) => pickRef.current(lat, lng));
+      return v;
+    });
     return () => {
-      api.current = null;
-      map.remove();
+      cancelled = true;
+      ready.current = null;
+      if (view) view.destroy();
     };
   }, []);
 
+  const later = (fn) => ready.current?.then((v) => fn(v));
   useImperativeHandle(ref, () => ({
-    setPoint: (...args) => api.current?.setPoint(...args),
-    removeMarker: () => api.current?.removeMarker(),
-    invalidateSize: () => api.current?.invalidateSize(),
+    setPoint: (lat, lng, pan = true) => later((v) => v.setMarker(lat, lng, pan)),
+    removeMarker: () => later((v) => v.removeMarker()),
+    invalidateSize: () => later((v) => v.relayout()), // 숨겨져 있던 지도는 크기를 다시 재야 한다
   }), []);
 
   return <div id="mini-map" className="span-3" ref={containerRef} />;

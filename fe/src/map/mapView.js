@@ -9,6 +9,12 @@
 //   addControl(button)              지도 오른쪽 위에 버튼을 올린다
 //   destroy()                       지도를 걷어낸다 (화면이 사라질 때)
 //   name                            "kakao" | "osm"
+//
+// 좌표 고르기(장소 관리의 MiniMap)에서 쓰는 것:
+//   onMapClick(handler)             지도를 클릭하면 handler(lat, lng)
+//   setMarker(lat, lng, pan)        마커 하나를 그 자리에 둔다. pan 이면 그곳을 가운데로 가깝게 본다
+//   removeMarker()                  마커를 치운다
+//   relayout()                      숨겨져 있던 지도를 다시 보일 때 크기를 다시 잰다
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -36,9 +42,19 @@ function osmMapView(container) {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
   const layer = L.layerGroup().addTo(map);
+  const marker = L.marker([35.1487, 126.9165], {
+    icon: L.divIcon({ className: "pin-wrap", html: pinElement("ai", "").outerHTML, iconSize: [26, 26] }),
+  });
 
   return {
     name: "osm",
+    onMapClick: (handler) => map.on("click", (e) => handler(e.latlng.lat, e.latlng.lng)),
+    setMarker(lat, lng, pan) {
+      marker.setLatLng([lat, lng]).addTo(map);
+      if (pan) map.setView([lat, lng], Math.max(map.getZoom(), CLOSE_ZOOM.osm));
+    },
+    removeMarker: () => marker.remove(),
+    relayout: () => map.invalidateSize(),
     clear: () => layer.clearLayers(),
     drawRoute(points) {
       L.polyline(points, { color: ROUTE_STYLE.casing, weight: 7, opacity: 0.9 }).addTo(layer);
@@ -76,6 +92,7 @@ function osmMapView(container) {
 
 // SDK 를 불러온다. 키가 틀렸거나 이 주소가 카카오 콘솔에 등록되지 않았으면(401) 실패한다.
 function loadKakaoSdk(key) {
+  if (window.kakao?.maps?.Map) return Promise.resolve(window.kakao.maps); // 이미 불러왔다
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&autoload=false`;
@@ -104,10 +121,22 @@ function kakaoMapView(container, maps) {
     for (const obj of drawn) obj.setMap(null);
     drawn = [];
   };
+  const marker = new maps.Marker({ position: map.getCenter() });
 
   return {
     name: "kakao",
     clear,
+    onMapClick: (handler) => maps.event.addListener(map, "click", (e) => handler(e.latLng.getLat(), e.latLng.getLng())),
+    setMarker(lat, lng, pan) {
+      marker.setPosition(latLng([lat, lng]));
+      marker.setMap(map);
+      if (pan) {
+        if (map.getLevel() > CLOSE_ZOOM.kakao) map.setLevel(CLOSE_ZOOM.kakao);
+        map.setCenter(latLng([lat, lng]));
+      }
+    },
+    removeMarker: () => marker.setMap(null),
+    relayout: () => map.relayout(),
     drawRoute(points) {
       const path = points.map(latLng);
       show(new maps.Polyline({ path, strokeWeight: 7, strokeColor: ROUTE_STYLE.casing, strokeOpacity: 0.9 }));
@@ -164,6 +193,7 @@ function kakaoMapView(container, maps) {
     destroy() {
       observer.disconnect();
       clear();
+      marker.setMap(null);
       container.replaceChildren();
     },
   };
