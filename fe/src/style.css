@@ -125,8 +125,10 @@ fieldset > legend + * { clear: both; }
   100% { opacity: 1; max-height: 120px; clip-path: inset(0); }
 }
 @keyframes fade-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
-.must-detail, #must-list .must-item + .must-item { animation: grow-in .35s ease-in-out; }
-button.add-must { animation: fade-in .25s ease-out; }
+.must-detail { animation: grow-in .35s ease-in-out; }
+/* 새 줄은 높이를 펼치지 않고 제자리에서 나타난다. 추가 버튼이 사라지는 것과 같은 순간에 줄이 생겨야 상자가
+   한 번만 아래로 늘어난다(펼치면 버튼만큼 줄었다가 다시 늘어나 위아래로 출렁였다) */
+#must-list .must-item + .must-item, button.add-must { animation: fade-in .25s ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .must-detail, #must-list .must-item + .must-item, button.add-must { animation: none; }
 }
@@ -188,8 +190,8 @@ button.time-field:disabled { cursor: default; background: var(--soft); }
 .time-foot .link { margin: 0; padding: 0; }
 button.remove-must { width: auto; margin: 0; padding: 0 4px; background: none; color: var(--muted); font-size: 12px; font-weight: 600; }
 button.remove-must:hover { color: var(--danger); }
-button.add-must { /* 칸 폭만큼 넓지 않게, 글자 크기에 맞춘 작은 버튼 */
-  width: auto; margin-top: 12px; padding: 6px 14px; font-size: 13px; border-radius: 10px;
+button.add-must { /* 칸 폭만큼 넓지 않게, 글자 크기에 맞춘 작은 버튼. 오른쪽 끝에 둔다 */
+  display: block; width: auto; margin: 12px 0 0 auto; padding: 6px 14px; font-size: 13px; border-radius: 10px;
   color: var(--must); background: #fff; border: 1px dashed #f6b48a;
 }
 button.add-must:hover:not(:disabled) { background: var(--must-soft); }
@@ -200,10 +202,25 @@ button.add-must[hidden] { display: none; }
 .with-unit span { font-size: 13px; color: var(--muted); }
 /* 직접 지정(선택): 비워 두는 게 기본이라 덜 눈에 띄게 */
 .optional-box { margin: 18px 0 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfc; }
-.optional-box legend, .optional-box > summary { font-size: 15px; font-weight: 700; }
-.optional-box > summary { cursor: pointer; width: fit-content; }
-.optional-box:not([open]) { padding-top: 12px; padding-bottom: 12px; }
+.optional-box legend { font-size: 15px; font-weight: 700; }
+.optional-box > summary { cursor: pointer; width: fit-content; font-size: 13px; font-weight: 700; }
+.optional-box:not([open]) { padding-top: 10px; padding-bottom: 10px; }
 .optional-box[open] > summary { margin-bottom: 2px; }
+/* 펼칠 때: 안의 칸들이 살짝 내려오며 나타난다. 높이 변화는 ::details-content 를 지원하는 브라우저에서만 부드럽게
+   늘고(크롬 131+), 아니면 높이는 바로 바뀌고 칸들만 서서히 나타난다 */
+.optional-box[open] > :not(summary) { animation: fade-in .3s ease-out; }
+@supports selector(::details-content) {
+  .optional-box { interpolate-size: allow-keywords; }
+  .optional-box::details-content {
+    block-size: 0; overflow: clip;
+    transition: block-size .3s ease-in-out, content-visibility .3s allow-discrete;
+  }
+  .optional-box[open]::details-content { block-size: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .optional-box[open] > :not(summary) { animation: none; }
+  .optional-box::details-content { transition: none; }
+}
 .optional-box > p { margin: 2px 0 0; }
 .optional-box label { margin-top: 10px; }
 .help { margin: 4px 0 0; }
