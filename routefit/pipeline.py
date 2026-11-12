@@ -376,7 +376,17 @@ def make_course(req: PlanRequest, extra_notes: tuple[str, ...] = ()) -> Course:
         limits = replace(limits, min_ai_stops=len(candidates), max_ai_stops=len(candidates))
         if len(candidates) < len(keep):
             c.notes.append("바꾸기 전 코스의 장소 일부는 지금 조건(휴무일 등)에 맞지 않아 뺐습니다.")
-    for _ in range(MEASURE_ROUNDS):
+    visits = None
+    if req.order_ids is not None:
+        # '다른 곳으로 바꾸기': 장소 순서는 바꾸기 전 코스 그대로 두고 시간만 다시 맞춘다
+        pool = {n.id: n for n in fixed_nodes + candidates}
+        if set(req.order_ids) == set(pool) and len(req.order_ids) == len(pool):
+            route = [pool[i] for i in req.order_ids]
+            travel.measure_route(route)
+            visits = schedule(route, day_start, day_end + config.LIMITS.overtime_grace_min, travel_minutes)
+        if visits is None:
+            c.notes.append("순서를 그대로 두면 영업시간·이동시간이 맞지 않아 순서를 다시 짰습니다.")
+    for _ in range(MEASURE_ROUNDS if visits is None else 0):
         route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel, limits)
         route = improve_order(route, day_start, day_end, choose_travel)  # 같은 장소를 덜 오가는 순서로
         new_legs = travel.measure_route(route)
@@ -449,6 +459,27 @@ def _fits_role(n: Node, stop: Stop) -> bool:
     return any(lo <= start + NEAR_START_MIN and hi >= start - NEAR_START_MIN for lo, hi in n.windows)
 
 
+def _course_route(course: Course, pool: dict[str, Node], by_id: dict[str, Place]) -> Optional[list[Node]]:
+    """저장된 코스를 시간표를 다시 짤 수 있는 노드 순서로 되살린다. AI 장소는 후보 노드(원래 머무는 시간·식사 시간대),
+    꼭 갈 곳은 입력한 시작 시각·머무는 시간, 출발 위치는 하루 시작에 고정. 되살릴 수 없으면 None."""
+    starts = {m.id: m.start for m in course.request.must_visits if m.id and m.start}
+    route = []
+    for s in course.stops:
+        if s.kind == "ai":
+            if s.place_id not in pool:
+                return None
+            route.append(pool[s.place_id])
+            continue
+        place = by_id.get(s.place_id) or _stop_ref(s).place
+        if s.kind == "start":
+            route.append(Node(place=place.model_copy(update={"category": "etc", "cost": 0}), windows=[(0, 48 * 60)], stay=0, cost=0,
+                              mandatory=True, fixed_start=to_min(s.start), origin=True))
+        else:
+            route.append(Node(place=place, windows=start_windows(place, s.stay_min), stay=s.stay_min, cost=s.cost, mandatory=True,
+                              fixed_start=to_min(starts[s.place_id]) if s.place_id in starts else None))
+    return route
+
+
 def alternatives(course: Course, order: int, k: int = ALTERNATIVES) -> list[Alternative]:
     """코스의 AI 추천 장소(order) 대신 넣을 만한 곳 k 개. 같은 역할 후보를 추천 점수(취향·지역상권·동행·할 거리)에서
     앞뒤 장소와의 이동 부담을 뺀 순서로 고른다. 이미 코스에 있는 곳, 뺀 곳, 휴무인 곳은 빼고."""
@@ -461,8 +492,16 @@ def alternatives(course: Course, order: int, k: int = ALTERNATIVES) -> list[Alte
     by_id = {p.id: p for p in load_anchors() + places}
     musts = [Node(place=by_id[s.place_id], windows=[], stay=0, cost=0) for s in course.stops if s.kind == "must" and s.place_id in by_id]
     in_course = {s.place_id for s in course.stops}
-    exclude = in_course | _excluded(places, c, req.query, musts, set(req.exclude_ids))
-    nodes = [n for n in _candidate_nodes(c, _index().similarities(c.taste), exclude, filters.wanted_activities(req.query)) if _fits_role(n, stop)]
+    ai_ids = {s.place_id for s in course.stops if s.kind == "ai"}
+    exclude = (in_course - ai_ids) | _excluded(places, c, req.query, musts, set(req.exclude_ids))
+    pool = {n.id: n for n in _candidate_nodes(c, _index().similarities(c.taste), exclude, filters.wanted_activities(req.query))}
+    nodes = [n for n in pool.values() if n.id not in in_course and _fits_role(n, stop)]
+    # 그 자리에 갈아끼워도 시간표가 나오는 곳만(순서를 그대로 두고 바꾸므로)
+    route = _course_route(course, pool, by_id)
+    if route is not None:
+        i = next(j for j, s in enumerate(course.stops) if s.order == order)
+        day_start, hard_end = to_min(c.day_start), to_min(c.day_end) + config.LIMITS.overtime_grace_min
+        nodes = [n for n in nodes if schedule(route[:i] + [n] + route[i + 1:], day_start, hard_end, travel_minutes) is not None]
 
     i = course.stops.index(stop)
     prev = _stop_ref(course.stops[i - 1]) if i > 0 else None
@@ -474,6 +513,9 @@ def alternatives(course: Course, order: int, k: int = ALTERNATIVES) -> list[Alte
         before, after = legs(n)
         return n.value - config.WEIGHTS.travel_per_min * ((before or 0) + (after or 0))
 
+    if course.constraints.budget is not None:  # 바꿔 넣어도 예산 안이어야 한다
+        others = course.metrics.total_cost - stop.cost
+        nodes = [n for n in nodes if others + n.cost <= course.constraints.budget]
     out = []
     for n in sorted(nodes, key=score, reverse=True)[:k]:
         before, after = legs(n)
@@ -494,8 +536,8 @@ def _stop_ref(s: Stop):
 
 
 def swap_course(course: Course, swap: SwapIn) -> Course:
-    """코스의 AI 추천 장소 하나를 다른 곳으로 바꿔 다시 짠다. 나머지 AI 장소와 꼭 갈 곳·출발 위치는 그대로 두고,
-    순서와 시간만 다시 맞춘다. 바꾼 장소는 뺀 장소에 넣어 다시 나오지 않게 한다."""
+    """코스의 AI 추천 장소 하나를 다른 곳으로 바꾼다. 그 자리만 갈아끼우고 나머지 장소와 순서는 그대로 두며
+    시간만 다시 맞춘다(그 순서로 시간이 안 맞으면 순서를 다시 짠다). 바꾼 장소는 뺀 장소에 넣어 다시 나오지 않게 한다."""
     stop = _course_stop(course, swap.order)
     req = course.request
     if req is None:
@@ -506,9 +548,10 @@ def swap_course(course: Course, swap: SwapIn) -> Course:
     if new is None:
         raise PlanError("바꿀 장소를 찾을 수 없습니다.")
     keep = [s.place_id for s in course.stops if s.kind == "ai" and s.order != swap.order] + [new.id]
+    order = [new.id if s.order == swap.order else s.place_id for s in course.stops]  # 바꾼 자리만 갈아끼운 순서
     exclude = list(dict.fromkeys([*req.exclude_ids, stop.place_id]))
-    new_req = req.model_copy(update={"only_ids": keep, "exclude_ids": exclude})
-    swapped = make_course(new_req, (f"'{stop.name}' 대신 '{new.name}' 을(를) 넣어 순서와 시간을 다시 맞췄습니다.",))
+    new_req = req.model_copy(update={"only_ids": keep, "order_ids": order, "exclude_ids": exclude})
+    swapped = make_course(new_req, (f"'{stop.name}' 대신 '{new.name}' 을(를) 넣고 시간을 다시 맞췄습니다.",))
     if new.id not in {s.place_id for s in swapped.stops}:
         raise PlanError(f"'{new.name}' 을(를) 넣으면 시간이 맞지 않아 바꿀 수 없습니다. 다른 곳을 골라 주세요.")
     return swapped

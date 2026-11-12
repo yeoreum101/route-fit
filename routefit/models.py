@@ -154,6 +154,8 @@ class PlanRequest(BaseModel):
     planner: Optional[Literal["greedy", "ortools"]] = None
     # '다른 곳으로 바꾸기' 로 다시 짤 때만: AI 추천 장소를 이 장소들로만 채운다(모두 넣는다). 화면 입력칸은 쓰지 않는다
     only_ids: Optional[list[str]] = None
+    # 함께 쓰면: 이 순서(출발 위치·꼭 갈 곳 포함 모든 장소 id)대로 두고 시간만 맞춘다. 시간이 안 맞으면 순서를 다시 짠다
+    order_ids: Optional[list[str]] = None
 
 
 ConditionSource = Literal["화면", "문장", "기본값", "고정 일정"]

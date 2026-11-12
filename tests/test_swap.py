@@ -24,13 +24,16 @@ def _alts(course, order):
 def test_alternatives_have_same_role_and_are_not_in_course():
     course = _plan()
     in_course = {s["place_id"] for s in course["stops"]}
+    found = 0
     for stop in (s for s in course["stops"] if s["kind"] == "ai"):
         alts = _alts(course, stop["order"])
-        assert 1 <= len(alts) <= 3
+        assert len(alts) <= 3  # 그 자리에 시간이 맞는 곳이 없으면 비어 있을 수 있다
+        found += bool(alts)
         for a in alts:
             assert a["category"] == stop["category"] and a["place_id"] not in in_course
         if stop["order"] > 1:
             assert all(a["travel_from_prev"] is not None for a in alts)
+    assert found  # 적어도 한 곳은 바꿀 후보가 있다
 
 
 def test_swap_keeps_other_places_and_puts_chosen_one_in():
@@ -40,9 +43,8 @@ def test_swap_keeps_other_places_and_puts_chosen_one_in():
     res = client.post(f"/api/courses/{course['id']}/swap", json={"order": food["order"], "place_id": chosen["place_id"]})
     assert res.status_code == 200, res.text
     new = res.json()
-    before = {s["place_id"] for s in course["stops"] if s["kind"] == "ai"} - {food["place_id"]}
-    after = {s["place_id"] for s in new["stops"] if s["kind"] == "ai"}
-    assert after == before | {chosen["place_id"]}  # 바꾼 곳 하나만 다르고 장소 수도 같다
+    want = [chosen["place_id"] if s["order"] == food["order"] else s["place_id"] for s in course["stops"]]
+    assert [s["place_id"] for s in new["stops"]] == want  # 바꾼 자리만 갈아끼우고 순서는 그대로
     swapped = next(s for s in new["stops"] if s["place_id"] == chosen["place_id"])
     assert swapped["kind"] == "ai" and swapped["reason"]  # 꼭 갈 곳이 아니라 AI 추천으로 보이고 추천 이유가 있다
     assert meal_slot(to_min(swapped["start"])) is not None  # 식당은 식사 시간대에
