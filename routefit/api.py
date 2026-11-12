@@ -14,8 +14,8 @@ from .admin import require_admin
 from .admin import router as admin_router
 from .config import WEB_DIR
 from .data import load_anchors, load_places
-from .models import Course, CourseSummary, Feedback, FeedbackIn, Place, PlanRequest, Stats
-from .pipeline import make_course, warm_up
+from .models import Alternative, Course, CourseSummary, Feedback, FeedbackIn, Place, PlanRequest, Stats, SwapIn
+from .pipeline import alternatives, make_course, swap_course, warm_up
 from .planner import PlanError
 from .ratelimit import limit_plan
 
@@ -103,6 +103,31 @@ def get_course(course_id: str):
     if course is None:
         raise HTTPException(status_code=404, detail="코스를 찾을 수 없습니다.")
     return course
+
+
+def _saved(course_id: str) -> Course:
+    course = courses.get_course(course_id)
+    if course is None:
+        raise HTTPException(status_code=404, detail="코스를 찾을 수 없습니다.")
+    return course
+
+
+@app.get("/api/courses/{course_id}/alternatives", response_model=list[Alternative])
+def course_alternatives(course_id: str, order: int = Query(ge=1)):
+    """코스의 AI 추천 장소(order) 대신 넣을 만한 같은 역할의 장소 몇 곳."""
+    try:
+        return alternatives(_saved(course_id), order)
+    except PlanError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.post("/api/courses/{course_id}/swap", response_model=Course, dependencies=[Depends(limit_plan)])
+def course_swap(course_id: str, swap: SwapIn):
+    """AI 추천 장소 하나를 고른 곳으로 바꿔 다시 짠 새 코스(새 id 로 저장)."""
+    try:
+        return swap_course(_saved(course_id), swap)
+    except PlanError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.post("/api/courses/{course_id}/feedback", response_model=Feedback, status_code=201)

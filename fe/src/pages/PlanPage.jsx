@@ -124,6 +124,26 @@ export default function PlanPage() {
     setActiveOrder(null);
   }
 
+  // 결과의 AI 추천 장소 하나를 고른 곳으로 바꾼 새 코스. 실패하면 안내 문구를 돌려준다(바꾸기 상자에 보인다).
+  async function swapStop(order, placeId) {
+    try {
+      const res = await fetch(`/api/courses/${encodeURIComponent(course.id)}/swap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order, place_id: placeId }),
+      });
+      const data = await res.json();
+      if (!res.ok) return typeof data.detail === "string" ? data.detail : "바꾸지 못했습니다.";
+      showCourse(data);
+      history.replaceState(null, "", data.id ? `?course=${data.id}` : location.pathname);
+      const swapped = data.stops.find((s) => s.place_id === placeId);
+      if (swapped) setActiveOrder(swapped.order); // 바뀐 곳을 표시해 둔다
+      return null;
+    } catch {
+      return "바꾸지 못했습니다. 잠시 뒤 다시 해 주세요.";
+    }
+  }
+
   // ---------- 불러오기 ----------
 
   // 저장된 요청으로 입력칸을 되살린다. 받은 사람이 조건을 조금 바꿔 다시 만들어 볼 수 있다.
@@ -323,6 +343,7 @@ export default function PlanPage() {
           activeOrder={activeOrder}
           onFocusStop={focusStop}
           onShowRoute={showWholeRoute}
+          onSwap={swapStop}
         />
 
         <CourseMap

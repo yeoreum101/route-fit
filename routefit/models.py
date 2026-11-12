@@ -152,6 +152,8 @@ class PlanRequest(BaseModel):
     budget: Optional[int] = Field(default=None, ge=0)
     visit_date: Optional[date] = None  # 방문 날짜. 요일을 정해 휴무일을 거른다
     planner: Optional[Literal["greedy", "ortools"]] = None
+    # '다른 곳으로 바꾸기' 로 다시 짤 때만: AI 추천 장소를 이 장소들로만 채운다(모두 넣는다). 화면 입력칸은 쓰지 않는다
+    only_ids: Optional[list[str]] = None
 
 
 ConditionSource = Literal["화면", "문장", "기본값", "고정 일정"]
@@ -201,6 +203,27 @@ class Stop(BaseModel):
     local_score: Optional[float] = None
     is_local_commerce: bool = False
     reason: str = ""
+
+
+class Alternative(BaseModel):
+    """코스의 AI 추천 장소 하나를 바꿀 때 보여 주는 후보 (같은 역할: 같은 유형, 식당은 같은 끼니)."""
+
+    place_id: str
+    name: str
+    category: Category
+    area: str
+    cost: int
+    is_local_commerce: bool = False
+    similarity: float  # 취향 코사인 유사도(원값)
+    taste: float  # 지금 코스의 후보들 안에서 0~1 로 다시 매긴 취향 적합도
+    travel_from_prev: Optional[int] = None  # 앞 장소에서 오는 이동시간(분). 첫 장소면 None
+    travel_to_next: Optional[int] = None  # 다음 장소까지 이동시간(분). 마지막 장소면 None
+    description: str = ""
+
+
+class SwapIn(BaseModel):
+    order: int = Field(ge=1)  # 바꿀 장소의 Stop.order
+    place_id: str = Field(min_length=1, max_length=64)
 
 
 class Metrics(BaseModel):

@@ -11,6 +11,7 @@ from .data import is_measured, load_anchors, load_places, travel_minutes, travel
 from .embedding import PlaceIndex, get_embedder
 from .explain import explain
 from .models import (
+    Alternative,
     Constraints,
     Course,
     Metrics,
@@ -19,13 +20,14 @@ from .models import (
     Place,
     PlanRequest,
     Stop,
+    SwapIn,
     to_hm,
     to_min,
 )
 from .parser import find_by_name, parse_query
 from .place_search import default_stay, is_kakao_id
 from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule, start_windows
-from .planner.core import fill_day, improve_order
+from .planner.core import fill_day, improve_order, meal_slot
 
 log = logging.getLogger(__name__)
 
@@ -269,7 +271,8 @@ def _pick(screen, sentence, default):
     return default, "기본값"
 
 
-def make_course(req: PlanRequest) -> Course:
+def make_course(req: PlanRequest, extra_notes: tuple[str, ...] = ()) -> Course:
+    """extra_notes: '인식된 조건' 맨 앞에 보일 안내(다른 곳으로 바꾸기 등)."""
     known = load_anchors() + load_places()
 
     # ① 자연어 조건 파싱
@@ -277,7 +280,7 @@ def make_course(req: PlanRequest) -> Course:
     musts = _must_nodes(req, parsed, known)
     _check_fixed_conflicts(musts)
     sources: dict[str, str] = {}
-    notes: list[str] = []
+    notes: list[str] = list(extra_notes)
 
     if musts:
         sources["must_visits"] = "화면" if req.must_visits else "문장"
@@ -366,6 +369,13 @@ def make_course(req: PlanRequest) -> Course:
     # 실측으로 시간이 맞지 않으면 실측값이 반영된 상태로 다시 고른다.
     choose_travel = _choosing_travel(c)  # 고를 때만 쓴다. 시간표(schedule)는 실제 이동시간으로 짠다
     limits = _stop_limits(c, len(musts), day_end - day_start)
+    if req.only_ids is not None:
+        # '다른 곳으로 바꾸기': 나머지 AI 장소는 그대로 두고 바꾼 곳 하나만 다르게, 순서·시간을 다시 짠다
+        keep = set(req.only_ids)
+        candidates = [n for n in candidates if n.id in keep]
+        limits = replace(limits, min_ai_stops=len(candidates), max_ai_stops=len(candidates))
+        if len(candidates) < len(keep):
+            c.notes.append("바꾸기 전 코스의 장소 일부는 지금 조건(휴무일 등)에 맞지 않아 뺐습니다.")
     for _ in range(MEASURE_ROUNDS):
         route = planner(fixed_nodes, candidates, day_start, day_end, c.budget, choose_travel, limits)
         route = improve_order(route, day_start, day_end, choose_travel)  # 같은 장소를 덜 오가는 순서로
@@ -408,3 +418,97 @@ def make_course(req: PlanRequest) -> Course:
     course = _to_course(visits, c, engine)
     course.id = save_course(req, course)
     return course
+
+
+# ---------- 결과에서 '다른 곳으로 바꾸기' ----------
+
+ALTERNATIVES = 3  # 장소 하나에 보여 주는 후보 수
+NEAR_START_MIN = 90  # 식당이 아닌 곳은 원래 시작 시각 앞뒤 이만큼 안에 열려 있어야 한다
+
+
+def _course_stop(course: Course, order: int) -> Stop:
+    stop = next((s for s in course.stops if s.order == order), None)
+    if stop is None:
+        raise PlanError("바꿀 장소를 코스에서 찾을 수 없습니다.")
+    if stop.kind != "ai":
+        raise PlanError("AI 가 추천한 장소만 바꿀 수 있습니다(꼭 갈 곳·출발 위치는 입력칸에서 바꿔 주세요).")
+    return stop
+
+
+def _fits_role(n: Node, stop: Stop) -> bool:
+    """같은 역할인지: 같은 유형이고, 식당은 같은 끼니(점심·저녁)에, 다른 곳은 원래 시각 근처에 들를 수 있다."""
+    if n.place.category != stop.category:
+        return False
+    start = to_min(stop.start)
+    if stop.category == "food":
+        slot = meal_slot(start)
+        if slot is None:
+            return bool(n.windows)
+        _, m0, m1 = config.LIMITS.meal_windows[slot]
+        return any(lo <= m1 and hi >= m0 for lo, hi in n.windows)
+    return any(lo <= start + NEAR_START_MIN and hi >= start - NEAR_START_MIN for lo, hi in n.windows)
+
+
+def alternatives(course: Course, order: int, k: int = ALTERNATIVES) -> list[Alternative]:
+    """코스의 AI 추천 장소(order) 대신 넣을 만한 곳 k 개. 같은 역할 후보를 추천 점수(취향·지역상권·동행·할 거리)에서
+    앞뒤 장소와의 이동 부담을 뺀 순서로 고른다. 이미 코스에 있는 곳, 뺀 곳, 휴무인 곳은 빼고."""
+    stop = _course_stop(course, order)
+    req = course.request
+    if req is None:
+        raise PlanError("저장된 요청이 없는 코스라 바꿀 수 없습니다. 코스를 다시 만들어 주세요.")
+    c = course.constraints.model_copy(deep=True)  # _excluded 가 notes 에 덧붙이므로 복사본으로
+    places = load_places()
+    by_id = {p.id: p for p in load_anchors() + places}
+    musts = [Node(place=by_id[s.place_id], windows=[], stay=0, cost=0) for s in course.stops if s.kind == "must" and s.place_id in by_id]
+    in_course = {s.place_id for s in course.stops}
+    exclude = in_course | _excluded(places, c, req.query, musts, set(req.exclude_ids))
+    nodes = [n for n in _candidate_nodes(c, _index().similarities(c.taste), exclude, filters.wanted_activities(req.query)) if _fits_role(n, stop)]
+
+    i = course.stops.index(stop)
+    prev = _stop_ref(course.stops[i - 1]) if i > 0 else None
+    nxt = _stop_ref(course.stops[i + 1]) if i + 1 < len(course.stops) else None
+    def legs(n: Node) -> tuple[Optional[int], Optional[int]]:
+        return (travel_minutes(prev, n) if prev else None, travel_minutes(n, nxt) if nxt else None)
+
+    def score(n: Node) -> float:
+        before, after = legs(n)
+        return n.value - config.WEIGHTS.travel_per_min * ((before or 0) + (after or 0))
+
+    out = []
+    for n in sorted(nodes, key=score, reverse=True)[:k]:
+        before, after = legs(n)
+        p = n.place
+        out.append(
+            Alternative(
+                place_id=p.id, name=p.name, category=p.category, area=p.area, cost=p.cost, is_local_commerce=p.is_local_commerce,
+                similarity=round(n.similarity, 3), taste=round(n.taste, 3), travel_from_prev=before, travel_to_next=after,
+                description=p.description,
+            )
+        )
+    return out
+
+
+def _stop_ref(s: Stop):
+    """Stop 을 travel_minutes 가 받는 모양(id·lat·lng)으로. Stop 의 place_id 를 id 로 쓴다."""
+    return Node(place=Place(id=s.place_id, name=s.name, category=s.category, area=s.area, lat=s.lat, lng=s.lng), windows=[], stay=0, cost=0)
+
+
+def swap_course(course: Course, swap: SwapIn) -> Course:
+    """코스의 AI 추천 장소 하나를 다른 곳으로 바꿔 다시 짠다. 나머지 AI 장소와 꼭 갈 곳·출발 위치는 그대로 두고,
+    순서와 시간만 다시 맞춘다. 바꾼 장소는 뺀 장소에 넣어 다시 나오지 않게 한다."""
+    stop = _course_stop(course, swap.order)
+    req = course.request
+    if req is None:
+        raise PlanError("저장된 요청이 없는 코스라 바꿀 수 없습니다. 코스를 다시 만들어 주세요.")
+    if swap.place_id in {s.place_id for s in course.stops}:
+        raise PlanError("이미 코스에 있는 장소입니다.")
+    new = next((p for p in load_places() if p.id == swap.place_id), None)
+    if new is None:
+        raise PlanError("바꿀 장소를 찾을 수 없습니다.")
+    keep = [s.place_id for s in course.stops if s.kind == "ai" and s.order != swap.order] + [new.id]
+    exclude = list(dict.fromkeys([*req.exclude_ids, stop.place_id]))
+    new_req = req.model_copy(update={"only_ids": keep, "exclude_ids": exclude})
+    swapped = make_course(new_req, (f"'{stop.name}' 대신 '{new.name}' 을(를) 넣어 순서와 시간을 다시 맞췄습니다.",))
+    if new.id not in {s.place_id for s in swapped.stops}:
+        raise PlanError(f"'{new.name}' 을(를) 넣으면 시간이 맞지 않아 바꿀 수 없습니다. 다른 곳을 골라 주세요.")
+    return swapped

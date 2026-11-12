@@ -227,6 +227,20 @@ button.add-must[hidden] { display: none; }
 button.link { width: auto; margin: 8px 0 0; padding: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: underline; }
 button.link:hover:not(:disabled) { color: var(--text); background: none; }
 
+/* 결과에서 '다른 곳으로 바꾸기' (CourseView.jsx SwapBox) */
+button.link.swap-open { margin-top: 6px; font-size: 12px; }
+.swap-box { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fafbfc; }
+.swap-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.swap-head .link { margin: 0; font-size: 12px; }
+.swap-list { list-style: none; margin: 6px 0 0; padding: 0; }
+/* #timeline li 의 들여쓰기·세로줄·선택 표시가 안쪽 후보 줄에 붙지 않게 되돌린다 */
+#timeline .swap-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0; padding: 8px 0; border-left: 0; }
+#timeline .swap-list li::after { content: none; }
+#timeline .swap-list li + li { border-top: 1px solid var(--line); }
+.swap-list li > div { flex: 1; min-width: 0; }
+.swap-list button { flex: none; margin: 0; padding: 6px 12px; font-size: 13px; }
+.swap-desc { margin-top: 2px; }
+
 /* 인식된 조건 */
 #conditions { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 #conditions[hidden] { display: none; }

@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { CATEGORY_KO, KAKAO_PLACE_NOTE, PLANNER_KO, isKakaoPlace, kakaoPlaceUrl, stopLabel } from "../common.js";
 
 const WEEKDAY_KO = ["월", "화", "수", "목", "금", "토", "일"];
@@ -80,7 +80,77 @@ function MapLinks({ stop }) {
 // 직전 장소에서 오는 수단. 예전에 저장된 코스에는 없어서 그때는 '이동'으로 보인다.
 const TRAVEL_MODE_KO = { walk: "도보", transit: "대중교통", car: "자동차" };
 
-function Timeline({ course, activeOrder, onFocusStop }) {
+// AI 추천 장소를 같은 역할(같은 유형, 식당은 같은 끼니)의 다른 곳으로 바꾼다. 고르면 나머지 장소는 그대로 두고
+// 순서와 시간을 다시 짠 새 코스가 나온다(onSwap). 꼭 갈 곳·출발 위치는 입력칸에서 바꾼다.
+function SwapBox({ course, stop, onSwap, onClose }) {
+  const [alts, setAlts] = useState(null); // null: 불러오는 중
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(null); // 바꾸는 중인 place_id
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/courses/${encodeURIComponent(course.id)}/alternatives?order=${stop.order}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "후보를 불러오지 못했습니다.");
+        if (alive) setAlts(data);
+      })
+      .catch((err) => alive && (setError(err.message), setAlts([])));
+    return () => { alive = false; };
+  }, [course.id, stop.order]);
+
+  async function choose(a) {
+    setBusy(a.place_id);
+    setError("");
+    const message = await onSwap(stop.order, a.place_id);
+    if (message) { // 실패하면 안내를 남기고 다시 고를 수 있게 한다(성공하면 새 코스로 바뀌어 이 상자가 사라진다)
+      setError(message);
+      setBusy(null);
+    }
+  }
+
+  const legs = (a) => [
+    a.travel_from_prev != null ? `앞 장소에서 ${a.travel_from_prev}분` : null,
+    a.travel_to_next != null ? `다음 장소까지 ${a.travel_to_next}분` : null,
+  ].filter(Boolean).join(" · ");
+
+  return (
+    <div className="swap-box" role="region" aria-label={`${stop.name} 대신 갈 곳`}>
+      <div className="swap-head">
+        <span className="small"><b>{stop.name}</b> 대신 갈 곳</span>
+        <button type="button" className="link" onClick={onClose}>닫기</button>
+      </div>
+      {alts === null ? <p className="muted small">비슷한 곳을 찾는 중…</p> : null}
+      {alts && !alts.length && !error ? <p className="muted small">조건에 맞는 다른 곳이 없습니다.</p> : null}
+      {alts && alts.length ? (
+        <ul className="swap-list">
+          {alts.map((a) => (
+            <li key={a.place_id}>
+              <div>
+                <b>{a.name}</b>
+                {a.is_local_commerce ? <>{" "}<span className="tag local">지역상권</span></> : null}
+                <div className="muted small">
+                  {`${CATEGORY_KO[a.category] || "기타"} · ${a.area} · ${a.cost ? `1인 약 ${a.cost.toLocaleString()}원` : "무료"}`}
+                  {legs(a) ? ` · ${legs(a)}` : ""}
+                </div>
+                {a.description ? <div className="muted small swap-desc">{a.description}</div> : null}
+              </div>
+              <button type="button" className="inline" disabled={busy !== null} onClick={() => choose(a)}>
+                {busy === a.place_id ? "다시 짜는 중…" : "이걸로 바꾸기"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {error ? <p className="form-status" role="alert">{error}</p> : null}
+    </div>
+  );
+}
+
+function Timeline({ course, activeOrder, onFocusStop, onSwap }) {
+  const [swapOrder, setSwapOrder] = useState(null); // '다른 곳으로 바꾸기' 를 펼친 장소
+  const canSwap = Boolean(course.id && onSwap); // 저장된 코스여야 서버가 조건을 다시 쓸 수 있다
+
   return (
     <ol id="timeline">
       {course.stops.map((s) => (
@@ -104,6 +174,13 @@ function Timeline({ course, activeOrder, onFocusStop }) {
           </div>
           <div className="muted small">{s.kind === "start" ? s.area : `${CATEGORY_KO[s.category]} · ${s.area}`}</div>
           {s.kind === "ai" && s.reason ? <p className="reason">{s.reason}</p> : null}
+          {s.kind === "ai" && canSwap ? (
+            swapOrder === s.order ? (
+              <SwapBox course={course} stop={s} onSwap={onSwap} onClose={() => setSwapOrder(null)} />
+            ) : (
+              <button type="button" className="link swap-open" onClick={() => setSwapOrder(s.order)}>다른 곳으로 바꾸기</button>
+            )
+          ) : null}
           {isKakaoPlace(s.place_id) && s.kind !== "start" ? (
             <p className="kakao-note">
               {KAKAO_PLACE_NOTE} <a href={kakaoPlaceUrl(s.place_id)} target="_blank" rel="noopener">카카오맵에서 영업시간 보기</a>
@@ -194,7 +271,7 @@ function ShareBox({ course }) {
   );
 }
 
-export default function CourseView({ course, courseSeq, activeOrder, onFocusStop, onShowRoute }) {
+export default function CourseView({ course, courseSeq, activeOrder, onFocusStop, onShowRoute, onSwap }) {
   const m = course?.metrics;
   const e = course?.engine;
   const metrics = course && [
@@ -216,7 +293,7 @@ export default function CourseView({ course, courseSeq, activeOrder, onFocusStop
       <ul id="metrics">
         {course ? metrics.map(([k, v]) => <li key={k}>{`${k} `}<b>{v}</b></li>) : null}
       </ul>
-      {course ? <Timeline course={course} activeOrder={activeOrder} onFocusStop={onFocusStop} /> : <ol id="timeline" />}
+      {course ? <Timeline key={`timeline-${courseSeq}`} course={course} activeOrder={activeOrder} onFocusStop={onFocusStop} onSwap={onSwap} /> : <ol id="timeline" />}
       <details id="engine-box" hidden={!course}>
         <summary>생성 정보</summary>
         <p id="engine">
