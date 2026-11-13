@@ -16,15 +16,18 @@ from .core import (
     Travel,
     Window,
     back_to_back_cafes,
+    caps,
     counts_as_neighbor,
-    has_activity,
+    matches,
     meal_gap_applies,
     meal_slot,
+    want_shortfall,
 )
 from .greedy import plan_greedy
 
 log = logging.getLogger(__name__)
 
+ACTIVITY_BOOST = 5.0  # 말한 할 거리를 채울 후보의 상금에 더한다(장소 하나 가치는 많아야 2 남짓)
 SCALE = 1000  # OR-Tools 는 정수만 다루므로 점수를 1000배 한다
 COST_UNIT = 100  # 예산 차원 단위(원)
 
@@ -73,10 +76,21 @@ def plan_ortools(
         """빼면 잃는 점수. 식당은 끼니 점수(WEIGHTS.meal)도 함께 잃는다(한 끼에 AI 식당 한 곳이라 끼니마다 한 번)."""
         return n.value + (WEIGHTS.meal if n.meal else 0)
 
-    needed = {a for a, k in limits.activity_min if k > 0}
+    needed = {key for key, k in limits.want_min if k > 0}
+    # 문장에서 말한 할 거리("서점 많이" -> 2곳): 그 할 거리 후보 중 가치가 높은 곳부터 필요한 수만큼 상금을 크게 올려
+    # 빼기 어렵게 한다. '이만큼 이상' 을 하드 제약으로 걸면 OR-Tools 가 첫 해를 못 만들어(서점이 둘 다 카페라 서로
+    # 붙을 수 없을 때 등) 해 없음이 됐다. 그래도 못 채우면 아래에서 그리디와 비교한다
+    boosted: set[str] = set()
+    for key, need in limits.want_min:
+        pool = sorted((n for n in candidates if not n.mandatory and matches(n, key) and n.id not in boosted), key=prize, reverse=True)
+        boosted |= {n.id for n in pool[:need]}
+
+    def penalty(n: Node) -> int:
+        return max(0, round(SCALE * (prize(n) + (ACTIVITY_BOOST if n.id in boosted else 0))))
+
     for n in candidates:
-        # 최소 장소 수가 있거나 문장에서 말한 할 거리(activity_min)를 채우는 곳이면 가치가 낮아도 후보로 둔다
-        if prize(n) <= 0 and not limits.min_ai_stops and not any(has_activity(n, a) for a in needed):
+        # 최소 장소 수가 있거나 문장에서 말한 할 거리·유형(want_min)을 채우는 곳이면 가치가 낮아도 후보로 둔다
+        if prize(n) <= 0 and not limits.min_ai_stops and not any(matches(n, key) for key in needed):
             continue
         meal_slots = range(len(LIMITS.meal_windows)) if n.meal else [None]
         group = [add(n, windows(n, slot), slot) for slot in meal_slots if windows(n, slot)]
@@ -127,8 +141,8 @@ def plan_ortools(
     add_capacity("Stops", is_ai, limits.max_ai_stops)
     if limits.min_ai_stops:  # 못 채우면 해가 없고, 아래에서 그리디가 들어가는 만큼 채운다
         routing.solver().Add(routing.GetDimensionOrDie("Stops").CumulVar(routing.End(0)) >= limits.min_ai_stops)
-    for cat, cap in LIMITS.category_caps:
-        add_capacity(f"Cap_{cat}", [0] + [int(not n.mandatory and n.place.category == cat) for n in nodes], cap)
+    for i, (key, cap) in enumerate(caps(limits).items()):  # 유형별 상한 + 문장에서 말한 양("카페가 너무 많아" -> 1)
+        add_capacity(f"Cap_{i}", [0] + [int(not n.mandatory and matches(n, key)) for n in nodes], cap)
     if budget is not None:
         add_capacity("Budget", [0] + [-(-n.cost // COST_UNIT) for n in nodes], budget // COST_UNIT)
     for slot in range(len(LIMITS.meal_windows)):  # 한 끼에 식당 한 곳
@@ -164,15 +178,8 @@ def plan_ortools(
                 b_first = (ti >= tj + b.stay + LIMITS.min_meal_gap).Var()
                 solver.Add(a_first + b_first + both >= 1)
 
-    # 문장에서 말한 할 거리("서점 많이" -> 2곳)를 AI 추천으로 이만큼은 넣는다. 못 채우면 해가 없고, 아래에서
-    # 그리디가 들어가는 만큼 채운다
-    for activity, need in limits.activity_min:
-        active = [routing.ActiveVar(manager.NodeToIndex(k)) for k, n in enumerate(nodes, 1) if not n.mandatory and has_activity(n, activity)]
-        if need > 0 and active:
-            solver.Add(solver.Sum(active) >= min(need, len(active)))
-
     for group in groups:
-        routing.AddDisjunction([manager.NodeToIndex(k) for k in group], max(0, round(SCALE * prize(nodes[group[0] - 1]))), 1)
+        routing.AddDisjunction([manager.NodeToIndex(k) for k in group], penalty(nodes[group[0] - 1]), 1)
 
     params = pywrapcp.DefaultRoutingSearchParameters()
     params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
@@ -188,4 +195,10 @@ def plan_ortools(
     while not routing.IsEnd(index):
         route.append(nodes[manager.IndexToNode(index) - 1])
         index = solution.Value(routing.NextVar(index))
+    short = want_shortfall(route, limits)
+    if short:  # 말한 할 거리를 다 못 채웠다: 그리디가 더 채우면 그쪽을 쓴다
+        other = plan_greedy(musts, candidates, day_start, day_end, budget, travel, limits)
+        if sum(want_shortfall(other, limits).values()) < sum(short.values()):
+            log.info("OR-Tools 가 할 거리 %s 를 못 채워 그리디 결과를 씀", short)
+            return other
     return route

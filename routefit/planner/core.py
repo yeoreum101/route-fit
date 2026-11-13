@@ -276,6 +276,26 @@ def objective(visits: list[Visit], day_end: int, weights: Weights = WEIGHTS) -> 
     )
 
 
+CATEGORIES = {"sight", "culture", "market", "food", "cafe", "shop", "night", "venue", "lodging", "etc"}
+
+
+def matches(n: Node, key: str) -> bool:
+    """key 가 유형("cafe")이면 그 유형인지, 아니면 그 할 거리 태그("책·독서")가 있는지."""
+    return n.place.category == key if key in CATEGORIES else key in n.place.tags.get("activity", [])
+
+
+def caps(limits: Limits = LIMITS) -> dict[str, int]:
+    """AI 추천 장소의 상한 {유형·할 거리: 곳 수}. 기본 유형 상한(category_caps)에 문장에서 말한 양을 얹는다:
+    "카페 3곳" 처럼 상한보다 많이 원하면 올리고, "카페가 너무 많아" 처럼 줄여 달라면 내린다."""
+    out = dict(limits.category_caps)
+    for key, n in limits.want_min:
+        if key in out and out[key] < n:
+            out[key] = n
+    for key, n in limits.want_max:
+        out[key] = min(out.get(key, n), n)
+    return out
+
+
 def within_caps(route: list[Node], budget: Optional[int], limits: Limits = LIMITS) -> bool:
     """예산 · AI 추천 장소 수 · 유형별 상한."""
     if budget is not None and sum(n.cost for n in route) > budget:
@@ -283,18 +303,14 @@ def within_caps(route: list[Node], budget: Optional[int], limits: Limits = LIMIT
     ai = [n for n in route if not n.mandatory]
     if len(ai) > limits.max_ai_stops:
         return False
-    return all(sum(n.place.category == cat for n in ai) <= cap for cat, cap in limits.category_caps)
+    return all(sum(matches(n, key) for n in ai) <= cap for key, cap in caps(limits).items())
 
 
-def has_activity(n: Node, activity: str) -> bool:
-    return activity in n.place.tags.get("activity", [])
-
-
-def activity_shortfall(route: list[Node], limits: Limits = LIMITS) -> dict[str, int]:
-    """limits.activity_min 에 아직 모자란 AI 추천 장소 수. {할 거리: 모자란 곳 수}, 다 채웠으면 빈 dict."""
+def want_shortfall(route: list[Node], limits: Limits = LIMITS) -> dict[str, int]:
+    """limits.want_min 에 아직 모자란 AI 추천 장소 수. {할 거리·유형: 모자란 곳 수}, 다 채웠으면 빈 dict."""
     ai = [n for n in route if not n.mandatory]
-    short = {a: need - sum(has_activity(n, a) for n in ai) for a, need in limits.activity_min}
-    return {a: k for a, k in short.items() if k > 0}
+    short = {key: need - sum(matches(n, key) for n in ai) for key, need in limits.want_min}
+    return {key: k for key, k in short.items() if k > 0}
 
 
 EXHAUSTIVE_MAX = 7  # 이 개수까지는 모든 순서를 본다(7! = 5040, 약 0.2초)

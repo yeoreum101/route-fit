@@ -218,7 +218,8 @@ button.add-must[hidden] { display: none; }
     block-size: 0; overflow: clip;
     transition: block-size .3s ease-in-out, content-visibility .3s allow-discrete;
   }
-  .optional-box[open]::details-content { block-size: auto; }
+  /* 펼친 뒤에는 자르지 않는다. 자르면 '빼고 싶은 장소' 검색 목록이 상자 밖으로 못 나와 가려졌다 */
+  .optional-box[open]::details-content { block-size: auto; overflow: visible; }
 }
 @media (prefers-reduced-motion: reduce) {
   .optional-box[open] > :not(summary) { animation: none; }

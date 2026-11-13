@@ -113,22 +113,41 @@ def _num(text: str) -> int:
     return int(text) if text.isdigit() else _KO_NUM[text]
 
 
-def place_count(query: str, fewer: int) -> tuple[Optional[int], Optional[int]]:
+_MORE_PLACES = re.compile(
+    r"(?:장소|곳|코스|일정)\S{0,3}\s*(?:(?:좀\s*)?너무\s*적|좀\s*적|적은\s*것\s*같|부족|모자라|더\s*(?:많이|넣|늘려)|늘려)"
+    r"|더\s*많은\s*(?:곳|장소)"
+)
+
+
+def _targeted(query: str, start: int) -> bool:
+    """수 바로 앞에 할 거리·유형 낱말이 있다("서점 3곳만", "카페는 한 곳만"): 하루 전체 장소 수가 아니다."""
+    words = [w for _, ws in ACTIVITY_WORDS + CATEGORY_WORDS for w in ws]
+    return bool(re.search("(?:" + "|".join(words) + r")\S{0,3}\s*$", query[max(0, start - 12):start]))
+
+
+def _first(pattern: re.Pattern, query: str):
+    return next((m for m in pattern.finditer(query) if not _targeted(query, m.start())), None)
+
+
+def place_count(query: str, fewer: int, more: Optional[int] = None) -> tuple[Optional[int], Optional[int]]:
     """문장에서 말한 하루 장소 수 (최소, 최대). 출발 위치는 세지 않고 꼭 갈 곳은 센다.
     "3~4곳" -> (3, 4), "4곳 이상" -> (4, None), "최대 3곳"·"3곳까지" -> (None, 3), "3곳만"·"세 군데" -> (3, 3),
-    수 없이 "장소 너무 많아"·"조금만" -> (None, fewer). 말이 없으면 (None, None)."""
-    if m := _COUNT_RANGE.search(query):
+    수 없이 "장소 너무 많아"·"조금만" -> (None, fewer), "장소가 너무 적어"·"더 많은 곳" -> (more, None).
+    "서점 3곳만" 처럼 할 거리·유형에 붙은 수는 그 할 거리의 수라 여기서 세지 않는다. 말이 없으면 (None, None)."""
+    if m := _first(_COUNT_RANGE, query):
         lo, hi = sorted((_num(m.group(1)), _num(m.group(2))))
         return lo, hi
-    if m := _COUNT_MIN.search(query):
+    if m := _first(_COUNT_MIN, query):
         return _num(m.group(1) or m.group(2)), None
-    if m := _COUNT_MAX.search(query):
+    if m := _first(_COUNT_MAX, query):
         return None, _num(m.group(1) or m.group(2))
-    if m := _COUNT.search(query):
+    if m := _first(_COUNT, query):
         n = _num(next(g for g in m.groups() if g))
         return n, n
     if _FEWER.search(query):
         return None, fewer
+    if more is not None and _MORE_PLACES.search(query):
+        return more, None
     return None, None
 
 
@@ -146,34 +165,73 @@ def avoids_transit(query: str) -> bool:
     return bool(_NO_TRANSIT.search(query) or _WALK_ONLY.search(query))
 
 
+# ---------- 할 거리·유형의 양 ("서점 좀 많이", "카페가 너무 많아", "전시는 한 곳만") ----------
+
+# 유형으로 말하는 것. 양을 말했을 때만 쓴다("맛집 가고 싶어" 처럼 그냥 말한 것은 끼니·유형 규칙이 맡는다)
+CATEGORY_WORDS = [
+    ("cafe", (r"(?<!북)카페",)),
+    ("food", ("식당", "밥집", "맛집")),
+    ("night", ("술집", "포차")),
+    ("shop", ("소품샵", "소품 가게", "편집샵")),
+]
+CATEGORY_KEYS = {c for c, _ in CATEGORY_WORDS}
+
+_PART = r"\S{0,3}?\s*"  # 조사("은·이·를·이랑")
+_ADV = r"(?:(?:좀|조금|더|아주|엄청|꽤|정말|진짜|훨씬)\s*)?"
+_KO_COUNT = {"한": 1, "두": 2, "세": 3, "네": 4, "다섯": 5}
+_EXACT = re.compile(_PART + r"(\d{1,2}|한|두|세|네|다섯)\s*(?:곳|군데|개)(\s*만)?")
+_ONLY_ONE = re.compile(_PART + r"(?:하나|한\s*번)\s*만")
+# 줄여 달라: "좀 적게·조금만·덜", "너무 많아·너무 많은 것 같아"
+_FEWER_AFTER = re.compile(_PART + _ADV + r"(?:적게|조금만|덜|줄여|줄이)|" + _PART + r"(?:좀\s*)?너무\s*많")
+# 늘려 달라: "좀 많이·여러 곳·투어·더 넣어", "너무 적어·부족해"
+_MORE_AFTER = re.compile(
+    _PART + _ADV + r"(?:많이|여러|잔뜩|투어|위주|더\s*넣|늘려)|" + _PART + r"(?:(?:좀\s*)?너무\s*적|부족|모자라)"
+)
+_MORE_BEFORE = re.compile(r"(?:여러|많은)\s*(?:곳의?|군데의?)?\s*$")
+
+MORE = 2  # "많이" 는 2곳 이상
+FEWER = 1  # "적게·너무 많아" 는 1곳까지
+
+
+def _amount(query: str, start: int, end: int, category: bool) -> Optional[tuple[int, Optional[int]]]:
+    """낱말 바로 뒤(또는 앞)의 양 -> (최소, 최대). 양을 말하지 않았으면 할 거리는 (1, None), 유형은 None."""
+    if m := _EXACT.match(query, end):
+        n = int(m.group(1)) if m.group(1).isdigit() else _KO_COUNT[m.group(1)]
+        return (n, n) if m.group(2) else (n, None)
+    if _ONLY_ONE.match(query, end):
+        return 1, 1
+    if _FEWER_AFTER.match(query, end):
+        return 0, FEWER
+    if _MORE_AFTER.match(query, end) or _MORE_BEFORE.search(query[max(0, start - 8):start]):
+        return MORE, None
+    return None if category else (1, None)
+
+
+def quantity_wants(query: str) -> dict[str, tuple[int, Optional[int]]]:
+    """문장에서 말한 할 거리·유형별 (최소, 최대) 곳 수. 키는 할 거리 태그("책·독서") 또는 유형("cafe").
+    "서점 좀 많이랑 전시" -> {"책·독서": (2, None), "전시 관람": (1, None)},
+    "카페가 너무 많아" -> {"cafe": (0, 1)}, "전시는 한 곳만" -> {"전시 관람": (1, 1)}.
+    피하는 말("서점은 말고")이 붙은 것은 넣지 않는다(뺄 곳은 다른 규칙이 맡는다)."""
+    out: dict[str, tuple[int, Optional[int]]] = {}
+    targets = [(a, w, False) for a, w in ACTIVITY_WORDS] + [(c, w, True) for c, w in CATEGORY_WORDS]
+    for key, words, category in targets:
+        if any(re.search(f"(?:{w}){_NEGATED}", query) for w in words):
+            continue
+        found = [a for w in words for m in re.finditer(w, query) if (a := _amount(query, m.start(), m.end(), category))]
+        if not found:
+            continue
+        lo = max(a[0] for a in found)
+        his = [a[1] for a in found if a[1] is not None]
+        hi = min(his) if his else None
+        out[key] = (min(lo, hi) if hi is not None else lo, hi)
+    return out
+
+
 def wanted_activities(query: str) -> set[str]:
     """문장에서 하고 싶다고 한 할 거리 태그. "전시 좀 보고" -> {"전시 관람"}. "전시는 말고" 처럼 피하는 말이 붙으면 뺀다."""
-    return set(wanted_activity_counts(query))
-
-
-# 할 거리 바로 뒤(또는 앞)에 붙은 양. "서점 많이·여러 군데·책방 투어" -> 2, "서점 3곳" -> 3
-_KO_COUNT = {"한": 1, "두": 2, "세": 3, "네": 4, "다섯": 5}
-_COUNT_AFTER = re.compile(r"\S{0,3}?\s*(\d{1,2}|한|두|세|네|다섯)\s*(?:곳|군데|개)")
-_MANY_AFTER = re.compile(r"\S{0,3}?\s*(?:많이|여러|잔뜩|투어|위주)")
-_MANY_BEFORE = re.compile(r"(?:여러|많은)\s*(?:곳의?|군데의?)?\s*$")
-
-
-def _amount(query: str, start: int, end: int) -> int:
-    if m := _COUNT_AFTER.match(query, end):
-        return max(1, int(m.group(1)) if m.group(1).isdigit() else _KO_COUNT[m.group(1)])
-    if _MANY_AFTER.match(query, end) or _MANY_BEFORE.search(query[max(0, start - 8):start]):
-        return 2
-    return 1
+    return {k for k in quantity_wants(query) if k not in CATEGORY_KEYS}
 
 
 def wanted_activity_counts(query: str) -> dict[str, int]:
-    """문장에서 하고 싶다고 한 할 거리와 몇 곳은 넣어야 하는지. "서점 많이랑 전시 보고 싶어" ->
-    {"책·독서": 2, "전시 관람": 1}. 양을 말하지 않으면 1곳. 피하는 말이 붙은 할 거리는 뺀다."""
-    out: dict[str, int] = {}
-    for activity, words in ACTIVITY_WORDS:
-        if any(re.search(f"(?:{w}){_NEGATED}", query) for w in words):
-            continue
-        n = max((_amount(query, m.start(), m.end()) for w in words for m in re.finditer(w, query)), default=0)
-        if n:
-            out[activity] = n
-    return out
+    """할 거리마다 적어도 넣어야 할 곳 수. "서점 많이랑 전시 보고 싶어" -> {"책·독서": 2, "전시 관람": 1}."""
+    return {k: lo for k, (lo, _) in quantity_wants(query).items() if k not in CATEGORY_KEYS and lo > 0}

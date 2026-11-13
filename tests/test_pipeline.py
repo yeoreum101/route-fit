@@ -127,7 +127,8 @@ def test_named_activity_is_read_from_sentence():
     cases = {"서점 많이랑 전시 보고 싶어. 저녁즘에 돌아갈 듯?": {"책·독서": 2, "전시 관람": 1},
              "서점이랑 전시를 돌고 싶어": {"책·독서": 1, "전시 관람": 1}, "여러 서점 돌기": {"책·독서": 2},
              "책방 투어하고 싶어": {"책·독서": 2}, "서점 3곳이랑 미술관": {"책·독서": 3, "전시 관람": 1},
-             "전시 두 곳 보고 서점": {"전시 관람": 2, "책·독서": 1}, "서점은 말고 전시 많이": {"전시 관람": 2}}
+             "전시 두 곳 보고 서점": {"전시 관람": 2, "책·독서": 1}, "서점은 말고 전시 많이": {"전시 관람": 2},
+             "데이트할 건데, 서점갈거야. 점심부터 놀듯? 4만원 이하. 서점 좀 많이": {"책·독서": 2}}
     for q, want in cases.items():
         assert counts(q) == want, q
 
@@ -140,6 +141,9 @@ def test_named_activity_count_is_kept_in_course():
         assert sum("책·독서" in a for a in acts) >= 2, (planner, [s.name for s in c.stops])
         assert sum("전시 관람" in a for a in acts) >= 1, (planner, [s.name for s in c.stops])
         assert c.constraints.day_end == "19:30"
+    # 3시간짜리 하루(장소 상한 1곳)여도 말한 만큼(서점 2곳)은 넣는다. 끼니는 그만큼 양보한다
+    short = _plan("서점 좀 많이 가고 싶어. 맛있는 것도", day_start="12:00", day_end="15:00", planner="ortools")
+    assert {"book_and_life", "flower_blooms"} <= {s.place_id for s in short.stops}, [s.name for s in short.stops]
 
 
 def test_named_activity_tag_raises_place_value():
@@ -477,3 +481,36 @@ def test_unreachable_fixed_time_from_start_place_is_reported():
     far = {**STATION, "id": "kakao_8", "lat": 35.30, "lng": 126.70}  # 광주 밖으로 한참
     with pytest.raises(PlanError, match="겹칩니다"):
         _plan("산책", start=far, day_start="10:00", must_visits=[{"id": "acc", "start": "10:10"}])
+
+
+def test_quantity_words_more_and_fewer():
+    """'많이·적게·너무 많아·너무 적어·N곳만' 을 할 거리·유형별 (최소, 최대) 로 읽는다."""
+    from routefit.filters import place_count, quantity_wants
+
+    cases = {
+        "서점 좀 많이 가고 싶어": {"책·독서": (2, None)},
+        "서점 좀 적게": {"책·독서": (0, 1)},
+        "전시는 조금만 보고 싶어": {"전시 관람": (0, 1)},
+        "카페가 너무 많아": {"cafe": (0, 1)},
+        "카페 좀 많이": {"cafe": (2, None)},
+        "식당이 너무 적어": {"food": (2, None)},
+        "카페는 한 곳만 가자": {"cafe": (1, 1)},
+        "서점 하나만": {"책·독서": (1, 1)},
+        "서점 3곳만": {"책·독서": (3, 3)},
+        "맛집 가고 싶어": {},  # 양을 말하지 않은 유형은 끼니·유형 규칙에 맡긴다
+        "북카페 가고 싶어": {"책·독서": (1, None)},  # 북카페의 '카페' 는 카페 유형이 아니다
+    }
+    for q, want in cases.items():
+        assert quantity_wants(q) == want, q
+    # 할 거리·유형에 붙은 수는 하루 전체 장소 수가 아니다. 장소 얘기로 '너무 적어' 는 더 넣는다
+    assert place_count("서점 3곳만", 4, 6) == (None, None)
+    assert place_count("카페는 한 곳만 가자", 4, 6) == (None, None)
+    assert place_count("3곳만 가자", 4, 6) == (3, 3)
+    assert place_count("장소가 너무 적어", 4, 6) == (6, None)
+    assert place_count("장소 너무 많아", 4, 6) == (None, 4)
+
+
+def test_fewer_cafes_is_kept_in_course():
+    for planner in ("greedy", "ortools"):
+        c = _plan("카페 투어 하고 싶은데 카페가 너무 많아. 맛집도", planner=planner)
+        assert sum(s.category == "cafe" for s in c.stops) <= 1, (planner, [s.name for s in c.stops])

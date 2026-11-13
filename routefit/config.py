@@ -51,9 +51,11 @@ class Limits:
     max_ai_stops: int = 6
     # AI 추천 장소를 이만큼은 넣는다. 기본은 없음. 문장에서 "4곳 이상" 처럼 말하면 요청마다 바꾼다(dataclasses.replace)
     min_ai_stops: int = 0
-    # AI 추천에 이 할 거리 태그가 있는 장소를 이만큼은 넣는다((할 거리, 곳 수), ...). 기본은 없음. 문장에서 "서점 많이랑
-    # 전시"처럼 말하면 요청마다 정한다(꼭 갈 곳으로 이미 들어간 만큼은 빼고, 후보 수까지만). 못 채우면 넣을 수 있는 만큼만
-    activity_min: tuple[tuple[str, int], ...] = ()
+    # 문장에서 말한 할 거리·유형의 양. 키는 할 거리 태그("책·독서") 또는 유형("cafe"). 기본은 없음. 요청마다 정한다
+    # (꼭 갈 곳으로 이미 들어간 만큼은 뺀다). want_min: 적어도 이만큼("서점 좀 많이" -> 2, "전시" -> 1, 못 채우면
+    # 넣을 수 있는 만큼만). want_max: 이만큼까지("카페가 너무 많아" -> 1, "전시는 한 곳만" -> 1)
+    want_min: tuple[tuple[str, int], ...] = ()
+    want_max: tuple[tuple[str, int], ...] = ()
     fewer_places: int = 4  # 수 없이 "장소 너무 많아"·"몇 군데만" 이라고 하면 하루 장소를 이만큼까지
     category_caps: tuple[tuple[str, int], ...] = (("food", 2), ("cafe", 2), ("night", 1))
     min_cafe_stay: int = 90  # 카페는 이보다 짧게 머물지 않는다 (장소의 머무는 시간이 더 길면 그것을 쓴다)

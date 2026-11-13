@@ -239,7 +239,7 @@ def test_planners_fill_activity_minimum(planner):
     books = [node(place(f"b{i}", category="cafe", tags={"activity": ["카페·디저트", "책·독서"]}), stay=90, taste=0.0) for i in range(2)]
     shows = [node(place(f"e{i}", category="culture", tags={"activity": ["전시 관람"]}), taste=0.0) for i in range(2)]
     others = [node(place(f"s{i}", category="sight"), taste=1.0) for i in range(4)] + [node(place("f0")), node(place("f1"))]
-    limits = replace(LIMITS, activity_min=(("책·독서", 2), ("전시 관람", 1)))
+    limits = replace(LIMITS, want_min=(("책·독서", 2), ("전시 관람", 1)))
     route = planner([], books + shows + others, to_min("11:00"), to_min("19:30"), None, no_travel, limits)
     assert schedule(route, to_min("11:00"), to_min("20:00"), no_travel) is not None
     ids = {n.id for n in route}
@@ -247,3 +247,23 @@ def test_planners_fill_activity_minimum(planner):
     # 하루에 다 못 넣으면 실패하지 않고 넣을 수 있는 만큼만
     short = planner([], books + others, to_min("11:00"), to_min("13:00"), None, no_travel, limits)
     assert len({n.id for n in short} & {"b0", "b1"}) == 1
+
+
+@pytest.mark.parametrize("planner", [plan_greedy, plan_ortools])
+def test_planners_respect_wanted_maximum(planner):
+    """"카페가 너무 많아" -> 카페 1곳까지, "전시는 한 곳만" -> 전시 1곳까지. 취향 점수가 높아도 더 넣지 않는다."""
+    from dataclasses import replace
+
+    from routefit.config import LIMITS
+
+    cafes = [node(place(f"c{i}", category="cafe"), stay=90, taste=1.0) for i in range(3)]
+    shows = [node(place(f"e{i}", category="culture", tags={"activity": ["전시 관람"]}), taste=1.0) for i in range(3)]
+    others = [node(place(f"s{i}", category="sight"), taste=0.3) for i in range(3)]
+    limits = replace(LIMITS, want_max=(("cafe", 1), ("전시 관람", 1)))
+    route = planner([], cafes + shows + others, to_min("10:00"), to_min("22:00"), None, no_travel, limits)
+    assert sum(n.place.category == "cafe" for n in route) <= 1
+    assert sum(n.id.startswith("e") for n in route) <= 1
+    # "카페 3곳" 처럼 기본 상한(2)보다 많이 원하면 상한도 올라간다
+    more = replace(LIMITS, want_min=(("cafe", 3),))
+    route = planner([], cafes + others, to_min("10:00"), to_min("22:00"), None, no_travel, more)
+    assert sum(n.place.category == "cafe" for n in route) == 3

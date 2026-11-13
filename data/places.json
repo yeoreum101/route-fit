@@ -170,7 +170,7 @@
   {
     "id": "book_and_life",
     "name": "책과생활",
-    "category": "cafe",
+    "category": "shop",
     "area": "동구 장동",
     "lat": 35.147368,
     "lng": 126.922117,
@@ -1045,7 +1045,7 @@
   {
     "id": "flower_blooms",
     "name": "꽃이피다",
-    "category": "cafe",
+    "category": "shop",
     "area": "동구 동명동",
     "lat": 35.148759,
     "lng": 126.926495,

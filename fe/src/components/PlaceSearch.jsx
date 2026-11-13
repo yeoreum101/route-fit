@@ -69,9 +69,10 @@ export default function PlaceSearch({
       if (!options.length) return;
       const step = e.key === "ArrowDown" ? 1 : -1;
       setActive((i) => (i + step + options.length) % options.length);
-    } else if (e.key === "Enter" && open && active >= 0 && options[active]) {
-      e.preventDefault(); // 코스 만들기(폼 제출) 대신 장소를 고른다
-      pick(options[active].p);
+    } else if (e.key === "Enter" && open && !place && options.some((o) => !disabled(o.p))) {
+      // 코스 만들기(폼 제출) 대신 장소를 고른다. 화살표로 고른 게 없으면 첫 번째로 고를 수 있는 곳
+      e.preventDefault();
+      pick((active >= 0 && options[active] && !disabled(options[active].p) ? options[active] : options.find((o) => !disabled(o.p))).p);
     } else if (e.key === "Escape" && open) {
       e.preventDefault();
       setOpen(false);
