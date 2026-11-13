@@ -2,6 +2,8 @@
 import logging
 import threading
 from contextlib import asynccontextmanager
+from datetime import date
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -92,9 +94,16 @@ def plan(req: PlanRequest):
 
 
 # 최근 코스 목록과 통계는 실증 통계 화면(관리자 전용)에서만 쓴다. 코스 하나(공유 링크)는 누구나 볼 수 있다.
+def _period(start: Optional[date], end: Optional[date]) -> tuple[Optional[date], Optional[date]]:
+    """실증 통계 기간(한국 날짜, 끝 날 포함). 비워 두면 그쪽은 제한 없음."""
+    if start and end and start > end:
+        raise HTTPException(status_code=422, detail="시작일이 종료일보다 늦습니다.")
+    return start, end
+
+
 @app.get("/api/courses", response_model=list[CourseSummary], dependencies=[Depends(require_admin)])
-def recent_courses(limit: int = Query(default=20, ge=1, le=100)):
-    return courses.recent_courses(limit)
+def recent_courses(limit: int = Query(default=20, ge=1, le=100), start: Optional[date] = None, end: Optional[date] = None):
+    return courses.recent_courses(limit, *_period(start, end))
 
 
 @app.get("/api/courses/{course_id}", response_model=Course)
@@ -139,8 +148,10 @@ def feedback(course_id: str, fb: FeedbackIn):
 
 
 @app.get("/api/stats", response_model=Stats, dependencies=[Depends(require_admin)])
-def stats():
-    return courses.stats()
+def stats(start: Optional[date] = None, end: Optional[date] = None):
+    """start·end: 'YYYY-MM-DD'(한국 날짜, 끝 날 포함). 그 기간에 만든 코스·받은 평가만 집계한다."""
+    start, end = _period(start, end)
+    return courses.stats(start=start, end=end)
 
 
 class WebFiles(StaticFiles):

@@ -91,9 +91,14 @@ def sanitize(parsed: ParsedQuery, known: list[Place], query: str | None = None) 
         parsed.avoid_categories = [c for c in parsed.avoid_categories if c != "food"]
     parsed.avoid_keywords = clean_keywords(parsed.avoid_keywords, query)
     musts = []
+    said = (query or "").replace(" ", "")
     for m in parsed.must_visits:
         place = find_by_name(known, m.name)
         if place is None:
+            continue
+        if query is not None and not any(n.replace(" ", "") in said for n in [place.name, *place.aliases]):
+            # 문장에 그 장소 이름·별칭이 없다: "서점이랑 전시" 의 '서점' 을 LLM 이 '책과생활' 로 바꿔 꼭 갈 곳에 넣은 경우.
+            # 일반 낱말은 할 거리(책·독서)로 읽고, 꼭 갈 곳은 사용자가 이름을 말한 곳만
             continue
         m.name = place.name
         m.start = _hm(m.start)
@@ -165,7 +170,9 @@ _VAGUE_END = [
     (re.compile(r"저녁\s*(?:먹기\s*)?전\s*까지|해\s*지기\s*전\s*까지"), "18:00"),
     (re.compile(r"점심\s*(?:때|시간)?\s*까지"), "14:00"),
     (re.compile(r"오후\s*(?:늦게)?\s*까지"), "18:00"),
-    (re.compile(r"저녁\s*(?:때|시간|먹을\s*때)?\s*까지|저녁\s*먹고\s*(?:들어|헤어|집에)"), "20:00"),
+    # "저녁쯤 돌아갈 것 같아"(맞춤법이 틀린 '저녁즘' 포함): 저녁 무렵에 집에 간다 -> 저녁까지보다 조금 이르게
+    (re.compile(r"저녁\s*(?:쯤|즘|즈음|무렵|때)\s*(?:에|엔|이면)?\s*(?:돌아|들어|집에|헤어|가야|갈\s|올라|출발)"), "19:30"),
+    (re.compile(r"저녁\s*(?:때|쯤|즘|즈음|무렵|시간|먹을\s*때)?\s*까지|저녁\s*먹고\s*(?:들어|헤어|집에)"), "20:00"),
     (re.compile(r"밤\s*(?:늦게)?\s*까지|늦게\s*까지"), "22:00"),
 ]
 

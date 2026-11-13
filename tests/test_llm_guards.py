@@ -79,6 +79,17 @@ def test_avoid_categories_need_avoid_words_in_query():
     assert right.avoid_categories == ["market"]
 
 
+def test_must_visit_needs_its_name_in_query():
+    # "서점이랑 전시" 의 '서점' 을 LLM 이 '책과생활' 로 바꿔 꼭 갈 곳에 넣어도 버린다. 이름·별칭을 말한 곳만 꼭 갈 곳
+    known = load_anchors() + load_places()
+    generic = parser.sanitize(_parsed(must_visits=[ParsedMustVisit(name="책과생활", start=None, stay_min=None)]), known, "서점 많이랑 전시 보고 싶어")
+    assert generic.must_visits == []
+    alias = parser.sanitize(_parsed(must_visits=[ParsedMustVisit(name="광주-기아 챔피언스 필드", start=None, stay_min=None)]), known, "챔필에서 야구 보기 전에")
+    assert [m.name for m in alias.must_visits] == ["광주-기아 챔피언스 필드"]
+    named = parser.sanitize(_parsed(must_visits=[ParsedMustVisit(name="책과생활", start=None, stay_min=None)]), known, "책과 생활 꼭 가고 싶어")
+    assert [m.name for m in named.must_visits] == ["책과생활"]
+
+
 def test_skipping_one_meal_does_not_drop_all_restaurants():
     # "저녁은 빼고" 를 식당 전체 회피(food)로도 읽으면, 뺄 끼니는 skip_meals 만 맡게 한다
     known = load_anchors() + load_places()

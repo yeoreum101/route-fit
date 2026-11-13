@@ -54,6 +54,7 @@ class Node:
     companion_fit: bool = False  # 문장의 동행이 이 장소의 '어울리는 동행' 태그에 있다
     activity_fit: bool = False  # 문장에서 말한 할 거리가 이 장소의 '할 거리' 태그에 있다
     similarity: float = 0.0  # 코사인 유사도 원값
+    popularity: float = 0.0  # 쏠림 감점(가치에서 뺀다). 최근 코스 등장률이 목표를 넘는 만큼 × 가중치 (config.POPULARITY_*)
 
     @property
     def id(self) -> str:
@@ -75,6 +76,7 @@ class Node:
             + WEIGHTS.local * self.place.local_score
             + WEIGHTS.companion * self.companion_fit
             + WEIGHTS.activity * self.activity_fit
+            - self.popularity
             - WEIGHTS.stop_cost
         )
 
@@ -282,6 +284,17 @@ def within_caps(route: list[Node], budget: Optional[int], limits: Limits = LIMIT
     if len(ai) > limits.max_ai_stops:
         return False
     return all(sum(n.place.category == cat for n in ai) <= cap for cat, cap in limits.category_caps)
+
+
+def has_activity(n: Node, activity: str) -> bool:
+    return activity in n.place.tags.get("activity", [])
+
+
+def activity_shortfall(route: list[Node], limits: Limits = LIMITS) -> dict[str, int]:
+    """limits.activity_min 에 아직 모자란 AI 추천 장소 수. {할 거리: 모자란 곳 수}, 다 채웠으면 빈 dict."""
+    ai = [n for n in route if not n.mandatory]
+    short = {a: need - sum(has_activity(n, a) for n in ai) for a, need in limits.activity_min}
+    return {a: k for a, k in short.items() if k > 0}
 
 
 EXHAUSTIVE_MAX = 7  # 이 개수까지는 모든 순서를 본다(7! = 5040, 약 0.2초)

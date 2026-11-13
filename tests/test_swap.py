@@ -53,6 +53,29 @@ def test_swap_keeps_other_places_and_puts_chosen_one_in():
     assert set(saved["exclude_ids"]) == {"s_001", food["place_id"]}  # 원래 뺀 곳 + 바꾼 곳
 
 
+def test_swap_keeps_must_read_from_sentence(monkeypatch):
+    """문장에서 읽은 꼭 갈 곳은, 바꾸기로 다시 짤 때 문장을 다르게 읽어도(LLM) 코스에 남는다."""
+    from routefit import pipeline
+
+    res = client.post("/api/plan", json={"query": "챔필에서 야구 보기 전에 맛있는 거 먹고 카페 가고 싶어"})
+    assert res.status_code == 200, res.text
+    course = res.json()
+    assert any(s["place_id"] == "champions_field" and s["kind"] == "must" for s in course["stops"])
+    stop, chosen = next((s, a) for s in course["stops"] if s["kind"] == "ai" for a in _alts(course, s["order"])[:1])
+
+    real = pipeline.parse_query
+    def forgetful(query, known):  # 이번에는 꼭 갈 곳을 못 읽었다고 치자
+        parsed, used = real(query, known)
+        return parsed.model_copy(update={"must_visits": []}), used
+    monkeypatch.setattr(pipeline, "parse_query", forgetful)
+
+    res = client.post(f"/api/courses/{course['id']}/swap", json={"order": stop["order"], "place_id": chosen["place_id"]})
+    assert res.status_code == 200, res.text
+    new = res.json()
+    assert any(s["place_id"] == "champions_field" and s["kind"] == "must" for s in new["stops"])
+    assert chosen["place_id"] in {s["place_id"] for s in new["stops"]}
+
+
 def test_swap_rejects_must_and_unknown():
     course = _plan()
     cid = course["id"]

@@ -17,6 +17,7 @@ from .core import (
     Window,
     back_to_back_cafes,
     counts_as_neighbor,
+    has_activity,
     meal_gap_applies,
     meal_slot,
 )
@@ -72,8 +73,10 @@ def plan_ortools(
         """빼면 잃는 점수. 식당은 끼니 점수(WEIGHTS.meal)도 함께 잃는다(한 끼에 AI 식당 한 곳이라 끼니마다 한 번)."""
         return n.value + (WEIGHTS.meal if n.meal else 0)
 
+    needed = {a for a, k in limits.activity_min if k > 0}
     for n in candidates:
-        if prize(n) <= 0 and not limits.min_ai_stops:  # 최소 장소 수가 있으면 가치가 낮아도 후보로 둔다
+        # 최소 장소 수가 있거나 문장에서 말한 할 거리(activity_min)를 채우는 곳이면 가치가 낮아도 후보로 둔다
+        if prize(n) <= 0 and not limits.min_ai_stops and not any(has_activity(n, a) for a in needed):
             continue
         meal_slots = range(len(LIMITS.meal_windows)) if n.meal else [None]
         group = [add(n, windows(n, slot), slot) for slot in meal_slots if windows(n, slot)]
@@ -160,6 +163,13 @@ def plan_ortools(
                 a_first = (tj >= ti + a.stay + LIMITS.min_meal_gap).Var()
                 b_first = (ti >= tj + b.stay + LIMITS.min_meal_gap).Var()
                 solver.Add(a_first + b_first + both >= 1)
+
+    # 문장에서 말한 할 거리("서점 많이" -> 2곳)를 AI 추천으로 이만큼은 넣는다. 못 채우면 해가 없고, 아래에서
+    # 그리디가 들어가는 만큼 채운다
+    for activity, need in limits.activity_min:
+        active = [routing.ActiveVar(manager.NodeToIndex(k)) for k, n in enumerate(nodes, 1) if not n.mandatory and has_activity(n, activity)]
+        if need > 0 and active:
+            solver.Add(solver.Sum(active) >= min(need, len(active)))
 
     for group in groups:
         routing.AddDisjunction([manager.NodeToIndex(k) for k in group], max(0, round(SCALE * prize(nodes[group[0] - 1]))), 1)

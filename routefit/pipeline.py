@@ -6,7 +6,7 @@ from dataclasses import replace
 from typing import Optional
 
 from . import config, filters, travel
-from .courses import save_course
+from .courses import exposure_rates, save_course
 from .data import is_measured, load_anchors, load_places, travel_minutes, travel_mode
 from .embedding import PlaceIndex, get_embedder
 from .explain import explain
@@ -27,7 +27,7 @@ from .models import (
 from .parser import find_by_name, parse_query
 from .place_search import default_stay, is_kakao_id
 from .planner import Node, PlanError, Visit, objective, plan_greedy, plan_ortools, schedule, start_windows
-from .planner.core import fill_day, improve_order, meal_slot
+from .planner.core import activity_shortfall, fill_day, has_activity, improve_order, meal_slot
 
 log = logging.getLogger(__name__)
 
@@ -170,6 +170,10 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str], 
         return []
     lo = min(sims[p.id] for p in places)
     span = (max(sims[p.id] for p in places) - lo) or 1.0
+    # 인기 장소 쏠림 감점: 최근 코스에 AI 추천으로 너무 자주 나온 곳은 그만큼 덜 고른다
+    rates = (
+        exposure_rates(config.POPULARITY_WINDOW, config.POPULARITY_MIN_COURSES) if config.POPULARITY_WEIGHT > 0 else {}
+    )
     nodes = [
         Node(
             place=p,
@@ -182,6 +186,7 @@ def _candidate_nodes(c: Constraints, sims: dict[str, float], exclude: set[str], 
             similarity=sims[p.id],
             companion_fit=bool(c.companions) and c.companions in p.tags.get("companions", []),
             activity_fit=bool(activities & set(p.tags.get("activity", []))),
+            popularity=config.POPULARITY_WEIGHT * max(0.0, rates.get(p.id, 0.0) - config.POPULARITY_TARGET),
         )
         for p in places
     ]
@@ -358,9 +363,8 @@ def make_course(req: PlanRequest, extra_notes: tuple[str, ...] = ()) -> Course:
     index = _index()
     excluded = _excluded(load_places(), c, req.query, musts, set(req.exclude_ids))
     fixed_nodes = ([origin] if origin else []) + musts  # 출발 위치 + 꼭 갈 곳: 코스에서 빼지 않는다
-    candidates = _candidate_nodes(
-        c, index.similarities(c.taste), {m.id for m in fixed_nodes} | excluded, filters.wanted_activities(req.query)
-    )
+    wanted = filters.wanted_activity_counts(req.query)  # "서점 많이랑 전시" -> {"책·독서": 2, "전시 관람": 1}
+    candidates = _candidate_nodes(c, index.similarities(c.taste), {m.id for m in fixed_nodes} | excluded, set(wanted))
 
     # ③ 제약 최적화
     planner_name = req.planner or config.DEFAULT_PLANNER
@@ -376,6 +380,10 @@ def make_course(req: PlanRequest, extra_notes: tuple[str, ...] = ()) -> Course:
         limits = replace(limits, min_ai_stops=len(candidates), max_ai_stops=len(candidates))
         if len(candidates) < len(keep):
             c.notes.append("바꾸기 전 코스의 장소 일부는 지금 조건(휴무일 등)에 맞지 않아 뺐습니다.")
+    else:
+        # 문장에서 말한 할 거리는 그만큼 넣는다(꼭 갈 곳으로 이미 들어간 만큼은 빼고)
+        need = {a: n - sum(has_activity(m, a) for m in musts) for a, n in wanted.items()}
+        limits = replace(limits, activity_min=tuple((a, k) for a, k in need.items() if k > 0))
     visits = None
     if req.order_ids is not None:
         # '다른 곳으로 바꾸기': 장소 순서는 바꾸기 전 코스 그대로 두고 시간만 다시 맞춘다
@@ -405,6 +413,9 @@ def make_course(req: PlanRequest, extra_notes: tuple[str, ...] = ()) -> Course:
     if filled is not None:
         visits = filled
     n_places = sum(not v.node.origin for v in visits)
+    for activity, k in activity_shortfall([v.node for v in visits], limits).items():
+        want = dict(limits.activity_min)[activity]
+        c.notes.append(f"'{activity}' 장소를 {want}곳 넣으려 했지만, 후보·영업시간·하루 시간 안에 {want - k}곳만 넣을 수 있었습니다.")
     if c.max_places is not None and len(musts) > c.max_places:
         c.notes.append(f"꼭 갈 곳이 {len(musts)}곳이라 말씀하신 {c.max_places}곳보다 많습니다. 꼭 갈 곳만 넣었습니다.")
     elif c.min_places is not None and n_places < c.min_places:
@@ -550,7 +561,12 @@ def swap_course(course: Course, swap: SwapIn) -> Course:
     keep = [s.place_id for s in course.stops if s.kind == "ai" and s.order != swap.order] + [new.id]
     order = [new.id if s.order == swap.order else s.place_id for s in course.stops]  # 바꾼 자리만 갈아끼운 순서
     exclude = list(dict.fromkeys([*req.exclude_ids, stop.place_id]))
-    new_req = req.model_copy(update={"only_ids": keep, "order_ids": order, "exclude_ids": exclude})
+    musts = req.must_visits
+    if not musts:
+        # 문장에서 읽은 꼭 갈 곳: 다시 짤 때 문장을 다시 읽으면 AI 가 이번엔 꼭 갈 곳으로 안 읽어 빠질 수 있다.
+        # 바꾸기 전 코스에 있던 꼭 갈 곳을 그대로 붙잡아 둔다
+        musts = [MustVisitInput(id=s.place_id, stay_min=s.stay_min) for s in course.stops if s.kind == "must"]
+    new_req = req.model_copy(update={"only_ids": keep, "order_ids": order, "exclude_ids": exclude, "must_visits": musts})
     swapped = make_course(new_req, (f"'{stop.name}' 대신 '{new.name}' 을(를) 넣고 시간을 다시 맞췄습니다.",))
     if new.id not in {s.place_id for s in swapped.stops}:
         raise PlanError(f"'{new.name}' 을(를) 넣으면 시간이 맞지 않아 바꿀 수 없습니다. 다른 곳을 골라 주세요.")

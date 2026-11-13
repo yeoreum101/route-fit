@@ -7,11 +7,8 @@ import CourseView from "../components/CourseView.jsx";
 import CourseMap from "../components/CourseMap.jsx";
 import { offScreen } from "../common.js";
 
-// 코스 짜는 방식 설명. 고른 방식에 맞춰 한 줄로 보여 준다.
-const PLANNER_HELP = {
-  greedy: "취향·동선에 맞는 곳부터 하나씩 채웁니다. 예상 시간: 약 10초",
-  ortools: "여러 조합을 한꺼번에 비교해 더 나은 코스를 찾습니다. 예상 시간: 약 12초",
-};
+// 코스는 늘 OR-Tools(최적화 추천)로 짠다. 화면에서 방식을 고르지 않는다.
+const PLANNER = "ortools";
 
 // 입력칸은 비워 두고, 무엇을 적으면 되는지 예시로만 보여 준다(입력하면 사라진다).
 const QUERY_EXAMPLE = "예) 연인이랑 조용하고 아늑한 데이트, 맛있는 거 먹고 디저트 카페도 가고 싶어.";
@@ -36,7 +33,6 @@ export default function PlanPage() {
   const [dayStart, setDayStart] = useState("");
   const [dayEnd, setDayEnd] = useState("");
   const [budget, setBudget] = useState("");
-  const [planner, setPlanner] = useState("greedy");
   const [excludes, setExcludes] = useState([]); // 추천에서 뺄 등록된 장소들
   const [startPlace, setStartPlace] = useState(null); // 출발 위치(선택)
   const [moreOpen, setMoreOpen] = useState(false); // '더 자세히 정하기' 펼침
@@ -154,7 +150,6 @@ export default function PlanPage() {
     setDayEnd(req.day_end || "");
     setBudget(req.budget ?? "");
     setVisitDate(req.visit_date || "");
-    setPlanner(req.planner || "greedy");
     setExcludes((req.exclude_ids || []).map((id) => info[id]).filter(Boolean));
     setStartPlace(req.start ? placeOf(req.start, info) : null);
     setMoreOpen(Boolean(req.day_start || req.day_end || req.budget != null || req.visit_date || req.exclude_ids?.length));
@@ -209,7 +204,7 @@ export default function PlanPage() {
       budget: budget === "" ? null : Number(budget),
       visit_date: visitDate || null,
       exclude_ids: excludes.map((p) => p.id),
-      planner,
+      planner: PLANNER,
     };
 
     setBusy(true);
@@ -325,13 +320,6 @@ export default function PlanPage() {
               모두 비우기
             </button>
           </details>
-
-          <label htmlFor="planner">코스 짜는 방식</label>
-          <select id="planner" aria-describedby="planner-help" value={planner} onChange={(e) => setPlanner(e.target.value)}>
-            <option value="greedy">기본 추천</option>
-            <option value="ortools">최적화 추천</option>
-          </select>
-          <p id="planner-help" className="muted small help">{PLANNER_HELP[planner]}</p>
 
           <button type="submit" disabled={busy}>코스 만들기</button>
           <p id="status" role="status">{status}</p>

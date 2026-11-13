@@ -168,6 +168,54 @@
     "verified": false
   },
   {
+    "id": "book_and_life",
+    "name": "책과생활",
+    "category": "cafe",
+    "area": "동구 장동",
+    "lat": 35.147368,
+    "lng": 126.922117,
+    "description": "책들과 책과 관련된 소품들을 파는 카페 겸 서점",
+    "tags": {
+      "activity": [
+        "카페·디저트",
+        "쇼핑",
+        "책·독서",
+        "휴식"
+      ],
+      "mood": [
+        "조용한",
+        "정겨운",
+        "아늑한"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "혼자",
+        "친구",
+        "연인",
+        "가족"
+      ]
+    },
+    "aliases": [],
+    "open": "11:00",
+    "close": "21:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 80,
+    "cost": 0,
+    "gwangju_ness": 1,
+    "stay_inducement": 5,
+    "commerce_link": 4,
+    "is_local_commerce": true,
+    "verified": true
+  },
+  {
     "id": "c_001",
     "name": "치너스",
     "category": "cafe",
@@ -199,7 +247,9 @@
         "아이 동반"
       ]
     },
-    "aliases": [],
+    "aliases": [
+      "치즈케이크"
+    ],
     "open": "11:00",
     "close": "22:00",
     "break_start": null,
@@ -245,7 +295,9 @@
         "아이 동반"
       ]
     },
-    "aliases": [],
+    "aliases": [
+      "굴뚝빵"
+    ],
     "open": "11:00",
     "close": "24:00",
     "break_start": null,
@@ -347,7 +399,7 @@
     "stay_inducement": 5,
     "commerce_link": 5,
     "is_local_commerce": true,
-    "verified": false
+    "verified": true
   },
   {
     "id": "c_005",
@@ -663,8 +715,8 @@
     "cost": 13000,
     "gwangju_ness": 1,
     "stay_inducement": 4,
-    "commerce_link": 4,
-    "is_local_commerce": false,
+    "commerce_link": 4.5,
+    "is_local_commerce": true,
     "verified": false
   },
   {
@@ -806,6 +858,54 @@
     "verified": false
   },
   {
+    "id": "dabansa_tea_culture",
+    "name": "다반사차문화원",
+    "category": "cafe",
+    "area": "동구 장동",
+    "lat": 35.14803,
+    "lng": 126.922123,
+    "description": "보이차, 홍차, 우롱차 등을 마실 수 있고 다양한 개완, 찻잔, 찻잎을 파는 홍차 전문점.",
+    "tags": {
+      "activity": [
+        "카페·디저트",
+        "쇼핑",
+        "휴식"
+      ],
+      "mood": [
+        "정겨운",
+        "레트로한",
+        "전통적인"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "친구",
+        "연인",
+        "가족"
+      ]
+    },
+    "aliases": [],
+    "open": "10:00",
+    "close": "20:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [
+      6
+    ],
+    "stay_min": 90,
+    "cost": 7000,
+    "gwangju_ness": 1,
+    "stay_inducement": 5,
+    "commerce_link": 5,
+    "is_local_commerce": true,
+    "verified": true
+  },
+  {
     "id": "daein_market",
     "name": "대인예술시장",
     "category": "market",
@@ -894,6 +994,100 @@
     "commerce_link": 5,
     "is_local_commerce": true,
     "verified": true
+  },
+  {
+    "id": "eighth_wave_house",
+    "name": "여덟번째파장하우스",
+    "category": "shop",
+    "area": "동구 장동",
+    "lat": 35.149127,
+    "lng": 126.924124,
+    "description": "인형, 메모지, 스티커, 노트, 키링 등 다양한 소품을 판매하는 가게. 다꾸 용품들이 많다.",
+    "tags": {
+      "activity": [
+        "쇼핑"
+      ],
+      "mood": [
+        "캐주얼한",
+        "현대적인"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "혼자",
+        "친구",
+        "연인",
+        "아이 동반"
+      ]
+    },
+    "aliases": [
+      "8thwave house",
+      "여덟번째"
+    ],
+    "open": "12:30",
+    "close": "21:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 20,
+    "cost": 4000,
+    "gwangju_ness": 1,
+    "stay_inducement": 2,
+    "commerce_link": 5,
+    "is_local_commerce": true,
+    "verified": true
+  },
+  {
+    "id": "flower_blooms",
+    "name": "꽃이피다",
+    "category": "cafe",
+    "area": "동구 동명동",
+    "lat": 35.148759,
+    "lng": 126.926495,
+    "description": "카페 겸 독립서점",
+    "tags": {
+      "activity": [
+        "카페·디저트",
+        "쇼핑",
+        "책·독서",
+        "휴식"
+      ],
+      "mood": [
+        "조용한",
+        "정겨운"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "혼자",
+        "친구",
+        "연인",
+        "가족"
+      ]
+    },
+    "aliases": [],
+    "open": "11:30",
+    "close": "21:30",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 90,
+    "cost": 4000,
+    "gwangju_ness": 1,
+    "stay_inducement": 5,
+    "commerce_link": 5,
+    "is_local_commerce": true,
+    "verified": false
   },
   {
     "id": "gungjeon_bakery",
@@ -1024,6 +1218,49 @@
     "stay_inducement": 4,
     "commerce_link": 4,
     "is_local_commerce": false,
+    "verified": false
+  },
+  {
+    "id": "hana_hada",
+    "name": "한아하다 캔들 향수 공방",
+    "category": "shop",
+    "area": "동구 동명동",
+    "lat": 35.149278,
+    "lng": 126.926354,
+    "description": "캔들, 향수 등을 만들 수 있는 공방.",
+    "tags": {
+      "activity": [
+        "공방 체험"
+      ],
+      "mood": [
+        "조용한",
+        "캐주얼한"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "친구",
+        "연인",
+        "가족"
+      ]
+    },
+    "aliases": [],
+    "open": "12:00",
+    "close": "20:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 110,
+    "cost": 40000,
+    "gwangju_ness": 1,
+    "stay_inducement": 4,
+    "commerce_link": 5,
+    "is_local_commerce": true,
     "verified": false
   },
   {
@@ -1202,7 +1439,7 @@
     "closed_days": [],
     "stay_min": 70,
     "cost": 20000,
-    "gwangju_ness": 2,
+    "gwangju_ness": 2.5,
     "stay_inducement": 3,
     "commerce_link": 5,
     "is_local_commerce": true,
@@ -1299,7 +1536,7 @@
     "stay_inducement": 3,
     "commerce_link": 4,
     "is_local_commerce": true,
-    "verified": false
+    "verified": true
   },
   {
     "id": "pureungil",
@@ -2826,7 +3063,7 @@
     "stay_inducement": 5,
     "commerce_link": 4,
     "is_local_commerce": false,
-    "verified": false
+    "verified": true
   },
   {
     "id": "s_033",
@@ -2920,7 +3157,7 @@
     "stay_inducement": 5,
     "commerce_link": 5,
     "is_local_commerce": true,
-    "verified": false
+    "verified": true
   },
   {
     "id": "s_035",
@@ -3140,6 +3377,146 @@
     "verified": false
   },
   {
+    "id": "sontag_and_eicher",
+    "name": "손탁앤아이허",
+    "category": "cafe",
+    "area": "동구 장동",
+    "lat": 35.150377,
+    "lng": 126.921843,
+    "description": "조용한 북카페",
+    "tags": {
+      "activity": [
+        "카페·디저트",
+        "쇼핑",
+        "휴식"
+      ],
+      "mood": [
+        "조용한",
+        "정겨운",
+        "아늑한"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "혼자",
+        "친구",
+        "연인",
+        "가족"
+      ]
+    },
+    "aliases": [
+      "북카페"
+    ],
+    "open": "12:00",
+    "close": "23:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [
+      6
+    ],
+    "stay_min": 80,
+    "cost": 6000,
+    "gwangju_ness": 1,
+    "stay_inducement": 5,
+    "commerce_link": 5,
+    "is_local_commerce": true,
+    "verified": true
+  },
+  {
+    "id": "tea_at",
+    "name": "티앗",
+    "category": "cafe",
+    "area": "동구 동명동",
+    "lat": 35.15,
+    "lng": 126.924343,
+    "description": "홍차라떼,호지차 프라페 등이 있는 찻집으로, 다양한 차와 디저트를 즐길 수 있는 곳.",
+    "tags": {
+      "activity": [
+        "카페·디저트",
+        "휴식"
+      ],
+      "mood": [
+        "아늑한",
+        "레트로한"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "혼자",
+        "친구",
+        "연인",
+        "가족"
+      ]
+    },
+    "aliases": [
+      "홍차"
+    ],
+    "open": "12:00",
+    "close": "22:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 90,
+    "cost": 6000,
+    "gwangju_ness": 1,
+    "stay_inducement": 5,
+    "commerce_link": 5,
+    "is_local_commerce": true,
+    "verified": true
+  },
+  {
+    "id": "woody_jip",
+    "name": "우디집 반지공방",
+    "category": "shop",
+    "area": "동구 동명동",
+    "lat": 35.147412,
+    "lng": 126.927454,
+    "description": "나무 반지를 만들 수 있는 반지공방.",
+    "tags": {
+      "activity": [
+        "공방 체험"
+      ],
+      "mood": [
+        "조용한",
+        "아늑한"
+      ],
+      "setting": [
+        "실내"
+      ],
+      "time": [
+        "오후",
+        "저녁"
+      ],
+      "companions": [
+        "친구",
+        "연인"
+      ]
+    },
+    "aliases": [],
+    "open": "13:00",
+    "close": "20:00",
+    "break_start": null,
+    "break_end": null,
+    "closed_days": [],
+    "stay_min": 110,
+    "cost": 35000,
+    "gwangju_ness": 1,
+    "stay_inducement": 4,
+    "commerce_link": 5,
+    "is_local_commerce": true,
+    "verified": false
+  },
+  {
     "id": "yangdong_market",
     "name": "양동시장",
     "category": "market",
@@ -3182,46 +3559,6 @@
     "stay_inducement": 4,
     "commerce_link": 5,
     "is_local_commerce": true,
-    "verified": false
-  },
-  {
-    "id": "yangnim_cafe",
-    "name": "양림동 한옥·근대건축 카페",
-    "category": "cafe",
-    "area": "남구 양림동",
-    "lat": 35.1398,
-    "lng": 126.9135,
-    "description": "한옥과 근대 가옥을 개조한 로컬 카페들. 정원과 창가 자리에서 여유롭게 차를 마시며 쉬기 좋다.",
-    "tags": {
-      "activity": [
-        "카페·디저트",
-        "휴식"
-      ],
-      "mood": [
-        "조용한",
-        "아늑한",
-        "전통적인"
-      ],
-      "setting": [
-        "실내외"
-      ],
-      "time": [
-        "오후",
-        "저녁"
-      ]
-    },
-    "aliases": [],
-    "open": "11:00",
-    "close": "21:00",
-    "break_start": null,
-    "break_end": null,
-    "closed_days": [],
-    "stay_min": 60,
-    "cost": 8000,
-    "gwangju_ness": 2.5,
-    "stay_inducement": 5,
-    "commerce_link": 3,
-    "is_local_commerce": false,
     "verified": false
   },
   {

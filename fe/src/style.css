@@ -140,6 +140,9 @@ button.place-clear {
   font-size: 18px; font-weight: 400; line-height: 1; color: var(--muted); background: transparent; border-radius: 8px;
 }
 button.place-clear:hover:not(:disabled) { color: var(--text); background: var(--soft); }
+/* 누를 때 버튼 공통의 translateY(1px) 가 가운데 맞춤(translateY(-50%))을 덮어써서 × 가 아래로 뚝 떨어졌다가
+   떼면 다시 올라갔다. 가운데 맞춤은 그대로 두고 1px 만 눌리게 한다 */
+button.place-clear:active:not(:disabled), button.time-clear:active:not(:disabled) { transform: translateY(calc(-50% + 1px)); }
 .place-list {
   position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: 300px; overflow-y: auto;
   margin: 0; padding: 6px; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: 12px;
@@ -575,3 +578,11 @@ button.chip-remove:hover:not(:disabled) { color: var(--text); background: var(--
 .tag.start { color: var(--start); background: #eef1f5; }
 #timeline .start .dot, #timeline .start .dot:hover { background: var(--start); font-size: 10px; }
 .pin.start { background: var(--start); font-size: 10px; }
+
+/* 실증 통계: 집계 기간 (빠른 선택 + 시작일~종료일) */
+.period { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 12px; }
+.period-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.period-range { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.period-range label { margin: 0; font-size: 13px; color: var(--sub); }
+.period-range input[type="date"] { width: auto; margin: 0; }
+.period .must-error { flex-basis: 100%; margin: 0; }

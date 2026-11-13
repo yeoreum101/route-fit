@@ -69,7 +69,7 @@ def kind_of(p: Place) -> Optional[str]:
 
 # ---------- 문장에서 콕 집어 말한 할 거리 ----------
 
-# (할 거리 태그, 문장에 이 낱말이 있으면 그 할 거리를 원한다고 본다). 먹고 마시는 것·산책·휴식처럼 넓은 말은
+# (할 거리 태그, 문장에 이 말(정규식)이 있으면 그 할 거리를 원한다고 본다). 먹고 마시는 것·산책·휴식처럼 넓은 말은
 # 유형·끼니 규칙과 취향 매칭이 맡으므로 넣지 않는다.
 ACTIVITY_WORDS = [
     ("전시 관람", ("전시", "미술관", "갤러리", "박물관")),
@@ -78,6 +78,8 @@ ACTIVITY_WORDS = [
     ("건축 구경", ("건축",)),
     ("야경", ("야경",)),
     ("공방 체험", ("공방",)),
+    # '책' 은 서점·책방·북카페까지 다 잡는다. 산책·공책·대책·정책·채책 과 책임·책상 은 책이 아니다
+    ("책·독서", ("서점", r"(?<![산공대정채])책(?![임상])", "독서", "북카페")),
     ("쇼핑", ("쇼핑",)),
     ("시장 구경", ("시장",)),
 ]
@@ -144,8 +146,32 @@ def avoids_transit(query: str) -> bool:
 
 def wanted_activities(query: str) -> set[str]:
     """문장에서 하고 싶다고 한 할 거리 태그. "전시 좀 보고" -> {"전시 관람"}. "전시는 말고" 처럼 피하는 말이 붙으면 뺀다."""
-    return {
-        activity
-        for activity, words in ACTIVITY_WORDS
-        if any(w in query and not re.search(re.escape(w) + _NEGATED, query) for w in words)
-    }
+    return set(wanted_activity_counts(query))
+
+
+# 할 거리 바로 뒤(또는 앞)에 붙은 양. "서점 많이·여러 군데·책방 투어" -> 2, "서점 3곳" -> 3
+_KO_COUNT = {"한": 1, "두": 2, "세": 3, "네": 4, "다섯": 5}
+_COUNT_AFTER = re.compile(r"\S{0,3}?\s*(\d{1,2}|한|두|세|네|다섯)\s*(?:곳|군데|개)")
+_MANY_AFTER = re.compile(r"\S{0,3}?\s*(?:많이|여러|잔뜩|투어|위주)")
+_MANY_BEFORE = re.compile(r"(?:여러|많은)\s*(?:곳의?|군데의?)?\s*$")
+
+
+def _amount(query: str, start: int, end: int) -> int:
+    if m := _COUNT_AFTER.match(query, end):
+        return max(1, int(m.group(1)) if m.group(1).isdigit() else _KO_COUNT[m.group(1)])
+    if _MANY_AFTER.match(query, end) or _MANY_BEFORE.search(query[max(0, start - 8):start]):
+        return 2
+    return 1
+
+
+def wanted_activity_counts(query: str) -> dict[str, int]:
+    """문장에서 하고 싶다고 한 할 거리와 몇 곳은 넣어야 하는지. "서점 많이랑 전시 보고 싶어" ->
+    {"책·독서": 2, "전시 관람": 1}. 양을 말하지 않으면 1곳. 피하는 말이 붙은 할 거리는 뺀다."""
+    out: dict[str, int] = {}
+    for activity, words in ACTIVITY_WORDS:
+        if any(re.search(f"(?:{w}){_NEGATED}", query) for w in words):
+            continue
+        n = max((_amount(query, m.start(), m.end()) for w in words for m in re.finditer(w, query)), default=0)
+        if n:
+            out[activity] = n
+    return out

@@ -6,7 +6,7 @@ Must Visit 만으로 뼈대를 만든 뒤, 점수를 가장 많이 올리는 (�
 from typing import Optional
 
 from ..config import LIMITS, Limits
-from .core import Node, PlanError, Travel, objective, schedule, within_caps
+from .core import Node, PlanError, Travel, activity_shortfall, has_activity, objective, schedule, within_caps
 
 
 def plan_greedy(
@@ -29,7 +29,10 @@ def plan_greedy(
     remaining = list(candidates)
     while remaining:
         best = None
-        for cand in remaining:
+        # 문장에서 말한 할 거리("서점 많이")가 모자라면, 그걸 채우는 후보부터 본다. 넣을 곳이 없으면 다른 후보로
+        short = activity_shortfall(route, limits)
+        helpful = [c for c in remaining if any(has_activity(c, a) for a in short)]
+        for cand in helpful or remaining:
             for pos in range(len(route) + 1):
                 trial = route[:pos] + [cand] + route[pos:]
                 if not within_caps(trial, budget, limits):
@@ -40,9 +43,15 @@ def plan_greedy(
                 score = objective(trial_visits, day_end)
                 if best is None or score > best[0]:
                     best = (score, cand, trial)
+        if best is None and helpful and len(helpful) < len(remaining):
+            # 모자란 할 거리를 채울 곳이 하루에 안 들어간다: 그 후보들은 접고 나머지로 계속
+            for c in helpful:
+                remaining.remove(c)
+            continue
         n_ai = sum(not n.mandatory for n in route)
-        # 점수가 더 오르지 않으면 멈춘다. 다만 최소 장소 수(limits.min_ai_stops)에 못 미치면 들어갈 수 있는 한 계속 넣는다
-        if best is None or (best[0] <= best_score + 1e-9 and n_ai >= limits.min_ai_stops):
+        # 점수가 더 오르지 않으면 멈춘다. 다만 최소 장소 수(limits.min_ai_stops)나 할 거리 수(limits.activity_min)에
+        # 못 미치면 들어갈 수 있는 한 계속 넣는다
+        if best is None or (best[0] <= best_score + 1e-9 and n_ai >= limits.min_ai_stops and not (helpful and short)):
             break
         best_score, chosen, route = best
         remaining.remove(chosen)

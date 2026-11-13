@@ -51,6 +51,9 @@ class Limits:
     max_ai_stops: int = 6
     # AI 추천 장소를 이만큼은 넣는다. 기본은 없음. 문장에서 "4곳 이상" 처럼 말하면 요청마다 바꾼다(dataclasses.replace)
     min_ai_stops: int = 0
+    # AI 추천에 이 할 거리 태그가 있는 장소를 이만큼은 넣는다((할 거리, 곳 수), ...). 기본은 없음. 문장에서 "서점 많이랑
+    # 전시"처럼 말하면 요청마다 정한다(꼭 갈 곳으로 이미 들어간 만큼은 빼고, 후보 수까지만). 못 채우면 넣을 수 있는 만큼만
+    activity_min: tuple[tuple[str, int], ...] = ()
     fewer_places: int = 4  # 수 없이 "장소 너무 많아"·"몇 군데만" 이라고 하면 하루 장소를 이만큼까지
     category_caps: tuple[tuple[str, int], ...] = (("food", 2), ("cafe", 2), ("night", 1))
     min_cafe_stay: int = 90  # 카페는 이보다 짧게 머물지 않는다 (장소의 머무는 시간이 더 길면 그것을 쓴다)
@@ -83,6 +86,14 @@ EMBEDDER = os.getenv("ROUTEFIT_EMBEDDER", "auto").strip().lower()
 OPENAI_EMBED_MODEL = os.getenv("ROUTEFIT_OPENAI_EMBED_MODEL", "text-embedding-3-large").strip()
 SBERT_MODEL = os.getenv("ROUTEFIT_SBERT_MODEL", "jhgan/ko-sroberta-multitask").strip()
 DEFAULT_PLANNER = os.getenv("ROUTEFIT_PLANNER", "greedy").strip().lower()
+
+# 인기 장소 쏠림 감점: 최근 코스 POPULARITY_WINDOW 개 중 AI 추천으로 나온 비율(등장률)이 POPULARITY_TARGET 을 넘는
+# 만큼에 POPULARITY_WEIGHT 를 곱해 그 장소의 가치에서 뺀다. 예) 등장률 72%(25개 중 18개), 목표 20%, 가중치 1.0 -> -0.52
+# (할 거리 가산점 0.5 와 비슷한 크기). 최근 코스가 POPULARITY_MIN_COURSES 개보다 적으면 재지 않는다. 0 이면 끈다
+POPULARITY_WEIGHT = float(os.getenv("ROUTEFIT_POPULARITY", "1.0"))
+POPULARITY_TARGET = 0.2
+POPULARITY_WINDOW = 100
+POPULARITY_MIN_COURSES = 10
 
 # 비우면 data/routefit.db (SQLite). PostgreSQL: postgresql+psycopg://user:pass@host:5432/db
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip() or f"sqlite:///{DATA_DIR / 'routefit.db'}"

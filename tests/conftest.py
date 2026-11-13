@@ -11,6 +11,8 @@ os.environ["TMAP_APP_KEY"] = ""
 # ROUTEFIT_TEST_DATABASE_URL 에 비어 있어도 되는 DB 주소를 준다.
 os.environ["ROUTEFIT_ADMIN_TOKEN"] = ""
 os.environ["ROUTEFIT_PLAN_RATE"] = "0"  # 요청 제한은 test_rate_limit 에서만 켠다
+# 쏠림 감점은 앞선 테스트가 만든 코스에 따라 결과가 바뀌므로 끈다. 감점을 보는 테스트는 config 를 직접 바꾼다
+os.environ["ROUTEFIT_POPULARITY"] = "0"
 os.environ["DATABASE_URL"] = os.getenv("ROUTEFIT_TEST_DATABASE_URL") or (
     "sqlite:///" + (Path(tempfile.mkdtemp(prefix="routefit-test-")) / "test.db").as_posix()
 )

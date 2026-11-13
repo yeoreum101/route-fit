@@ -47,12 +47,20 @@
     "minutes": 3,
     "mode": "walk"
   },
+  "acc|s_002": {
+    "minutes": 10,
+    "mode": "walk"
+  },
   "acc|s_014": {
     "minutes": 10,
     "mode": "walk"
   },
   "acc|s_030": {
     "minutes": 14,
+    "mode": "walk"
+  },
+  "acc|s_032": {
+    "minutes": 11,
     "mode": "walk"
   },
   "acc|s_034": {
@@ -319,6 +327,10 @@
     "minutes": 9,
     "mode": "walk"
   },
+  "art_street|s_002": {
+    "minutes": 12,
+    "mode": "walk"
+  },
   "art_street|s_006": {
     "minutes": 7,
     "mode": "walk"
@@ -351,6 +363,10 @@
     "minutes": 11,
     "mode": "walk"
   },
+  "art_street|s_029": {
+    "minutes": 13,
+    "mode": "walk"
+  },
   "art_street|s_031": {
     "minutes": 13,
     "mode": "walk"
@@ -377,10 +393,6 @@
   },
   "art_street|yangdong_market": {
     "minutes": 20,
-    "mode": "transit"
-  },
-  "art_street|yangnim_cafe": {
-    "minutes": 27,
     "mode": "transit"
   },
   "art_street|yangnim_history": {
@@ -507,6 +519,10 @@
     "minutes": 17,
     "mode": "walk"
   },
+  "asia_food_street|s_021": {
+    "minutes": 18,
+    "mode": "walk"
+  },
   "asia_food_street|s_027": {
     "minutes": 15,
     "mode": "walk"
@@ -571,6 +587,10 @@
     "minutes": 3,
     "mode": "walk"
   },
+  "c_001|s_032": {
+    "minutes": 3,
+    "mode": "walk"
+  },
   "c_001|s_034": {
     "minutes": 9,
     "mode": "walk"
@@ -581,6 +601,10 @@
   },
   "c_001|s_049": {
     "minutes": 8,
+    "mode": "walk"
+  },
+  "c_002|eighth_wave_house": {
+    "minutes": 7,
     "mode": "walk"
   },
   "c_002|gwangju_theater": {
@@ -687,6 +711,10 @@
     "minutes": 11,
     "mode": "walk"
   },
+  "c_007|eighth_wave_house": {
+    "minutes": 4,
+    "mode": "walk"
+  },
   "c_007|gwangju_park_pocha": {
     "minutes": 22,
     "mode": "transit"
@@ -729,6 +757,10 @@
   },
   "c_007|s_034": {
     "minutes": 4,
+    "mode": "walk"
+  },
+  "c_007|s_035": {
+    "minutes": 5,
     "mode": "walk"
   },
   "c_007|s_049": {
@@ -867,6 +899,10 @@
     "minutes": 12,
     "mode": "walk"
   },
+  "c_012|eighth_wave_house": {
+    "minutes": 3,
+    "mode": "walk"
+  },
   "c_012|s_014": {
     "minutes": 3,
     "mode": "walk"
@@ -885,6 +921,10 @@
   },
   "c_012|s_032": {
     "minutes": 7,
+    "mode": "walk"
+  },
+  "c_012|s_033": {
+    "minutes": 3,
     "mode": "walk"
   },
   "c_013|acc": {
@@ -909,6 +949,10 @@
   },
   "c_013|daein_market": {
     "minutes": 13,
+    "mode": "walk"
+  },
+  "c_013|eighth_wave_house": {
+    "minutes": 3,
     "mode": "walk"
   },
   "c_013|gwangju_park_pocha": {
@@ -959,6 +1003,10 @@
     "minutes": 6,
     "mode": "walk"
   },
+  "c_013|s_021": {
+    "minutes": 8,
+    "mode": "walk"
+  },
   "c_013|s_023": {
     "minutes": 9,
     "mode": "walk"
@@ -969,6 +1017,10 @@
   },
   "c_013|s_027": {
     "minutes": 5,
+    "mode": "walk"
+  },
+  "c_013|s_030": {
+    "minutes": 10,
     "mode": "walk"
   },
   "c_013|s_032": {
@@ -1163,6 +1215,10 @@
     "minutes": 12,
     "mode": "walk"
   },
+  "daein_market|s_030": {
+    "minutes": 21,
+    "mode": "transit"
+  },
   "daein_market|s_032": {
     "minutes": 23,
     "mode": "transit"
@@ -1170,6 +1226,10 @@
   "daein_market|s_034": {
     "minutes": 12,
     "mode": "walk"
+  },
+  "daein_market|s_035": {
+    "minutes": 21,
+    "mode": "transit"
   },
   "daein_market|s_036": {
     "minutes": 13,
@@ -1186,6 +1246,26 @@
   "daein_market|yangdong_market": {
     "minutes": 19,
     "mode": "transit"
+  },
+  "eighth_wave_house|c_002": {
+    "minutes": 7,
+    "mode": "walk"
+  },
+  "eighth_wave_house|c_007": {
+    "minutes": 4,
+    "mode": "walk"
+  },
+  "eighth_wave_house|c_012": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "eighth_wave_house|c_013": {
+    "minutes": 3,
+    "mode": "walk"
+  },
+  "eighth_wave_house|s_032": {
+    "minutes": 5,
+    "mode": "walk"
   },
   "gungjeon_bakery|acc_sky_yard": {
     "minutes": 12,
@@ -1407,10 +1487,6 @@
     "minutes": 7,
     "mode": "walk"
   },
-  "jeonil245|yangnim_cafe": {
-    "minutes": 27,
-    "mode": "transit"
-  },
   "kdj_convention|arts_center": {
     "minutes": 30,
     "mode": "transit"
@@ -1463,6 +1539,10 @@
     "minutes": 27,
     "mode": "transit"
   },
+  "lee_jangwoo_house|s_002": {
+    "minutes": 29,
+    "mode": "transit"
+  },
   "lee_jangwoo_house|s_019": {
     "minutes": 30,
     "mode": "transit"
@@ -1473,10 +1553,6 @@
   },
   "lee_jangwoo_house|sajik_tower": {
     "minutes": 8,
-    "mode": "walk"
-  },
-  "lee_jangwoo_house|yangnim_cafe": {
-    "minutes": 3,
     "mode": "walk"
   },
   "oritang_street|acc_sky_yard": {
@@ -1659,10 +1735,6 @@
     "minutes": 25,
     "mode": "transit"
   },
-  "plaza_518|yangnim_cafe": {
-    "minutes": 28,
-    "mode": "transit"
-  },
   "pureungil|acc_sky_yard": {
     "minutes": 12,
     "mode": "walk"
@@ -1735,7 +1807,15 @@
     "minutes": 35,
     "mode": "transit"
   },
-  "pureungil|yangnim_cafe": {
+  "s_002|acc": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_002|art_street": {
+    "minutes": 12,
+    "mode": "walk"
+  },
+  "s_002|lee_jangwoo_house": {
     "minutes": 29,
     "mode": "transit"
   },
@@ -2007,10 +2087,6 @@
     "minutes": 29,
     "mode": "transit"
   },
-  "s_019|yangnim_cafe": {
-    "minutes": 32,
-    "mode": "transit"
-  },
   "s_020|acc_sky_yard": {
     "minutes": 9,
     "mode": "walk"
@@ -2035,11 +2111,19 @@
     "minutes": 9,
     "mode": "walk"
   },
+  "s_021|asia_food_street": {
+    "minutes": 18,
+    "mode": "walk"
+  },
   "s_021|c_008": {
     "minutes": 8,
     "mode": "walk"
   },
   "s_021|c_012": {
+    "minutes": 8,
+    "mode": "walk"
+  },
+  "s_021|c_013": {
     "minutes": 8,
     "mode": "walk"
   },
@@ -2123,6 +2207,10 @@
     "minutes": 5,
     "mode": "walk"
   },
+  "s_029|art_street": {
+    "minutes": 13,
+    "mode": "walk"
+  },
   "s_029|c_009": {
     "minutes": 9,
     "mode": "walk"
@@ -2147,6 +2235,14 @@
     "minutes": 4,
     "mode": "walk"
   },
+  "s_030|c_013": {
+    "minutes": 10,
+    "mode": "walk"
+  },
+  "s_030|daein_market": {
+    "minutes": 21,
+    "mode": "transit"
+  },
   "s_030|gwangju_park_pocha": {
     "minutes": 26,
     "mode": "transit"
@@ -2159,12 +2255,20 @@
     "minutes": 5,
     "mode": "walk"
   },
+  "s_032|acc": {
+    "minutes": 11,
+    "mode": "walk"
+  },
   "s_032|acc_sky_yard": {
     "minutes": 9,
     "mode": "walk"
   },
   "s_032|asia_food_street": {
     "minutes": 17,
+    "mode": "walk"
+  },
+  "s_032|c_001": {
+    "minutes": 3,
     "mode": "walk"
   },
   "s_032|c_006": {
@@ -2191,6 +2295,10 @@
     "minutes": 23,
     "mode": "transit"
   },
+  "s_032|eighth_wave_house": {
+    "minutes": 5,
+    "mode": "walk"
+  },
   "s_032|lee_jangwoo_house": {
     "minutes": 30,
     "mode": "transit"
@@ -2205,6 +2313,10 @@
   },
   "s_033|acc_sky_yard": {
     "minutes": 11,
+    "mode": "walk"
+  },
+  "s_033|c_012": {
+    "minutes": 3,
     "mode": "walk"
   },
   "s_033|pureungil": {
@@ -2271,6 +2383,10 @@
     "minutes": 10,
     "mode": "walk"
   },
+  "s_035|c_007": {
+    "minutes": 5,
+    "mode": "walk"
+  },
   "s_035|c_009": {
     "minutes": 4,
     "mode": "walk"
@@ -2278,6 +2394,10 @@
   "s_035|c_013": {
     "minutes": 7,
     "mode": "walk"
+  },
+  "s_035|daein_market": {
+    "minutes": 21,
+    "mode": "transit"
   },
   "s_035|pureungil": {
     "minutes": 6,
@@ -2525,38 +2645,6 @@
   },
   "yangdong_market|s_036": {
     "minutes": 17,
-    "mode": "transit"
-  },
-  "yangdong_market|yangnim_cafe": {
-    "minutes": 30,
-    "mode": "transit"
-  },
-  "yangnim_cafe|art_street": {
-    "minutes": 27,
-    "mode": "transit"
-  },
-  "yangnim_cafe|jeonil245": {
-    "minutes": 27,
-    "mode": "transit"
-  },
-  "yangnim_cafe|lee_jangwoo_house": {
-    "minutes": 3,
-    "mode": "walk"
-  },
-  "yangnim_cafe|plaza_518": {
-    "minutes": 28,
-    "mode": "transit"
-  },
-  "yangnim_cafe|pureungil": {
-    "minutes": 29,
-    "mode": "transit"
-  },
-  "yangnim_cafe|s_019": {
-    "minutes": 32,
-    "mode": "transit"
-  },
-  "yangnim_cafe|yangdong_market": {
-    "minutes": 30,
     "mode": "transit"
   },
   "yangnim_history|art_street": {

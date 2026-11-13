@@ -110,6 +110,34 @@ def test_named_activity_is_read_from_sentence():
     assert wanted_activities("전시는 말고 영화 볼래") == {"공연·영화"}
     assert wanted_activities("미술관이랑 야경") == {"전시 관람", "야경"}
     assert wanted_activities("맛있는 거 먹고 쉬고 싶어") == set()
+    assert wanted_activities("동명동 독립서점이랑 북카페 가고 싶어") == {"책·독서"}
+    assert wanted_activities("카페에서 책 읽으면서 쉬고 싶어") == {"책·독서"}
+    assert wanted_activities("공원 산책하고 싶어") == set()  # '산책' 의 '책' 은 책이 아니다
+    assert wanted_activities("서점은 말고 전시") == {"전시 관람"}
+    assert wanted_activities("서점이랑 전시를 돌고 싶어. 저녁 즘에 돌아갈거야.") == {"책·독서", "전시 관람"}
+    for q in ("책 사러 가고 싶어", "책 좋아하는 친구랑", "조용히 독서하고 싶어", "책방 투어", "북카페"):
+        assert wanted_activities(q) == {"책·독서"}, q
+    for q in ("산책하고 싶어", "책임감 있게 짜 줘", "공책 사러", "책은 별로"):
+        assert wanted_activities(q) == set(), q
+
+    from routefit.filters import wanted_activity_counts as counts
+
+    cases = {"서점 많이랑 전시 보고 싶어. 저녁즘에 돌아갈 듯?": {"책·독서": 2, "전시 관람": 1},
+             "서점이랑 전시를 돌고 싶어": {"책·독서": 1, "전시 관람": 1}, "여러 서점 돌기": {"책·독서": 2},
+             "책방 투어하고 싶어": {"책·독서": 2}, "서점 3곳이랑 미술관": {"책·독서": 3, "전시 관람": 1},
+             "전시 두 곳 보고 서점": {"전시 관람": 2, "책·독서": 1}, "서점은 말고 전시 많이": {"전시 관람": 2}}
+    for q, want in cases.items():
+        assert counts(q) == want, q
+
+
+def test_named_activity_count_is_kept_in_course():
+    """"서점 많이랑 전시" 면 코스에 서점 2곳(책과생활·꽃이피다)과 전시 1곳 이상."""
+    for planner in ("greedy", "ortools"):
+        c = _plan("서점 많이랑 전시 보고 싶어. 저녁즘에 돌아갈 듯?", planner=planner)
+        acts = [set(p.tags.get("activity", [])) for p in (_place(s.place_id) for s in c.stops)]
+        assert sum("책·독서" in a for a in acts) >= 2, (planner, [s.name for s in c.stops])
+        assert sum("전시 관람" in a for a in acts) >= 1, (planner, [s.name for s in c.stops])
+        assert c.constraints.day_end == "19:30"
 
 
 def test_named_activity_tag_raises_place_value():
@@ -241,6 +269,10 @@ def _plan(query, **kw):
     return make_course(PlanRequest(query=query, **kw))
 
 
+def _place(place_id):
+    return next(p for p in load_anchors() + load_places() if p.id == place_id)
+
+
 def test_place_count_is_read_from_sentence():
     from routefit.filters import place_count
 
@@ -308,7 +340,9 @@ def test_vague_day_end_is_read_from_sentence():
     from routefit.parser import vague_day_end
 
     cases = {"저녁까지 놀 거야": "20:00", "저녁 먹고 들어갈 거야": "20:00", "저녁 전까지": "18:00", "오후까지 구경": "18:00",
-             "점심까지만": "14:00", "밤까지 놀자": "22:00", "저녁 먹고 카페 가고 싶어": None, "저녁에 맛집": None}
+             "점심까지만": "14:00", "밤까지 놀자": "22:00", "저녁 먹고 카페 가고 싶어": None, "저녁에 맛집": None,
+             "저녁즘에 돌아갈 것 같아": "19:30", "저녁쯤 집에 갈 거야": "19:30", "저녁 무렵 들어가야 해": "19:30",
+             "저녁쯤까지 놀래": "20:00", "저녁때 맛집 가자": None}
     for q, want in cases.items():
         assert vague_day_end(q) == want, q
     c = _plan("친구랑 맛집이랑 카페. 저녁까지 놀 거야")

@@ -1,5 +1,6 @@
 """관리자 API: 현장조사 데이터 입력. ROUTEFIT_ADMIN_TOKEN 을 설정하면 X-Admin-Token 헤더가 필요하다."""
 import secrets
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
@@ -223,9 +224,9 @@ def put_travel_times(items: list[TravelTime]):
 
 
 @router.get("/feedback", response_model=list[Feedback])
-def list_feedback(limit: int = Query(default=50, ge=1, le=500)):
-    """최근 별점·한줄평. 사용자가 쓴 글이라 공개 API 가 아닌 관리자 API 로 둔다."""
-    return courses.recent_feedback(limit)
+def list_feedback(limit: int = Query(default=50, ge=1, le=500), start: Optional[date] = None, end: Optional[date] = None):
+    """최근 별점·한줄평. 사용자가 쓴 글이라 공개 API 가 아닌 관리자 API 로 둔다. start·end 는 실증 통계 기간(한국 날짜)."""
+    return courses.recent_feedback(limit, start, end)
 
 
 # ---------- 가져오기 / 내보내기 ----------

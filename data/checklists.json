@@ -121,6 +121,22 @@
       "evidence": {}
     }
   ],
+  "book_and_life": [
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
   "c_001": [
     {
       "rater": "주소연",
@@ -183,6 +199,20 @@
   ],
   "c_003": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -198,6 +228,20 @@
     }
   ],
   "c_004": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -215,6 +259,20 @@
   ],
   "c_005": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -230,6 +288,20 @@
     }
   ],
   "c_006": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -247,6 +319,20 @@
   ],
   "c_007": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -262,6 +348,20 @@
     }
   ],
   "c_008": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -279,6 +379,20 @@
   ],
   "c_009": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": false,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -294,6 +408,20 @@
     }
   ],
   "c_010": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -311,6 +439,20 @@
   ],
   "c_011": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -327,6 +469,20 @@
   ],
   "c_012": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -342,6 +498,20 @@
     }
   ],
   "c_013": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -389,6 +559,20 @@
   ],
   "chungjangro": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": false,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": true,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": false,
@@ -403,7 +587,37 @@
       "evidence": {}
     }
   ],
+  "dabansa_tea_culture": [
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
   "daein_market": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": false,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -421,6 +635,66 @@
   ],
   "delicious_sandwich": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
+  "eighth_wave_house": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": false,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": false,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
+  "flower_blooms": [
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -437,6 +711,20 @@
   ],
   "gungjeon_bakery": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": true,
+        "nearby_stores": true,
+        "not_franchise": false,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -452,6 +740,20 @@
     }
   ],
   "gwangju_park_pocha": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": true,
+        "long_running": false,
+        "nearby_stores": false,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -472,6 +774,20 @@
   ],
   "gwangju_theater": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": true,
+        "market_zone": false,
+        "history_site": false,
+        "long_running": true,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -486,7 +802,37 @@
       "evidence": {}
     }
   ],
+  "hana_hada": [
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
   "hanheewon_museum": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": false,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": false,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -503,6 +849,20 @@
     }
   ],
   "jeonil245": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": true,
+        "market_zone": true,
+        "history_site": true,
+        "long_running": true,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -552,6 +912,20 @@
   ],
   "lee_jangwoo_house": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": false,
+        "heritage": true,
+        "market_zone": false,
+        "history_site": false,
+        "long_running": true,
+        "nearby_stores": false,
+        "not_franchise": true,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": false,
@@ -567,6 +941,20 @@
     }
   ],
   "oritang_street": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": false,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": true,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -584,6 +972,20 @@
   ],
   "penguin_village": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": true,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -599,6 +1001,20 @@
     }
   ],
   "plaza_518": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": false,
+        "heritage": true,
+        "market_zone": true,
+        "history_site": true,
+        "long_running": true,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": true
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -1144,6 +1560,20 @@
   ],
   "s_033": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -1159,6 +1589,20 @@
     }
   ],
   "s_034": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -1176,6 +1620,20 @@
   ],
   "s_035": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": false,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -1192,6 +1650,20 @@
   ],
   "s_036": [
     {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": false,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
+    {
       "rater": "최여름",
       "checks": {
         "seating": true,
@@ -1207,6 +1679,20 @@
     }
   ],
   "s_049": [
+    {
+      "rater": "주소연",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": false,
+        "local_identity": false
+      },
+      "evidence": {}
+    },
     {
       "rater": "최여름",
       "checks": {
@@ -1268,6 +1754,54 @@
       "evidence": {}
     }
   ],
+  "sontag_and_eicher": [
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
+  "tea_at": [
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
+  "woody_jip": [
+    {
+      "rater": "최여름",
+      "checks": {
+        "seating": true,
+        "heritage": false,
+        "market_zone": true,
+        "history_site": false,
+        "long_running": false,
+        "nearby_stores": true,
+        "not_franchise": true,
+        "local_identity": false
+      },
+      "evidence": {}
+    }
+  ],
   "yangdong_market": [
     {
       "rater": "주소연",
@@ -1298,36 +1832,6 @@
       "evidence": {
         "history_site": "19호"
       }
-    }
-  ],
-  "yangnim_cafe": [
-    {
-      "rater": "주소연",
-      "checks": {
-        "seating": true,
-        "heritage": true,
-        "market_zone": false,
-        "history_site": false,
-        "long_running": true,
-        "nearby_stores": false,
-        "not_franchise": true,
-        "local_identity": true
-      },
-      "evidence": {}
-    },
-    {
-      "rater": "최여름",
-      "checks": {
-        "seating": true,
-        "heritage": false,
-        "market_zone": false,
-        "history_site": false,
-        "long_running": false,
-        "nearby_stores": false,
-        "not_franchise": true,
-        "local_identity": false
-      },
-      "evidence": {}
     }
   ],
   "yangnim_history": [

@@ -85,6 +85,33 @@ function RecentRows({ items }) {
   });
 }
 
+// 기간: 한국 날짜 'YYYY-MM-DD'. 비워 두면 그쪽은 제한 없음(전체)
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function daysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return ymd(d);
+}
+const PRESETS = [
+  ["전체", () => ({ start: "", end: "" })],
+  ["오늘", () => ({ start: daysAgo(0), end: daysAgo(0) })],
+  ["최근 7일", () => ({ start: daysAgo(6), end: daysAgo(0) })],
+  ["최근 30일", () => ({ start: daysAgo(29), end: daysAgo(0) })],
+];
+
+function periodQuery({ start, end }) {
+  const q = new URLSearchParams();
+  if (start) q.set("start", start);
+  if (end) q.set("end", end);
+  return q.toString();
+}
+
+function periodLabel({ start, end }) {
+  if (!start && !end) return "생성된 모든 코스를 집계합니다.";
+  if (start === end) return `${start} 하루 동안 만든 코스를 집계합니다.`;
+  return `${start || "처음"} ~ ${end || "지금"} 사이에 만든 코스를 집계합니다.`;
+}
+
 function Feedback({ feedback }) {
   if (feedback === null) return null;
   if (!feedback.length) return <li className="muted small">아직 한줄평이 없습니다.</li>;
@@ -106,20 +133,29 @@ export default function StatsPage() {
   const [locked, setLocked] = useState(false); // 관리자 토큰이 없거나 틀렸다
   const [updated, setUpdated] = useState("");
   const [loading, setLoading] = useState(false);
+  const [period, setPeriod] = useState({ start: "", end: "" });
+  const [periodError, setPeriodError] = useState("");
 
   // 실증 통계는 관리자 전용. 토큰이 없거나 틀리면(401) 잠긴 화면에서 토큰을 입력받는다.
-  async function load() {
+  async function load(p = period) {
+    if (p.start && p.end && p.start > p.end) {
+      setPeriodError("시작일이 종료일보다 늦습니다.");
+      return;
+    }
+    setPeriodError("");
+    const q = periodQuery(p);
+    const and = q ? `&${q}` : "";
     setLoading(true);
     try {
-      const res = await adminFetch("/api/stats", {}, false);
+      const res = await adminFetch(`/api/stats${q ? `?${q}` : ""}`, {}, false);
       if (res.status === 401) {
         setLocked(true);
         return;
       }
       const [s, r, f] = await Promise.all([
         res.json(),
-        adminFetch("/api/courses?limit=10", {}, false).then((x) => x.json()),
-        adminFetch("/api/admin/feedback?limit=20", {}, false).then((x) => x.json()),
+        adminFetch(`/api/courses?limit=10${and}`, {}, false).then((x) => x.json()),
+        adminFetch(`/api/admin/feedback?limit=20${and}`, {}, false).then((x) => x.json()),
       ]);
       setLocked(false);
       setStats(s);
@@ -138,6 +174,11 @@ export default function StatsPage() {
     if (token) { adminToken.set(token); load(); }
   }
 
+  function changePeriod(next) {
+    setPeriod(next);
+    load(next);
+  }
+
   useEffect(() => { load(); }, []);
 
   return (
@@ -153,8 +194,32 @@ export default function StatsPage() {
         ) : (
         <>
         <section className="toolbar">
-          <p className="muted small">생성된 모든 코스를 집계합니다. <span id="updated">{updated}</span></p>
-          <button type="button" id="refresh" className="inline secondary" disabled={loading} onClick={load}>새로고침</button>
+          <p className="muted small">{periodLabel(period)} <span id="updated">{updated}</span></p>
+          <button type="button" id="refresh" className="inline secondary" disabled={loading} onClick={() => load()}>새로고침</button>
+        </section>
+
+        <section className="panel period" aria-label="집계 기간">
+          <div className="period-presets" role="group" aria-label="기간 빠르게 고르기">
+            {PRESETS.map(([label, make]) => {
+              const p = make();
+              const on = p.start === period.start && p.end === period.end;
+              return (
+                <button type="button" key={label} className="tag-chip" aria-pressed={on} onClick={() => changePeriod(p)}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="period-range">
+            <label htmlFor="period-start">시작일</label>
+            <input id="period-start" type="date" value={period.start} max={period.end || undefined}
+              onChange={(e) => changePeriod({ ...period, start: e.target.value })} />
+            <span aria-hidden="true">~</span>
+            <label htmlFor="period-end">종료일</label>
+            <input id="period-end" type="date" value={period.end} min={period.start || undefined}
+              onChange={(e) => changePeriod({ ...period, end: e.target.value })} />
+          </div>
+          {periodError ? <p className="must-error" role="alert">{periodError}</p> : null}
         </section>
 
         <ul id="tiles" className="tiles" aria-live="polite">

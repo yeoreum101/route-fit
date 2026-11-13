@@ -227,3 +227,23 @@ def test_improve_order_keeps_fixed_times():
     better = improve_order([sights[0], sights[1], show, sights[2]], to_min("10:00"), to_min("22:00"), lambda a, b: 10)
     visits = schedule(better, to_min("10:00"), to_min("22:30"), lambda a, b: 10)
     assert next(v for v in visits if v.node.id == "show").start == to_min("18:00")
+
+
+@pytest.mark.parametrize("planner", [plan_greedy, plan_ortools])
+def test_planners_fill_activity_minimum(planner):
+    """"서점 많이랑 전시" -> 서점 2곳·전시 1곳. 취향 점수가 낮아도 말한 만큼은 넣는다."""
+    from dataclasses import replace
+
+    from routefit.config import LIMITS
+
+    books = [node(place(f"b{i}", category="cafe", tags={"activity": ["카페·디저트", "책·독서"]}), stay=90, taste=0.0) for i in range(2)]
+    shows = [node(place(f"e{i}", category="culture", tags={"activity": ["전시 관람"]}), taste=0.0) for i in range(2)]
+    others = [node(place(f"s{i}", category="sight"), taste=1.0) for i in range(4)] + [node(place("f0")), node(place("f1"))]
+    limits = replace(LIMITS, activity_min=(("책·독서", 2), ("전시 관람", 1)))
+    route = planner([], books + shows + others, to_min("11:00"), to_min("19:30"), None, no_travel, limits)
+    assert schedule(route, to_min("11:00"), to_min("20:00"), no_travel) is not None
+    ids = {n.id for n in route}
+    assert {"b0", "b1"} <= ids and ids & {"e0", "e1"}
+    # 하루에 다 못 넣으면 실패하지 않고 넣을 수 있는 만큼만
+    short = planner([], books + others, to_min("11:00"), to_min("13:00"), None, no_travel, limits)
+    assert len({n.id for n in short} & {"b0", "b1"}) == 1
