@@ -12,6 +12,8 @@ SYSTEM = """너는 광주 여행 코스 생성 서비스 Route-Fit 의 조건 �
 - 문장에 없는 값은 추측하지 말고 null(목록은 빈 목록)로 둔다.
 - taste: 사용자가 원하는 분위기·활동·취향만 남겨 한 문장으로 정리한다. 시간·예산·필수 방문지 언급은 뺀다.
 - day_start, day_end, must_visits.start: 24시간제 'HH:MM'. "저녁까지"처럼 시각 없이 말한 하루 끝은 null 로 둔다(따로 정한다).
+- 경기·공연·행사처럼 시각이 정해진 일정의 시각("6시 반 야구 보기 전에", "7시 공연")은 그 일정의 must_visits.start 에 넣고
+  day_start 에는 넣지 않는다. day_start 는 "2시부터"처럼 하루를 시작하는 시각을 말했을 때만 넣는다.
 - budget: 1인 기준 원 단위 정수. "10만원" -> 100000.
 - weekday: 0=월요일 ... 6=일요일.
 - must_visits: 사용자가 이미 가기로 정한 장소만 넣는다. 아래 [알려진 목적지]에 해당하면 그 이름을 그대로 쓴다.
@@ -90,7 +92,7 @@ def sanitize(parsed: ParsedQuery, known: list[Place], query: str | None = None) 
         # 끼니를 빼는 말("저녁은 빼고")을 식당 전체 회피로 읽은 경우. 뺄 끼니는 skip_meals 가 맡는다.
         parsed.avoid_categories = [c for c in parsed.avoid_categories if c != "food"]
     parsed.avoid_keywords = clean_keywords(parsed.avoid_keywords, query)
-    musts = []
+    musts, places = [], []
     said = (query or "").replace(" ", "")
     for m in parsed.must_visits:
         place = find_by_name(known, m.name)
@@ -104,8 +106,53 @@ def sanitize(parsed: ParsedQuery, known: list[Place], query: str | None = None) 
         m.start = _hm(m.start)
         m.stay_min = m.stay_min if m.stay_min and m.stay_min > 0 else None
         musts.append(m)
+        places.append(place)
     parsed.must_visits = musts
+    if query is not None:
+        apply_event_time(parsed, places, query)
     return parsed
+
+
+# 시각이 정해진 일정. "6시 반 야구 보기 전에" 의 6시 반은 하루 시작이 아니라 경기 시각이다
+_EVENT = r"(?:야구|경기|시합|직관|공연|콘서트|뮤지컬|연극|오페라|행사|학회|세미나|컨퍼런스|포럼|강연|시상식|팬\s*미팅)"
+_CLOCK = r"(오전|아침|낮|오후|저녁|밤)?\s*(\d{1,2})\s*(?:시\s*(반|\d{1,2}\s*분)?|:([0-5]\d))"
+_EVENT_AT = [
+    # "6시 반 야구", "저녁 7시에 하는 공연", "18:30 경기"
+    re.compile(_CLOCK + r"\s*(?:에\s*)?(?:있는|하는|열리는|시작하는|시작인)?\s*" + _EVENT),
+    # "야구가 6시 반이라", "공연 시작은 7시"
+    re.compile(_EVENT + r"\s*(?:이|가|은|는)?\s*(?:시작\s*(?:은|이|시각은|시간은)?\s*)?" + _CLOCK + r"(?!\s*(?:부터|까지))"),
+]
+
+
+def event_time(query: str) -> str | None:
+    """문장에서 경기·공연·행사 시각. "저녁 6시 반 야구" -> "18:30". 오전·오후 말이 없으면 1~9시는 오후로 본다
+    (경기·공연은 낮·저녁에 열린다). 없으면 None."""
+    for pattern in _EVENT_AT:
+        if m := pattern.search(query):
+            ampm, hour, minute, mm = m.groups()
+            h = int(hour)
+            if h < 12 and (ampm in _PM or (not ampm and 1 <= h <= 9)):
+                h += 12
+            minutes = int(mm) if mm else 30 if minute == "반" else int(re.sub(r"\D", "", minute)) if minute else 0
+            if h <= 23:
+                return f"{h:02d}:{minutes:02d}"
+    return None
+
+
+def apply_event_time(parsed: ParsedQuery, places: list[Place], query: str) -> None:
+    """경기·공연 시각을 꼭 갈 곳(행사장 우선)의 시작 시각으로 옮긴다. LLM 이 그 시각을 하루 시작(day_start)으로 읽으면
+    "6시 반 야구 보기 전에" 가 18:30 에 시작하는 하루가 되어, 경기가 하루 안에 안 들어가거나 경기 하나만 남는다."""
+    at = event_time(query)
+    if at is None:
+        return
+    if parsed.day_start == at:
+        parsed.day_start = None
+    untimed = [(m, p) for m, p in zip(parsed.must_visits, places) if m.start is None]
+    if any(m.start == at for m in parsed.must_visits) or not untimed:
+        return
+    venues = [m for m, p in untimed if p.category == "venue"]
+    if venues or len(untimed) == 1:
+        (venues or [untimed[0][0]])[0].start = at
 
 
 def normalize_companions(text: str | None) -> str | None:
@@ -190,12 +237,9 @@ def parse_rule_based(query: str, known: list[Place]) -> ParsedQuery:
     weekday = next((i for i, d in enumerate(_WEEKDAYS) if f"{d}요일" in query), None)
     companions = next((v for k, v in _COMPANIONS.items() if k in query), None)
     compact = query.replace(" ", "")
-    must = [
-        ParsedMustVisit(name=p.name, start=None, stay_min=None)
-        for p in known
-        if any(a.replace(" ", "") in compact for a in [p.name, *p.aliases])
-    ]
-    return ParsedQuery(
+    must_places = [p for p in known if any(a.replace(" ", "") in compact for a in [p.name, *p.aliases])]
+    must = [ParsedMustVisit(name=p.name, start=None, stay_min=None) for p in must_places]
+    parsed = ParsedQuery(
         taste=query,
         day_start=day_start,
         day_end=day_end,
@@ -207,6 +251,8 @@ def parse_rule_based(query: str, known: list[Place]) -> ParsedQuery:
         skip_meals=skip_meals_in(query),
         avoid_keywords=clean_keywords(avoid_keywords_in(query), query),
     )
+    apply_event_time(parsed, must_places, query)
+    return parsed
 
 
 # "점심은 먹고 올 거야", "저녁은 빼고", "저녁 생략" -> 그 끼니. "저녁만 맛집", "점심만 먹을래" -> 다른 끼니.

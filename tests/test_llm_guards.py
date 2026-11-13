@@ -90,6 +90,22 @@ def test_must_visit_needs_its_name_in_query():
     assert [m.name for m in named.must_visits] == ["책과생활"]
 
 
+def test_event_time_read_as_day_start_moves_to_the_game():
+    # gpt-5.4-mini 가 "저녁 6시 반 야구 보기 전에" 를 day_start=18:30, 꼭 갈 곳 시각 없음으로 돌려줬다
+    known = load_anchors() + load_places()
+    q = "토요일 저녁 6시 반 야구 보기 전에 둘이 조용한 카페랑 맛있는 밥"
+    out = parser.sanitize(_parsed(day_start="18:30", must_visits=[ParsedMustVisit(name="광주-기아 챔피언스 필드", start=None, stay_min=None)]), known, q)
+    assert out.day_start is None
+    assert out.must_visits[0].start == "18:30"
+    # 하루 시작을 따로 말했으면 그대로 둔다
+    q2 = "오후 2시부터 놀다가 저녁 7시 공연 보러 예술의전당"
+    kept = parser.sanitize(_parsed(day_start="14:00", must_visits=[ParsedMustVisit(name="광주예술의전당", start=None, stay_min=None)]), known, q2)
+    assert (kept.day_start, kept.must_visits[0].start) == ("14:00", "19:00")
+    # 꼭 갈 곳 없이 경기 시각만 말한 문장도 그 시각에 하루를 시작하지 않는다
+    alone = parser.sanitize(_parsed(day_start="18:30"), known, "6시 반 경기 전에 동명동 카페")
+    assert alone.day_start is None
+
+
 def test_skipping_one_meal_does_not_drop_all_restaurants():
     # "저녁은 빼고" 를 식당 전체 회피(food)로도 읽으면, 뺄 끼니는 skip_meals 만 맡게 한다
     known = load_anchors() + load_places()

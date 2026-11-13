@@ -172,6 +172,41 @@ def test_rule_based_parser():
     assert [m.name for m in parsed.must_visits] == ["광주-기아 챔피언스 필드"]
 
 
+def test_event_time_is_read_from_sentence():
+    from routefit.parser import event_time
+
+    cases = {
+        "토요일 저녁 6시 반 야구 보기 전에": "18:30",
+        "오후 5시 야구 보기 전에 카페": "17:00",
+        "6시 반 경기 전에 밥": "18:30",  # 오전·오후 말이 없으면 1~9시는 오후
+        "18:30 경기 전에": "18:30",
+        "저녁 7시에 하는 공연 보러": "19:00",
+        "야구가 6시 반이라 그 전에": "18:30",
+        "오후 2시부터 놀다가 저녁 7시 공연": "19:00",
+        "오후 2시부터 밤 9시까지 야구 보고": None,  # 하루 시작·끝이지 경기 시각이 아니다
+        "3시간 공연 보고 싶어": None,
+        "조용한 카페랑 밥": None,
+    }
+    for q, want in cases.items():
+        assert event_time(q) == want, q
+
+
+@pytest.mark.parametrize("query, start", [
+    ("토요일 저녁 6시 반 야구 보기 전에 둘이 조용한 카페랑 맛있는 밥", "18:30"),
+    ("토요일 오후 5시 야구 보기 전에 둘이 조용한 카페랑 맛있는 밥", "17:00"),
+])
+def test_event_time_in_sentence_fixes_the_game_not_the_day(query, start):
+    # 경기 시각을 하루 시작으로 읽으면 18:30 시작 하루에 3시간 반 경기가 안 들어가거나(오류), 경기 하나만 남았다
+    parsed = parse_rule_based(query, load_anchors())
+    assert parsed.day_start is None
+    assert [(m.name, m.start) for m in parsed.must_visits] == [("광주-기아 챔피언스 필드", start)]
+    course = make_course(PlanRequest(query=query))
+    must = [s for s in course.stops if s.kind == "must"]
+    assert [(s.place_id, s.start) for s in must] == [("champions_field", start)]
+    assert course.metrics.n_ai_places >= 2  # 경기 전 시간을 AI 추천 장소로 채운다
+    assert all(to_min(s.end) <= to_min(start) for s in course.stops if s.kind == "ai")
+
+
 def test_api():
     client = TestClient(app)
     assert client.get("/api/health").json()["ok"]
