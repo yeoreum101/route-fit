@@ -111,6 +111,8 @@ def test_named_activity_is_read_from_sentence():
     assert wanted_activities("미술관이랑 야경") == {"전시 관람", "야경"}
     assert wanted_activities("맛있는 거 먹고 쉬고 싶어") == set()
     assert wanted_activities("동명동 독립서점이랑 북카페 가고 싶어") == {"책·독서"}
+    assert wanted_activities("비 오면 충장로에서 방탈출이나 보드게임 하고 싶어") == {"게임·놀이"}
+    assert wanted_activities("야구 게임 보기 전에 카페 가고 싶어") == set()
     assert wanted_activities("카페에서 책 읽으면서 쉬고 싶어") == {"책·독서"}
     assert wanted_activities("공원 산책하고 싶어") == set()  # '산책' 의 '책' 은 책이 아니다
     assert wanted_activities("서점은 말고 전시") == {"전시 관람"}
