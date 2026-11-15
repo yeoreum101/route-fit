@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root{--navy:#1f2a44;--blue:#2563eb;--green:#0f7b6c;--muted:#5b6475}
+  *{box-sizing:border-box;margin:0}
+  html,body{background:transparent}
+  body{width:1200px;height:1000px;position:relative;font-family:"Pretendard Variable",Pretendard,sans-serif;color:var(--navy);overflow:hidden}
+  body.bg{background:#f4f1ec}
+  .phone{position:absolute;left:416px;top:150px;width:368px;height:764px;border-radius:58px;background:#111418;padding:14px;
+    box-shadow:0 30px 60px rgba(20,30,50,.28),0 0 0 2px #3a3f47 inset}
+  .screen{position:relative;width:340px;height:736px;border-radius:46px;overflow:hidden;background:#fff}
+  .screen img{display:block;width:340px}
+  .status{position:absolute;left:0;top:0;right:0;height:50px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 34px;font-weight:700;font-size:15px}
+  .status .r{display:flex;gap:6px;align-items:center}
+  .island{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:104px;height:30px;border-radius:20px;background:#111418}
+  .home{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:120px;height:5px;border-radius:3px;background:#111418;opacity:.85}
+  .co{position:absolute;background:#fff;border-radius:18px;padding:16px 22px;box-shadow:0 10px 28px rgba(20,30,50,.14);border:1px solid #e6e8ee;white-space:nowrap}
+  .co b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.3}
+  .co span{display:block;font-size:19px;color:var(--muted);margin-top:4px;letter-spacing:-.01em}
+  .co b em{font-style:normal;color:var(--green)}
+  svg.lines{position:absolute;inset:0;pointer-events:none}
+  .pill{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;border-radius:999px;padding:13px 26px;font-size:21px;font-weight:700;white-space:nowrap}
+  .pill.top{top:52px;background:var(--navy);color:#fff}
+  .pill.top .url{font-weight:600;color:#bcd0ff}
+  .pill.top .dot{width:11px;height:11px;border-radius:50%;background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.25)}
+  .pill.bot{top:936px;background:#fff;border:1px solid #e6e8ee;box-shadow:0 6px 18px rgba(20,30,50,.10)}
+  .pill.bot .ck{color:var(--green)}
+  .mapcard{position:absolute;left:812px;top:580px;width:350px;background:#fff;border-radius:18px;padding:10px;box-shadow:0 10px 28px rgba(20,30,50,.16);border:1px solid #e6e8ee}
+  .mapcard .img{width:330px;height:260px;border-radius:12px;overflow:hidden;position:relative}
+  .mapcard .img img{position:absolute;width:377px;left:-24px;top:-150px}
+  .mapcard .cap{font-size:19px;font-weight:700;padding:10px 6px 4px}
+  .mapcard .cap span{font-weight:500;color:var(--muted);font-size:17px;margin-left:6px}
+</style></head>
+<body>
+  <div class="pill top"><i class="dot"></i>지금 바로 시연 가능 <span class="url">route-fit.duckdns.org</span> · 로그인 없음</div>
+
+  <div class="phone"><div class="screen">
+    <img src="src/phone_course.png">
+    <div class="status"><span>9:41</span><span class="r">
+      <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#111"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#111"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#111"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#111"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="#111" opacity=".5"/><rect x="2.5" y="2.5" width="16" height="8" rx="2" fill="#111"/><rect x="23.5" y="4.5" width="2" height="4" rx="1" fill="#111" opacity=".5"/></svg>
+    </span></div>
+    <div class="island"></div><div class="home"></div>
+  </div></div>
+
+  <div class="co" id="c0" style="left:830px;top:196px"><b>문장 한 줄 → 하루 코스</b><span>5곳 · 체류 8시간 50분 · 이동 47분</span></div>
+  <div class="co" id="c1" style="left:46px;top:560px"><b>장소마다 추천 이유</b><span>방문 시각·순서에 맞춰 설명</span></div>
+  <div class="co" id="c2" style="left:46px;top:740px"><b>마음에 안 들면 바꾸기</b><span>그 자리만 다른 곳으로</span></div>
+  <div class="co" id="c3" style="left:830px;top:370px"><b>지역상권 <em>4곳 (100%)</em></b><span>원도심 로컬 가게 우선</span></div>
+  <div class="co" id="c4" style="left:46px;top:362px"><b>꼭 갈 곳 하나만 정하면</b><span>나머지 하루는 AI가 채움</span></div>
+
+  <div class="mapcard"><div class="img"><img src="src/map.png"></div><div class="cap">지도 · 이동 경로<span>카카오맵</span></div></div>
+
+  <div class="pill bot"><span class="ck">✓</span> 131개 자동 테스트 통과 · AWS 상시 운영</div>
+
+  <svg class="lines" width="1200" height="1000"></svg>
+<script>
+  // 폰 화면(390px 기준) 좌표 → 캔버스 좌표
+  const SX=430, SY=164, K=340/390;
+  const P=(x,y)=>[SX+x*K, SY+y*K];
+  const T={c0:P(356,108), c1:P(80,544), c2:P(68,603), c3:P(246,222), c4:P(32,315)};
+  const svg=document.querySelector('svg.lines'); const NS='http://www.w3.org/2000/svg';
+  for(const [id,[tx,ty]] of Object.entries(T)){
+    const r=document.getElementById(id).getBoundingClientRect();
+    const left = tx > r.right; const sx = left ? r.right : r.left; const sy = r.top + r.height/2;
+    const mx = left ? Math.min(sx+40, tx-20) : Math.max(sx-40, tx+20);
+    const path=document.createElementNS(NS,'path');
+    path.setAttribute('d',`M${sx},${sy} H${mx} L${tx},${ty}`);
+    path.setAttribute('fill','none'); path.setAttribute('stroke','#1f2a44'); path.setAttribute('stroke-width','2.2');
+    svg.appendChild(path);
+    const c=document.createElementNS(NS,'circle'); c.setAttribute('cx',tx); c.setAttribute('cy',ty); c.setAttribute('r','6.5');
+    c.setAttribute('fill','#2563eb'); c.setAttribute('stroke','#fff'); c.setAttribute('stroke-width','3'); svg.appendChild(c);
+  }
+  document.title='ready';
+</script>
+</body></html>

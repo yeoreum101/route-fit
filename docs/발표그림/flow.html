@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root{--navy:#1f2a44;--blue:#2563eb;--green:#0f7b6c;--muted:#5b6475;--line:#e3e6ec}
+  *{box-sizing:border-box;margin:0}
+  html,body{background:transparent}
+  body{width:1800px;height:640px;font-family:"Pretendard Variable",Pretendard,sans-serif;color:var(--navy);
+    display:flex;align-items:flex-start;justify-content:center;gap:0;padding:24px 30px 0}
+  body.bg{background:#f4f1ec}
+  .step{display:flex;flex-direction:column;align-items:center;width:520px}
+  .lab{font-size:28px;font-weight:800;color:var(--blue);letter-spacing:-.01em;margin-bottom:16px}
+  .win{width:520px;height:440px;background:#fff;border-radius:20px;border:1px solid var(--line);
+    box-shadow:0 14px 34px rgba(20,30,50,.13);overflow:hidden;display:flex;flex-direction:column}
+  .win.hl{border:2px solid #9db8f5;box-shadow:0 0 0 6px rgba(37,99,235,.08),0 14px 34px rgba(37,99,235,.18)}
+  .bar{height:40px;flex:none;display:flex;align-items:center;gap:7px;padding:0 16px;background:#f6f7f9;border-bottom:1px solid var(--line)}
+  .bar i{width:11px;height:11px;border-radius:50%;background:#d5d9e0}
+  .bar .url{margin-left:12px;flex:1;height:24px;border-radius:7px;background:#fff;border:1px solid var(--line);font-size:14px;color:#8a92a3;display:flex;align-items:center;padding-left:10px}
+  .body{flex:1;position:relative;overflow:hidden}
+  .cap{margin-top:18px;font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .sub{margin-top:4px;font-size:19px;color:var(--muted)}
+  .arrow{width:84px;flex:none;height:440px;margin-top:60px;display:flex;align-items:center;justify-content:center}
+  /* step1 */
+  .s1 img{position:absolute;left:50%;top:50%;width:440px;transform:translate(-50%,-50%);border-radius:10px}
+  /* step2 */
+  .s2{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+  .tag{display:inline-flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:var(--blue);background:#eaf1ff;border-radius:8px;padding:5px 11px;align-self:flex-start}
+  .tag.alg{color:var(--green);background:#e4f4f0}
+  .tag small{font-weight:600;color:var(--navy);font-size:16px}
+  .s2 .shot{width:476px;border-radius:10px;border:1px solid var(--line)}
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rules div{background:#f6f7f9;border-radius:10px;padding:9px 12px;font-size:16.5px;font-weight:600}
+  .rules div b{color:var(--green);margin-right:6px}
+  /* step3 */
+  .s3{display:flex}.s3 .tl{position:relative;width:332px;height:100%;overflow:hidden;border-right:1px solid var(--line)}.s3 .tl img{position:absolute;width:384px;left:-24px;top:-286px}.s3 .mp{position:relative;flex:1;overflow:hidden;background:#eef0f3}.s3 .mp img{position:absolute;width:232px;left:-27px;top:22px}
+</style></head>
+<body>
+  <div class="step">
+    <div class="lab">Step 1</div>
+    <div class="win"><div class="bar"><i></i><i></i><i></i><span class="url">route-fit.duckdns.org</span></div>
+      <div class="body s1"><img src="src/step1.png"></div></div>
+    <div class="cap">문장 한 줄 입력</div>
+    <div class="sub">요일·시간·동행·취향을 그대로 적기</div>
+  </div>
+
+  <div class="arrow"><svg width="56" height="28" viewBox="0 0 56 28"><path d="M2 14H50M38 3l13 11-13 11" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <div class="step">
+    <div class="lab">Step 2</div>
+    <div class="win hl"><div class="bar"><i></i><i></i><i></i><span class="url">route-fit.duckdns.org</span></div>
+      <div class="body s2">
+        <span class="tag">LLM <small>조건 해석 · 취향 매칭</small></span>
+        <img class="shot" src="src/step2c.png">
+        <span class="tag alg">알고리즘 <small>이동 시간 계산 · 코스 최적화</small></span>
+        <div class="rules">
+          <div><b>✓</b>영업시간 안에 방문</div>
+          <div><b>✓</b>끼니 시간에 식당</div>
+          <div><b>✓</b>실제 이동시간 반영</div>
+          <div><b>✓</b>지역상권 가게 우선</div>
+        </div>
+      </div></div>
+    <div class="cap">LLM 해석 + 알고리즘 최적화</div>
+    <div class="sub">판단은 알고리즘, AI는 해석과 설명</div>
+  </div>
+
+  <div class="arrow"><svg width="56" height="28" viewBox="0 0 56 28"><path d="M2 14H50M38 3l13 11-13 11" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+  <div class="step">
+    <div class="lab">Step 3</div>
+    <div class="win"><div class="bar"><i></i><i></i><i></i><span class="url">route-fit.duckdns.org</span></div>
+      <div class="body s3"><div class="tl"><img src="src/phone_course.png"></div><div class="mp"><img src="src/map.png"></div></div></div>
+    <div class="cap">시간표 · 지도 · 장소별 추천 이유</div>
+    <div class="sub">5곳 · 이동 47분 · 지역상권 4곳</div>
+  </div>
+</body></html>
