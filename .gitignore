@@ -7,3 +7,20 @@ logs/
 *.db
 .DS_Store
 ~$*
+node_modules/
+
+# 개인정보가 든 자료 (설문 응답, 테스터 보고서·사진)
+docs/Route-Fit 웹서비스 사용자 테스트 설문.xlsx
+docs/방문테스트/
+/설문_*.png
+/방문테스트_보고서양식.docx
+
+# 공모전 제출 안내 (외부 배포 자료)
+docs/*제출_안내.pdf
+
+# 발표자료 작업 폴더와 결과물 (빌드 코드, 렌더, 사진, 작업 기록)
+presentation/
+/*.pptx
+/*.pdf
+/*.png
+/중간보고_QnA.md
