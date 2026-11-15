@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Route-Fit 사용 매뉴얼</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: #1d2b28; font-size: 9.6pt; line-height: 1.55; }
+  .page { width: 210mm; height: 297mm; padding: 13mm 14mm 10mm; page-break-after: always; overflow: hidden; }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size: 18pt; }
+  h2 { font-size: 12pt; margin: 5mm 0 2.5mm; padding-bottom: 1mm; border-bottom: 1.5px solid #0f7a66; color: #0b3b33; }
+  h3 { font-size: 10pt; color: #0b3b33; margin-bottom: 0.5mm; }
+  img { display: block; border: 1px solid #d7e4df; }
+  .row { display: flex; gap: 6mm; }
+  ul { padding-left: 4.5mm; }
+  li { margin-bottom: 0.6mm; }
+  .box { background: #eef5f2; padding: 2.5mm 3.5mm; border-radius: 4px; margin-top: 2.5mm; }
+  .step { margin-bottom: 3.2mm; }
+  .tag { font-size: 8pt; color: #5e6b68; font-weight: 400; }
+  .q { color: #0f7a66; }
+  .pin { position: absolute; width: 6mm; height: 6mm; border-radius: 50%; background: #0f7a66; color: #fff; font-weight: 700; font-size: 9pt; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1.5px #fff; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <h1>Route-Fit 사용 매뉴얼</h1>
+  <div class="box">
+    <b>접속</b> https://route-fit.duckdns.org (PC 크롬·엣지 권장, 회원가입 없음)<br>
+    <b>가장 빠른 사용법</b> 문장 한 줄 입력 → <b>코스 만들기</b> (나머지 칸은 비워도 됩니다)
+  </div>
+
+  <h2>1. 화면 구성</h2>
+  <div style="position:relative">
+    <img src="overview.jpg" style="width:150mm">
+    <span class="pin" style="left:27mm;top:11mm">①</span><span class="pin" style="left:67mm;top:11mm">②</span><span class="pin" style="left:99mm;top:12mm">③</span>
+  </div>
+  <p style="margin-top:1.5mm">① <b>조건 입력</b> &nbsp; ② <b>AI 생성 코스</b> &nbsp; ③ <b>지도</b></p>
+
+  <h2>2. 코스 만들기</h2>
+  <div class="row">
+    <img src="input.jpg" style="width:36mm; align-self:flex-start">
+    <div style="flex:1">
+      <div class="step"><h3>① 출발 위치 <span class="tag">선택</span></h3>
+        <ul><li>출발할 곳(역·숙소 등)을 검색해 고릅니다.</li></ul></div>
+      <div class="step"><h3>② 꼭 갈 곳 <span class="tag">선택</span></h3>
+        <ul>
+          <li>반드시 갈 장소를 검색해 고릅니다. (예: 챔피언스 필드)</li>
+          <li><b>방문 예정 시각</b>을 정하면 그 일정은 고정되고, 앞뒤 시간을 AI가 채웁니다.</li>
+          <li><b>+ 꼭 갈 곳 추가</b>로 최대 5곳까지 넣을 수 있습니다.</li>
+        </ul></div>
+      <div class="step"><h3>③ 어떤 하루를 원하세요? <span class="tag">필수</span></h3>
+        <ul>
+          <li>원하는 하루를 말하듯 적습니다.<br><span class="q">예) “친구랑 야구 보기 전에 맛집이랑 카페 가고 싶어. 장소는 4곳만”</span></li>
+          <li>동행, 요일, 시간, 장소 수, 싫은 것도 알아듣습니다.<br><span class="q">예) “토요일 2시부터”, “훠궈는 싫어”, “대중교통 타기 싫어”</span></li>
+        </ul></div>
+      <div class="step"><h3>④ 더 자세히 정하기 <span class="tag">선택</span></h3>
+        <ul>
+          <li>방문 날짜(그 요일 휴무인 곳 제외), 하루 시작·종료, 1인 예산, 빼고 싶은 장소</li>
+        </ul></div>
+      <div class="step" style="margin-bottom:0"><h3>⑤ 코스 만들기 버튼</h3>
+        <ul>
+          <li>5~10초 뒤 코스와 지도가 나옵니다.</li>
+          <li>마음에 안 들면 입력을 고쳐 다시 누르면 됩니다.</li>
+        </ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <h2 style="margin-top:0">3. 결과 보기</h2>
+  <div class="row">
+    <div style="width:72mm; flex:none; display:flex; flex-direction:column; gap:3mm">
+      <img src="result_top.jpg" style="width:72mm">
+      <img src="timeline.jpg" style="width:72mm">
+      <img src="share.jpg" style="width:72mm">
+    </div>
+    <div style="flex:1">
+      <div class="step"><h3>인식된 조건</h3>
+        <ul>
+          <li>AI가 문장에서 읽은 조건입니다.</li>
+          <li>다르게 읽었으면 문장을 고쳐 다시 만듭니다.</li>
+        </ul></div>
+      <div class="step"><h3>요약과 숫자</h3>
+        <ul>
+          <li>코스 요약, 방문 장소 수, 머무는 시간, 이동 시간, 1인 예상 지출</li>
+        </ul></div>
+      <div class="step"><h3>시간표</h3>
+        <ul>
+          <li>장소마다 시각, 1인 비용, 이동 수단(도보·대중교통)</li>
+          <li>회색 상자: <b>AI 추천 이유</b></li>
+          <li>장소 이름을 누르면 지도에서 위치를 보여 줍니다.</li>
+          <li><b>카카오맵 ↗</b>: 카카오맵에서 그 장소를 엽니다.</li>
+        </ul></div>
+      <div class="step"><h3>다른 곳으로 바꾸기</h3>
+        <ul>
+          <li>AI가 고른 장소 아래 링크를 누르면 비슷한 후보가 최대 3곳 나옵니다.</li>
+          <li><b>이걸로 바꾸기</b>를 누르면 그 장소만 바뀝니다.</li>
+        </ul></div>
+      <div class="step"><h3>지도</h3>
+        <ul>
+          <li>방문 순서대로 번호와 경로가 보입니다.</li>
+          <li><b>전체 경로 보기</b>로 코스 전체를 다시 봅니다.</li>
+        </ul></div>
+      <div class="step" style="margin-bottom:0"><h3>공유 · 평가</h3>
+        <ul>
+          <li><b>공유 링크 복사</b>: 같은 코스를 다른 사람에게 보냅니다.</li>
+          <li>별점을 고르고 <b>평가 보내기</b>를 누릅니다.</li>
+        </ul></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
